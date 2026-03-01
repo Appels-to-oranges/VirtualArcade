@@ -10,6 +10,7 @@ const SOUND_FILES = {
   winner: ['winner.wav', 'winner together.wav', 'winner sound.wav', 'winner.mp3'],
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
   betting: ['chips_betting.wav', 'chips_betting.mp3'],
+  allIn: ['all_in.wav', 'all in.wav', 'all_in.mp3'],
 };
 
 function createSoundAudio(keys) {
@@ -34,6 +35,7 @@ const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
 const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 const soundBetting = createSoundAudio(SOUND_FILES.betting);
+const soundAllIn = createSoundAudio(SOUND_FILES.allIn);
 
 let audioCtx = null;
 function playFallbackClick(vol = 0.3) {
@@ -83,6 +85,10 @@ function playYourTurn() {
 
 function playBetting() {
   playSound(soundBetting, CARD_FX_VOLUME_KEY);
+}
+
+function playAllIn() {
+  playSound(soundAllIn, CARD_FX_VOLUME_KEY);
 }
 
 function startAmbience() {
@@ -386,7 +392,8 @@ function handleMessage(msg) {
     }
 
     case 'action':
-      if (['call', 'bet', 'raise', 'allin'].includes(msg.action)) playBetting();
+      if (msg.action === 'allin') playAllIn();
+      else if (['call', 'bet', 'raise'].includes(msg.action)) playBetting();
       if (msg.minRaise !== undefined && gameState) gameState.minRaise = msg.minRaise;
       if (msg.players) {
         msg.players.forEach((p) => {
@@ -661,6 +668,12 @@ function renderTable() {
     const isMe = p.id === myId;
     const isTurn = gameState && gameState.turnIdx === i;
     const isDealer = gameState && gameState.dealerIdx === i;
+    const isPreflop = gameState?.phase === 'preflop';
+    const sbIdx = count > 0 ? ((gameState?.dealerIdx ?? 0) + 1) % count : -1;
+    const bbIdx = count > 0 ? ((gameState?.dealerIdx ?? 0) + 2) % count : -1;
+    const isSB = isPreflop && i === sbIdx;
+    const isBB = isPreflop && i === bbIdx;
+    const badge = isDealer ? ' (D)' : isBB ? ' (BB)' : isSB ? ' (SB)' : '';
 
     if (isTurn) seat.classList.add('is-turn');
     if (isDealer) seat.classList.add('is-dealer');
@@ -669,7 +682,7 @@ function renderTable() {
     seatInfo.className = 'seat-info';
     const nameSpan = document.createElement('span');
     nameSpan.className = 'seat-name';
-    nameSpan.textContent = `${p.nickname || 'Player'}${isDealer ? ' (D)' : ''}`;
+    nameSpan.textContent = `${p.nickname || 'Player'}${badge}`;
     seatInfo.appendChild(nameSpan);
     const chipsSpan = document.createElement('span');
     chipsSpan.className = 'seat-chips';

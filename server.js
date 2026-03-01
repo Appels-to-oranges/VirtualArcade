@@ -123,26 +123,61 @@ function startTurnTimer(roomKey) {
     const idx = room.turnIdx;
     const player = room.players[idx];
     if (!player || player.folded || player.allIn) return;
-    player.folded = true;
-    const activeCount = room.players.filter((p) => !p.folded).length;
-    broadcastToRoom(roomKey, {
-      type: 'action',
-      playerId: player.id,
-      action: 'fold',
-      reason: 'timeout',
-      pot: room.pot,
-      players: room.players.map((p, i) => ({
-        id: p.id,
-        folded: p.folded,
-        chips: p.chips,
-        betThisRound: p.betThisRound,
-        isTurn: i === room.turnIdx,
-      })),
-    });
-    if (activeCount <= 1) {
-      showdown(roomKey);
-      return;
+
+    const canCheck = player.betThisRound >= room.currentBet;
+    const toCall = room.currentBet - player.betThisRound;
+
+    if (canCheck) {
+      broadcastToRoom(roomKey, {
+        type: 'action',
+        playerId: player.id,
+        action: 'check',
+        reason: 'timeout',
+      });
+    } else if (toCall > 0 && player.chips >= toCall) {
+      const actual = toCall;
+      player.chips -= actual;
+      player.betThisRound += actual;
+      player.totalBet += actual;
+      room.pot += actual;
+      if (player.chips === 0) player.allIn = true;
+      broadcastToRoom(roomKey, {
+        type: 'action',
+        playerId: player.id,
+        action: 'call',
+        amount: actual,
+        reason: 'timeout',
+        pot: room.pot,
+        players: room.players.map((p, i) => ({
+          id: p.id,
+          chips: p.chips,
+          betThisRound: p.betThisRound,
+          isTurn: i === room.turnIdx,
+        })),
+      });
+    } else {
+      player.folded = true;
+      const activeCount = room.players.filter((p) => !p.folded).length;
+      broadcastToRoom(roomKey, {
+        type: 'action',
+        playerId: player.id,
+        action: 'fold',
+        reason: 'timeout',
+        pot: room.pot,
+        players: room.players.map((p, i) => ({
+          id: p.id,
+          folded: p.folded,
+          chips: p.chips,
+          betThisRound: p.betThisRound,
+          isTurn: i === room.turnIdx,
+        })),
+      });
+      if (activeCount <= 1) {
+        showdown(roomKey);
+        return;
+      }
     }
+
     room.turnIdx = advanceTurn(room, room.turnIdx);
     if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
       checkBettingComplete(roomKey);

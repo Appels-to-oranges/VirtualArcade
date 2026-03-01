@@ -9,6 +9,7 @@ $files = @(
     @{ src = "winner sound.wav"; dest = "winner.wav" },
     @{ src = "winner together.wav"; dest = "winner.wav" },
     @{ src = "chips_betting.wav"; dest = "chips_betting.wav" },
+    @{ src = "all in.wav"; dest = "all_in.wav" },
     @{ src = "your turn.wav"; dest = "your_turn.wav" },
     @{ src = "your_turn.wav"; dest = "your_turn.wav" },
     @{ src = "shuffle.wav"; dest = "shuffle.wav" },
