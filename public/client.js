@@ -935,7 +935,8 @@ function updateControls() {
   const currentBet = gameState?.currentBet || 0;
   const myBet = me?.betThisRound || 0;
   const toCall = currentBet - myBet;
-  const canCheck = currentBet === 0 || myBet >= currentBet;
+  const pot = gameState?.pot ?? 0;
+  const canCheck = (currentBet === 0 || myBet >= currentBet) && toCall <= 0;
 
   if (!gameState) {
     stopTurnTimer();
@@ -951,7 +952,10 @@ function updateControls() {
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
-  btnBet.disabled = !isMyTurn || folded || myChips <= 0;
+  const minRaise = gameState?.minRaise || 20;
+  const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
+  const canRaise = isMyTurn && !folded && myChips > 0;
+  btnBet.disabled = !canRaise;
   btnAllin.disabled = !isMyTurn || folded || myChips <= 0;
 
   if (toCall > 0) {
@@ -1012,12 +1016,38 @@ btnCall.addEventListener('click', () => {
 
 btnBet.addEventListener('click', () => {
   if (ws && ws.readyState === 1) {
-    const amt = parseInt(betAmountInput.value, 10) || 0;
+    const amt = Math.max(0, parseInt(betAmountInput.value, 10) || 0);
     const currentBet = gameState?.currentBet || 0;
     const action = currentBet > 0 ? 'raise' : 'bet';
     ws.send(JSON.stringify({ type: 'action', action, amount: amt }));
   }
 });
+
+const btnHalfPot = document.getElementById('btn-half-pot');
+const btnFullPot = document.getElementById('btn-full-pot');
+if (btnHalfPot) {
+  btnHalfPot.addEventListener('click', () => {
+    const pot = gameState?.pot ?? 0;
+    const currentBet = gameState?.currentBet || 0;
+    const minRaise = gameState?.minRaise || 20;
+    const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
+    const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
+    const halfPot = Math.floor(pot / 2);
+    const amt = Math.min(myChips, Math.max(minBetTo, halfPot));
+    betAmountInput.value = amt;
+  });
+}
+if (btnFullPot) {
+  btnFullPot.addEventListener('click', () => {
+    const pot = gameState?.pot ?? 0;
+    const currentBet = gameState?.currentBet || 0;
+    const minRaise = gameState?.minRaise || 20;
+    const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
+    const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
+    const amt = Math.min(myChips, Math.max(minBetTo, pot));
+    betAmountInput.value = amt;
+  });
+}
 
 btnAllin.addEventListener('click', () => {
   if (ws && ws.readyState === 1) {

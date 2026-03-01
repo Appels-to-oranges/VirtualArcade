@@ -1016,6 +1016,17 @@ body {
   align-items: center;
 }
 
+.btn-pot {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.5rem;
+  min-width: 2rem;
+}
+
+.btn-pot:hover:not(:disabled) {
+  background: #2a1e0e;
+  border-color: #c9b896;
+}
+
 .bet-row input {
   width: 5rem;
   min-width: 0;
