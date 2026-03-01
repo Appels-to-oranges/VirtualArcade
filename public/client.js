@@ -977,7 +977,6 @@ function updateControls() {
 
   btnAllin.textContent = `All In $${myChips}`;
 
-  const minRaise = gameState?.minRaise || 20;
   betAmountInput.placeholder = `$${minRaise}`;
   betAmountInput.min = minRaise;
 }
