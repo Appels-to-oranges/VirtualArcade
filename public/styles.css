@@ -178,6 +178,17 @@ body {
   letter-spacing: 3px;
 }
 
+.hand-rank-label {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: #c9b896;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
 /* Community cards */
 .community-cards {
   position: absolute;
@@ -335,6 +346,20 @@ body {
   flex-shrink: 0;
 }
 
+.turn-timer {
+  font-size: 0.65rem;
+  color: #ffd700;
+  min-width: 60px;
+  text-align: center;
+  padding: 4px 8px;
+  border: 2px solid #8b6914;
+  background: #1a1a0a;
+}
+
+.turn-timer.hidden {
+  display: none !important;
+}
+
 .pot-in-controls {
   font-size: 0.7rem;
   color: #c9b896;
@@ -450,24 +475,27 @@ body {
 }
 
 .showdown-winning-label {
-  font-size: 0.5rem;
-  color: #6a6a4a;
+  font-size: 0.6rem;
+  color: #ffd700;
   text-align: center;
   margin-bottom: 0.75rem;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
 }
 
 .showdown-winning-cards {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 12px;
+  background: rgba(255, 215, 0, 0.08);
+  border: 2px solid #8b6914;
 }
 
 .showdown-winning-card {
-  width: 64px;
-  height: 90px;
-  background-size: 64px 90px;
+  width: 72px;
+  height: 100px;
+  background-size: 72px 100px;
   image-rendering: pixelated;
 }
 

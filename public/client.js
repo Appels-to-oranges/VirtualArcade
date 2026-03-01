@@ -1,4 +1,5 @@
 const CARDS_BASE = '/cards';
+const TURN_TIMEOUT_MS = 60 * 1000;
 
 function cardImagePath(card) {
   if (!card) return `${CARDS_BASE}/empty.png`;
@@ -7,6 +8,26 @@ function cardImagePath(card) {
 
 function cardImagePathBack() {
   return `${CARDS_BASE}/backs/blue.png`;
+}
+
+function toSolverFormat(card) {
+  const rankMap = { '10': 'T', 'J': 'J', 'Q': 'Q', 'K': 'K', 'A': 'A' };
+  const suitMap = { hearts: 'h', diamonds: 'd', clubs: 'c', spades: 's' };
+  const r = rankMap[card.rank] || card.rank;
+  const s = suitMap[card.suit] || 'h';
+  return r + s;
+}
+
+function evaluateHand(holeCards, communityCards) {
+  if (!holeCards?.length || !window.Hand) return null;
+  const all = [...holeCards, ...(communityCards || [])];
+  if (all.length < 5) return null;
+  try {
+    const cards = all.map(toSolverFormat);
+    return window.Hand.solve(cards);
+  } catch (e) {
+    return null;
+  }
 }
 
 const joinScreen = document.getElementById('join-screen');
@@ -19,6 +40,8 @@ const communityCardsEl = document.getElementById('community-cards');
 const myCardsEl = document.getElementById('my-cards');
 const potInControls = document.getElementById('pot-in-controls');
 const phaseLabel = document.getElementById('phase-label');
+const handRankLabel = document.getElementById('hand-rank-label');
+const turnTimerEl = document.getElementById('turn-timer');
 const roomLabel = document.getElementById('room-label');
 const startBtn = document.getElementById('start-btn');
 const messageToast = document.getElementById('message-toast');
@@ -45,6 +68,7 @@ let myHand = [];
 let gameState = null;
 let prevCommunityCount = 0;
 let lastWinningCards = null;
+let turnTimerInterval = null;
 
 joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -395,6 +419,35 @@ function renderTable() {
 
   const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
   startBtn.disabled = !canStart;
+
+  const handRank = evaluateHand(myHand, gameState?.communityCards);
+  if (handRankLabel) {
+    const text = handRank ? (handRank.descr || handRank.name) : '';
+    handRankLabel.textContent = text;
+    handRankLabel.style.display = text ? 'block' : 'none';
+  }
+}
+
+function startTurnTimer() {
+  stopTurnTimer();
+  let remaining = TURN_TIMEOUT_MS / 1000;
+  if (turnTimerEl) {
+    turnTimerEl.classList.remove('hidden');
+    turnTimerEl.textContent = `${remaining}s`;
+  }
+  turnTimerInterval = setInterval(() => {
+    remaining--;
+    if (turnTimerEl) turnTimerEl.textContent = `${remaining}s`;
+    if (remaining <= 0) stopTurnTimer();
+  }, 1000);
+}
+
+function stopTurnTimer() {
+  if (turnTimerInterval) {
+    clearInterval(turnTimerInterval);
+    turnTimerInterval = null;
+  }
+  if (turnTimerEl) turnTimerEl.classList.add('hidden');
 }
 
 function updateControls() {
@@ -402,11 +455,19 @@ function updateControls() {
   const isMyTurn = gameState && gameState.turnIdx === myIdx;
   const me = players[myIdx];
   const folded = me?.folded;
+
+  if (isMyTurn && !folded) {
+    startTurnTimer();
+  } else {
+    stopTurnTimer();
+  }
   const myChips = me?.chips ?? 0;
   const currentBet = gameState?.currentBet || 0;
   const myBet = me?.betThisRound || 0;
   const toCall = currentBet - myBet;
   const canCheck = currentBet === 0 || myBet >= currentBet;
+
+  if (!gameState) stopTurnTimer();
 
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;

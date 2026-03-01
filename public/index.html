@@ -28,12 +28,14 @@
     <div class="table-container">
       <div class="poker-table">
         <div class="phase-label" id="phase-label"></div>
+        <div class="hand-rank-label" id="hand-rank-label"></div>
         <div class="community-cards" id="community-cards"></div>
         <div class="players-container" id="players-container"></div>
       </div>
     </div>
     <div class="my-cards" id="my-cards"></div>
     <div class="controls" id="controls">
+      <div class="turn-timer hidden" id="turn-timer"></div>
       <div class="pot-in-controls" id="pot-in-controls">Pot: $0</div>
       <button id="btn-fold" class="btn btn-fold">Fold</button>
       <button id="btn-check" class="btn btn-check">Check</button>
@@ -57,6 +59,7 @@
     </div>
   </div>
 
+  <script src="pokersolver.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
