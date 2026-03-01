@@ -211,7 +211,6 @@ function evaluateHand(holeCards, communityCards) {
 
 const joinScreen = document.getElementById('join-screen');
 const gameScreen = document.getElementById('game-screen');
-const joinForm = document.getElementById('join-form');
 const roomKeyInput = document.getElementById('room-key');
 const nicknameInput = document.getElementById('nickname');
 const playersContainer = document.getElementById('players-container');
@@ -292,13 +291,14 @@ function doJoin() {
   join(key, nick);
 }
 
-joinForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  doJoin();
-});
-
 const joinBtn = document.getElementById('join-btn');
 if (joinBtn) joinBtn.addEventListener('click', doJoin);
+
+[roomKeyInput, nicknameInput].forEach((input) => {
+  if (input) input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); doJoin(); }
+  });
+});
 
 function join(key, nick) {
   roomKey = key;
@@ -447,8 +447,8 @@ function handleMessage(msg) {
           }
         });
       }
-      if (msg.pot !== undefined) gameState.pot = msg.pot;
-      if (msg.currentBet !== undefined) gameState.currentBet = msg.currentBet;
+      if (msg.pot !== undefined && gameState) gameState.pot = msg.pot;
+      if (msg.currentBet !== undefined && gameState) gameState.currentBet = msg.currentBet;
       renderTable();
       updateControls();
       break;
@@ -459,24 +459,20 @@ function handleMessage(msg) {
       updateControls();
       break;
 
-    case 'gameOver':
+    case 'gameOver': {
       lastWinningCards = msg.winningCards || [];
       lastCommunityCards = msg.communityCards || [];
       lastHandName = msg.handName || null;
       lastWinningHoleIndices = msg.winningHoleIndices || [];
       lastPot = msg.pot || 0;
-      const winnerIds = msg.winners || (msg.winner ? [msg.winner] : []);
-      const winnerNames = msg.winnerNicknames || (msg.winnerNickname ? [msg.winnerNickname] : []);
-      const winAmount = msg.winAmount ?? msg.pot ?? 0;
-      const pot = msg.pot ?? 0;
-      let netWon = winAmount;
-      if (winnerIds.length >= 1) {
-        const winnerBets = winnerIds.reduce((sum, id) => {
-          const p = players.find((x) => x.id === id);
-          return sum + (p?.betThisRound ?? 0);
-        }, 0);
-        netWon = Math.max(0, (winnerIds.length === 1 ? winAmount : pot) - winnerBets);
-      }
+      const goWinnerIds = msg.winners || (msg.winner ? [msg.winner] : []);
+      const goWinnerNames = msg.winnerNicknames || (msg.winnerNickname ? [msg.winnerNickname] : []);
+      const goWinAmount = msg.winAmount ?? msg.pot ?? 0;
+      const goPot = msg.pot ?? 0;
+      const goWinnerTotalBets = (msg.players || [])
+        .filter((p) => goWinnerIds.includes(p.id))
+        .reduce((sum, p) => sum + (p.totalBet ?? 0), 0);
+      const goNetWon = Math.max(0, (goWinnerIds.length === 1 ? goWinAmount : goPot) - goWinnerTotalBets);
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -486,10 +482,10 @@ function handleMessage(msg) {
           }
         });
       }
-      const winnerText = winnerNames.length ? winnerNames.join(', ') : 'Unknown';
-      lastWinnerNames = winnerText;
-      lastNetWon = netWon;
-      const amIWinner = winnerIds.includes(myId);
+      const goWinnerText = goWinnerNames.length ? goWinnerNames.join(', ') : 'Unknown';
+      lastWinnerNames = goWinnerText;
+      lastNetWon = goNetWon;
+      const amIWinner = goWinnerIds.includes(myId);
       if (amIWinner) playWinner();
       else playYouLose();
       showShowdown(msg);
@@ -497,6 +493,7 @@ function handleMessage(msg) {
       renderTable();
       updateControls();
       break;
+    }
 
     case 'rebuySuccess':
       if (msg.chips !== undefined) {
@@ -557,13 +554,12 @@ function showShowdown(msg) {
   const winText = msg.winnerNicknames?.join(', ') || msg.winnerNickname || 'Unknown';
   const handName = msg.handName || '';
   const winnerIds = msg.winners || (msg.winner ? [msg.winner] : []);
-  const winnerBets = winnerIds.reduce((sum, id) => {
-    const p = players.find((x) => x.id === id);
-    return sum + (p?.betThisRound ?? 0);
-  }, 0);
   const pot = msg.pot ?? 0;
   const winAmount = msg.winAmount ?? pot;
-  const netWon = Math.max(0, (winnerIds.length === 1 ? winAmount : pot) - winnerBets);
+  const winnerTotalBets = (msg.players || [])
+    .filter((p) => winnerIds.includes(p.id))
+    .reduce((sum, p) => sum + (p.totalBet ?? 0), 0);
+  const netWon = Math.max(0, (winnerIds.length === 1 ? winAmount : pot) - winnerTotalBets);
 
   const bannerEl = document.getElementById('showdown-winner-banner');
   if (bannerEl) bannerEl.textContent = `Winner: ${winText} (won $${netWon})`;
@@ -602,12 +598,12 @@ function showShowdown(msg) {
   }
 
   /* All hands: every player including folded (full transparency) */
-  const winnerIds = new Set(msg.winners || (msg.winner ? [msg.winner] : []));
+  const winnerIdSet = new Set(winnerIds);
   if (showdownHands) {
     showdownHands.innerHTML = '';
     (msg.players || []).forEach((p) => {
       if (!p.hand?.length) return;
-      const isWinner = winnerIds.has(p.id);
+      const isWinner = winnerIdSet.has(p.id);
       const badges = [];
       if (isWinner) badges.push('Winner');
       if (p.folded) badges.push('Folded');
@@ -735,8 +731,9 @@ function renderTable() {
     const isTurn = gameState && gameState.turnIdx === i;
     const isDealer = gameState && gameState.dealerIdx === i;
     const isPreflop = gameState?.phase === 'preflop';
-    const sbIdx = count > 0 ? ((gameState?.dealerIdx ?? 0) + 1) % count : -1;
-    const bbIdx = count > 0 ? ((gameState?.dealerIdx ?? 0) + 2) % count : -1;
+    const dealerPos = gameState?.dealerIdx ?? 0;
+    const sbIdx = count === 2 ? dealerPos : (count > 0 ? (dealerPos + 1) % count : -1);
+    const bbIdx = count === 2 ? (dealerPos + 1) % count : (count > 0 ? (dealerPos + 2) % count : -1);
     const isSB = isPreflop && i === sbIdx;
     const isBB = isPreflop && i === bbIdx;
     const badge = isDealer ? ' (D)' : isBB ? ' (BB)' : isSB ? ' (SB)' : '';

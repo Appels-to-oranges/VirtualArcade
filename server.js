@@ -92,7 +92,7 @@ function getRoom(roomKey) {
       communityCards: [],
       pot: 0,
       currentBet: 0,
-      dealerIdx: 0,
+      dealerIdx: -1,
       smallBlind: 10,
       bigBlind: 20,
       phase: 'lobby',
@@ -179,17 +179,7 @@ function startTurnTimer(roomKey) {
     }
 
     room.turnIdx = advanceTurn(room, room.turnIdx);
-    if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
-      checkBettingComplete(roomKey);
-    } else {
-      const nextPlayer = room.players[room.turnIdx];
-      broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer.id });
-      if (nextPlayer?.isBot) {
-        scheduleBotAction(roomKey);
-      } else {
-        startTurnTimer(roomKey);
-      }
-    }
+    checkBettingComplete(roomKey);
   }, TURN_TIMEOUT_MS);
 }
 
@@ -207,6 +197,7 @@ function startGame(roomKey) {
   const room = getRoom(roomKey);
   if (room.players.length < 2) return;
 
+  const count = room.players.length;
   room.deck = shuffle(createDeck());
   room.communityCards = [];
   room.pot = 0;
@@ -217,11 +208,18 @@ function startGame(roomKey) {
   room.minRaise = room.bigBlind;
   room.sidePots = [];
 
-  room.dealerIdx = (room.dealerIdx + 1) % room.players.length;
-  const sbIdx = (room.dealerIdx + 1) % room.players.length;
-  const bbIdx = (room.dealerIdx + 2) % room.players.length;
+  room.dealerIdx = (room.dealerIdx + 1) % count;
 
-  room.players.forEach((p, i) => {
+  let sbIdx, bbIdx;
+  if (count === 2) {
+    sbIdx = room.dealerIdx;
+    bbIdx = (room.dealerIdx + 1) % count;
+  } else {
+    sbIdx = (room.dealerIdx + 1) % count;
+    bbIdx = (room.dealerIdx + 2) % count;
+  }
+
+  room.players.forEach((p) => {
     p.hand = [room.deck.pop(), room.deck.pop()];
     p.betThisRound = 0;
     p.totalBet = 0;
@@ -243,7 +241,7 @@ function startGame(roomKey) {
   room.pot = sbPay + bbPay;
   room.currentBet = room.bigBlind;
 
-  room.turnIdx = advanceTurn(room, (room.dealerIdx + 2) % room.players.length);
+  room.turnIdx = advanceTurn(room, bbIdx);
   room.lastRaiserIdx = bbIdx;
 
   broadcastToRoom(roomKey, {
@@ -389,6 +387,7 @@ function showdown(roomKey) {
         chips: p.chips,
         hand: p.hand,
         folded: p.folded,
+        totalBet: p.totalBet ?? 0,
       })),
     });
   } else {
@@ -427,6 +426,7 @@ function showdown(roomKey) {
         chips: p.chips,
         hand: p.hand,
         folded: p.folded,
+        totalBet: p.totalBet ?? 0,
       })),
     });
   }
@@ -474,28 +474,19 @@ function scheduleBotAction(roomKey) {
       return;
     }
     room.turnIdx = advanceTurn(room, room.turnIdx);
-    if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
-      checkBettingComplete(roomKey);
-    } else {
-      const nextPlayer = room.players[room.turnIdx];
-      broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer.id });
-      if (nextPlayer?.isBot) {
-        scheduleBotAction(roomKey);
-      } else {
-        startTurnTimer(roomKey);
-      }
-    }
+    checkBettingComplete(roomKey);
   }, 800);
 }
 
 function advanceTurn(room, fromIdx) {
-  let next = (fromIdx + 1) % room.players.length;
-  let loops = 0;
-  while (!canAct(room.players[next]) && loops < room.players.length) {
-    next = (next + 1) % room.players.length;
-    loops++;
+  const len = room.players.length;
+  if (len === 0) return 0;
+  let next = (fromIdx + 1) % len;
+  for (let i = 0; i < len; i++) {
+    if (canAct(room.players[next])) return next;
+    next = (next + 1) % len;
   }
-  return next;
+  return (fromIdx + 1) % len;
 }
 
 function checkBettingComplete(roomKey) {
@@ -506,8 +497,17 @@ function checkBettingComplete(roomKey) {
     return;
   }
   const allMatched = active.every((p) => p.betThisRound >= room.currentBet);
-  if (allMatched && room.turnIdx === room.lastRaiserIdx) {
+  const raiserGone = room.lastRaiserIdx < 0 || !canAct(room.players[room.lastRaiserIdx]);
+  if (allMatched && (room.turnIdx === room.lastRaiserIdx || raiserGone)) {
     nextPhase(roomKey);
+    return;
+  }
+  const turnPlayer = room.players[room.turnIdx];
+  broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: turnPlayer?.id });
+  if (turnPlayer?.isBot) {
+    scheduleBotAction(roomKey);
+  } else {
+    startTurnTimer(roomKey);
   }
 }
 
@@ -678,12 +678,7 @@ wss.on('connection', (ws) => {
             return;
           }
           room.turnIdx = advanceTurn(room, room.turnIdx);
-          if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
-            checkBettingComplete(data.roomKey);
-          } else {
-            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
-            startTurnTimer(data.roomKey);
-          }
+          checkBettingComplete(data.roomKey);
         } else if (action === 'check') {
           clearTurnTimer(room);
           if (player.betThisRound < room.currentBet) return;
@@ -693,12 +688,7 @@ wss.on('connection', (ws) => {
             action: 'check',
           });
           room.turnIdx = advanceTurn(room, room.turnIdx);
-          if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
-            checkBettingComplete(data.roomKey);
-          } else {
-            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
-            startTurnTimer(data.roomKey);
-          }
+          checkBettingComplete(data.roomKey);
         } else if (action === 'call') {
           clearTurnTimer(room);
           const toCall = room.currentBet - player.betThisRound;
@@ -724,12 +714,7 @@ wss.on('connection', (ws) => {
           });
 
           room.turnIdx = advanceTurn(room, room.turnIdx);
-          if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
-            checkBettingComplete(data.roomKey);
-          } else {
-            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
-            startTurnTimer(data.roomKey);
-          }
+          checkBettingComplete(data.roomKey);
         } else if (action === 'bet' || action === 'raise') {
           clearTurnTimer(room);
           const raiseTo = Math.max(0, Math.floor(Number(amount) || 0));
@@ -765,8 +750,7 @@ wss.on('connection', (ws) => {
           });
 
           room.turnIdx = advanceTurn(room, room.turnIdx);
-          broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
-          startTurnTimer(data.roomKey);
+          checkBettingComplete(data.roomKey);
         } else if (action === 'allin') {
           clearTurnTimer(room);
           const allInAmount = player.chips;
@@ -801,12 +785,7 @@ wss.on('connection', (ws) => {
           });
 
           room.turnIdx = advanceTurn(room, room.turnIdx);
-          if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
-            checkBettingComplete(data.roomKey);
-          } else {
-            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
-            startTurnTimer(data.roomKey);
-          }
+          checkBettingComplete(data.roomKey);
         }
       }
     } catch (err) {
@@ -820,14 +799,46 @@ wss.on('connection', (ws) => {
       const room = getRoom(data.roomKey);
       const idx = room.players.findIndex((p) => p.ws === ws);
       if (idx >= 0) {
+        const wasInGame = room.phase !== 'lobby';
+        const wasTurn = wasInGame && room.turnIdx === idx;
+
         room.players.splice(idx, 1);
+
+        if (wasInGame && room.players.length > 0) {
+          if (room.dealerIdx >= room.players.length) room.dealerIdx = room.players.length - 1;
+          else if (idx < room.dealerIdx) room.dealerIdx--;
+
+          if (room.lastRaiserIdx >= 0) {
+            if (idx === room.lastRaiserIdx) room.lastRaiserIdx = -1;
+            else if (idx < room.lastRaiserIdx) room.lastRaiserIdx--;
+            if (room.lastRaiserIdx >= room.players.length) room.lastRaiserIdx = room.players.length - 1;
+          }
+
+          if (room.turnIdx >= room.players.length) room.turnIdx = 0;
+          else if (idx < room.turnIdx) room.turnIdx--;
+          if (room.turnIdx < 0) room.turnIdx = 0;
+        }
+
         if (room.players.length === 0) {
+          clearTurnTimer(room);
           rooms.delete(data.roomKey);
         } else {
           broadcastToRoom(data.roomKey, { type: 'userLeft', id: ws.id });
-          if (room.phase !== 'lobby' && room.players.length < 2) {
-            room.phase = 'lobby';
-            broadcastToRoom(data.roomKey, { type: 'roundOver', players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })) });
+          const activeCount = room.players.filter((p) => !p.folded).length;
+          if (wasInGame && (room.players.length < 2 || activeCount <= 1)) {
+            clearTurnTimer(room);
+            if (activeCount >= 1 && room.players.length >= 1) {
+              showdown(data.roomKey);
+            } else {
+              room.phase = 'lobby';
+              broadcastToRoom(data.roomKey, { type: 'roundOver', players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })) });
+            }
+          } else if (wasInGame && wasTurn) {
+            clearTurnTimer(room);
+            const nextPlayer = room.players[room.turnIdx];
+            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer?.id });
+            if (nextPlayer?.isBot) scheduleBotAction(data.roomKey);
+            else startTurnTimer(data.roomKey);
           }
         }
       }
