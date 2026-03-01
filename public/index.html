@@ -12,8 +12,8 @@
       <h1>Texas Hold'em</h1>
       <p class="tagline">Room-based poker with friends</p>
       <form id="join-form">
-        <input type="text" id="room-key" placeholder="Room key" maxlength="32" autocomplete="off">
-        <input type="text" id="nickname" placeholder="Nickname" maxlength="20" autocomplete="off">
+        <input type="text" id="room-key" placeholder="> Room key" maxlength="32" autocomplete="off">
+        <input type="text" id="nickname" placeholder="> Nickname" maxlength="20" autocomplete="off">
         <button type="submit">Join</button>
       </form>
       <p class="hint">Share the same room key to play together.</p>
@@ -27,9 +27,6 @@
     </div>
     <div class="table-container">
       <div class="poker-table">
-        <div class="pot-display">
-          <span id="pot-label">Pot: $0</span>
-        </div>
         <div class="phase-label" id="phase-label"></div>
         <div class="community-cards" id="community-cards"></div>
         <div class="players-container" id="players-container"></div>
@@ -42,9 +39,10 @@
       <button id="btn-check" class="btn btn-check">Check</button>
       <button id="btn-call" class="btn btn-call">Call</button>
       <div class="bet-row">
-        <input type="number" id="bet-amount" placeholder="Amount" min="0" value="40">
+        <input type="number" id="bet-amount" placeholder="$20" min="0" value="40">
         <button id="btn-bet" class="btn btn-bet">Bet</button>
       </div>
+      <button id="btn-allin" class="btn btn-allin">All In</button>
     </div>
     <div class="message-toast" id="message-toast"></div>
     <div id="showdown-overlay" class="showdown-overlay hidden">

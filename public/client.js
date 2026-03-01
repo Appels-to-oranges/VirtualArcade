@@ -17,7 +17,6 @@ const nicknameInput = document.getElementById('nickname');
 const playersContainer = document.getElementById('players-container');
 const communityCardsEl = document.getElementById('community-cards');
 const myCardsEl = document.getElementById('my-cards');
-const potLabel = document.getElementById('pot-label');
 const potInControls = document.getElementById('pot-in-controls');
 const phaseLabel = document.getElementById('phase-label');
 const roomLabel = document.getElementById('room-label');
@@ -34,6 +33,7 @@ const btnCheck = document.getElementById('btn-check');
 const btnCall = document.getElementById('btn-call');
 const betAmountInput = document.getElementById('bet-amount');
 const btnBet = document.getElementById('btn-bet');
+const btnAllin = document.getElementById('btn-allin');
 
 let ws = null;
 let myId = null;
@@ -42,6 +42,7 @@ let nickname = '';
 let players = [];
 let myHand = [];
 let gameState = null;
+let prevCommunityCount = 0;
 
 joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -63,16 +64,13 @@ function join(key, nick) {
 
   ws.onmessage = (ev) => {
     try {
-      const msg = JSON.parse(ev.data);
-      handleMessage(msg);
+      handleMessage(JSON.parse(ev.data));
     } catch (err) {
       console.error('Parse error:', err);
     }
   };
 
-  ws.onclose = () => {
-    showJoinScreen();
-  };
+  ws.onclose = () => showJoinScreen();
 }
 
 function handleMessage(msg) {
@@ -81,6 +79,7 @@ function handleMessage(msg) {
       myId = msg.id;
       players = msg.players || [];
       gameState = msg.gameState;
+      prevCommunityCount = 0;
       roomLabel.textContent = `Room: ${msg.roomKey}`;
       showGameScreen();
       renderTable();
@@ -99,7 +98,7 @@ function handleMessage(msg) {
     case 'gameStarted':
       gameState = {
         phase: msg.phase,
-        communityCards: msg.communityCards || [],
+        communityCards: [],
         pot: msg.pot,
         currentBet: msg.currentBet,
         minRaise: msg.minRaise ?? 20,
@@ -108,6 +107,7 @@ function handleMessage(msg) {
       };
       players = msg.players || players;
       myHand = [];
+      prevCommunityCount = 0;
       renderTable();
       updateControls();
       break;
@@ -117,14 +117,16 @@ function handleMessage(msg) {
       renderTable();
       break;
 
-    case 'phaseChange':
+    case 'phaseChange': {
       gameState = gameState || {};
+      const oldCount = (gameState.communityCards || []).length;
       gameState.phase = msg.phase;
       gameState.communityCards = msg.communityCards || [];
       gameState.pot = msg.pot;
       gameState.currentBet = msg.currentBet;
       gameState.minRaise = msg.minRaise ?? 20;
       gameState.turnIdx = msg.turnIdx;
+      prevCommunityCount = oldCount;
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -138,6 +140,7 @@ function handleMessage(msg) {
       renderTable();
       updateControls();
       break;
+    }
 
     case 'action':
       if (msg.minRaise !== undefined && gameState) gameState.minRaise = msg.minRaise;
@@ -164,7 +167,6 @@ function handleMessage(msg) {
       break;
 
     case 'gameOver':
-      gameState = null;
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -178,17 +180,17 @@ function handleMessage(msg) {
         ? msg.winnerNicknames.join(', ')
         : msg.winnerNickname || 'Unknown';
       showToast(`${winnerText} wins $${msg.winAmount || msg.pot}${msg.handName ? ` with ${msg.handName}` : ''}!`);
+      showShowdown(msg);
+      gameState = null;
       renderTable();
       updateControls();
-      if (msg.communityCards && msg.communityCards.length > 0 && msg.players?.some((p) => p.hand)) {
-        showShowdown(msg);
-      }
       break;
 
     case 'roundOver':
       hideShowdown();
       gameState = null;
       myHand = [];
+      prevCommunityCount = 0;
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -225,14 +227,18 @@ function showGameScreen() {
 function showToast(text) {
   messageToast.textContent = text;
   messageToast.classList.add('show');
-  setTimeout(() => messageToast.classList.remove('show'), 3500);
+  setTimeout(() => messageToast.classList.remove('show'), 4000);
 }
 
 function showShowdown(msg) {
   const winText = msg.winnerNicknames?.join(', ') || msg.winnerNickname || 'Unknown';
   const handName = msg.handName || '';
   const winAmount = msg.winAmount ?? msg.pot ?? 0;
-  showdownTitle.textContent = `${winText} wins $${winAmount}${handName ? ` with ${handName}` : ''}`;
+
+  let title = `${winText} wins $${winAmount}`;
+  if (handName) title += ` with ${handName}`;
+  if (msg.reason === 'fold') title += ' (all others folded)';
+  showdownTitle.textContent = title;
 
   showdownCommunity.innerHTML = '';
   (msg.communityCards || []).forEach((card) => {
@@ -271,17 +277,22 @@ function hideShowdown() {
 
 function renderTable() {
   const pot = gameState?.pot || 0;
-  potLabel.textContent = `Pot: $${pot}`;
   if (potInControls) potInControls.textContent = `Pot: $${pot}`;
   phaseLabel.textContent = gameState?.phase ? gameState.phase.toUpperCase() : '';
 
   communityCardsEl.innerHTML = '';
-  (gameState?.communityCards || []).forEach((card) => {
+  const cards = gameState?.communityCards || [];
+  cards.forEach((card, idx) => {
     const div = document.createElement('div');
     div.className = 'card';
+    if (idx >= prevCommunityCount) div.classList.add('dealing');
     div.style.backgroundImage = `url(${cardImagePath(card)})`;
+    if (idx >= prevCommunityCount) {
+      div.style.animationDelay = `${(idx - prevCommunityCount) * 0.12}s`;
+    }
     communityCardsEl.appendChild(div);
   });
+  prevCommunityCount = cards.length;
 
   myCardsEl.innerHTML = '';
   myHand.forEach((card) => {
@@ -298,7 +309,7 @@ function renderTable() {
   const cx = 50;
   const cy = 50;
   const rx = 42;
-  const ry = 36;
+  const ry = 34;
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const offset = myPosIdx >= 0 ? Math.PI / 2 - (myPosIdx / count) * Math.PI * 2 : 0;
 
@@ -351,11 +362,11 @@ function renderTable() {
     const info = document.createElement('div');
     info.className = 'player-info';
 
-    let infoHtml = `<span class="player-name">${p.nickname || 'Player'}</span>`;
-    infoHtml += `<span class="chips">$${p.chips ?? 0}</span>`;
-    if (p.betThisRound) infoHtml += `<span class="bet-label">Bet: $${p.betThisRound}</span>`;
-    if (p.folded) infoHtml += `<span class="folded-label">Folded</span>`;
-    info.innerHTML = infoHtml;
+    let html = `<span class="player-name">${p.nickname || 'Player'}</span>`;
+    html += `<span class="chips">$${p.chips ?? 0}</span>`;
+    if (p.betThisRound) html += `<span class="bet-label">Bet: $${p.betThisRound}</span>`;
+    if (p.folded) html += `<span class="folded-label">Folded</span>`;
+    info.innerHTML = html;
 
     seat.appendChild(cardsDiv);
     seat.appendChild(info);
@@ -371,6 +382,7 @@ function updateControls() {
   const isMyTurn = gameState && gameState.turnIdx === myIdx;
   const me = players[myIdx];
   const folded = me?.folded;
+  const myChips = me?.chips ?? 0;
   const currentBet = gameState?.currentBet || 0;
   const myBet = me?.betThisRound || 0;
   const toCall = currentBet - myBet;
@@ -379,7 +391,8 @@ function updateControls() {
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
-  btnBet.disabled = !isMyTurn || folded;
+  btnBet.disabled = !isMyTurn || folded || myChips <= 0;
+  btnAllin.disabled = !isMyTurn || folded || myChips <= 0;
 
   if (toCall > 0) {
     btnCall.textContent = `Call $${toCall}`;
@@ -393,33 +406,27 @@ function updateControls() {
     btnBet.textContent = 'Bet';
   }
 
+  btnAllin.textContent = `All In $${myChips}`;
+
   const minRaise = gameState?.minRaise || 20;
   betAmountInput.placeholder = `$${minRaise}`;
   betAmountInput.min = minRaise;
 }
 
 startBtn.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'startGame' }));
-  }
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame' }));
 });
 
 btnFold.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'action', action: 'fold' }));
-  }
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'action', action: 'fold' }));
 });
 
 btnCheck.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'action', action: 'check' }));
-  }
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'action', action: 'check' }));
 });
 
 btnCall.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'action', action: 'call' }));
-  }
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'action', action: 'call' }));
 });
 
 btnBet.addEventListener('click', () => {
@@ -428,6 +435,12 @@ btnBet.addEventListener('click', () => {
     const currentBet = gameState?.currentBet || 0;
     const action = currentBet > 0 ? 'raise' : 'bet';
     ws.send(JSON.stringify({ type: 'action', action, amount: amt }));
+  }
+});
+
+btnAllin.addEventListener('click', () => {
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'action', action: 'allin' }));
   }
 });
 
