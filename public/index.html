@@ -21,6 +21,7 @@
   </div>
 
   <div id="game-screen" class="hidden">
+    <div class="game-scale-wrapper">
     <div class="room-bar">
       <span id="room-label"></span>
       <button id="start-btn" class="btn-start">Start Game</button>
@@ -64,6 +65,7 @@
       <button type="button" class="now-playing-stop" id="radio-stop" title="Stop radio">&#x25A0;</button>
     </div>
     <div class="message-toast" id="message-toast"></div>
+    </div>
     <div id="radio-overlay" class="radio-overlay hidden">
       <div class="radio-panel">
         <div class="radio-header">
@@ -74,10 +76,22 @@
           <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
           <button type="button" id="radio-search-btn">Search</button>
         </div>
-        <div class="radio-volume-wrap">
-          <label>Volume</label>
-          <input type="range" id="radio-volume" min="0" max="100" value="80">
-          <span id="radio-volume-value">80%</span>
+        <div class="sound-controls">
+          <div class="radio-volume-wrap">
+            <label>Radio</label>
+            <input type="range" id="radio-volume" min="0" max="100" value="80">
+            <span id="radio-volume-value">80%</span>
+          </div>
+          <div class="radio-volume-wrap">
+            <label>Card FX</label>
+            <input type="range" id="card-fx-volume" min="0" max="100" value="80">
+            <span id="card-fx-volume-value">80%</span>
+          </div>
+          <div class="radio-volume-wrap">
+            <label>Ambience</label>
+            <input type="range" id="ambience-volume" min="0" max="100" value="25">
+            <span id="ambience-volume-value">25%</span>
+          </div>
         </div>
         <div class="radio-results" id="radio-results"></div>
       </div>

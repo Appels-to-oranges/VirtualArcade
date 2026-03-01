@@ -7,27 +7,32 @@ const soundShuffle = new Audio(SOUNDS_BASE + '/shuffle.wav');
 const soundCardPutDown = new Audio(SOUNDS_BASE + '/card%20put%20down.wav');
 const soundAmbience = new Audio(SOUNDS_BASE + '/BACKGROUND_CASINO_AMBIENCE.wav');
 
-function playSound(audio) {
+function playSound(audio, volumeKey) {
   if (!audio?.src) return;
+  if (volumeKey) {
+    const v = parseInt(localStorage.getItem(volumeKey), 10);
+    audio.volume = (isNaN(v) ? 80 : Math.max(0, Math.min(100, v))) / 100;
+  }
   audio.currentTime = 0;
   audio.play().catch(() => {});
 }
 
 function playShuffle() {
-  playSound(soundShuffle);
+  playSound(soundShuffle, CARD_FX_VOLUME_KEY);
 }
 
 function playCardPutDown(delayMs = 0) {
   if (delayMs > 0) {
-    setTimeout(() => playSound(soundCardPutDown), delayMs);
+    setTimeout(() => playSound(soundCardPutDown, CARD_FX_VOLUME_KEY), delayMs);
   } else {
-    playSound(soundCardPutDown);
+    playSound(soundCardPutDown, CARD_FX_VOLUME_KEY);
   }
 }
 
 function startAmbience() {
   soundAmbience.loop = true;
-  soundAmbience.volume = 0.25;
+  const v = parseInt(localStorage.getItem(AMBIENCE_VOLUME_KEY), 10);
+  soundAmbience.volume = (isNaN(v) ? 25 : Math.max(0, Math.min(100, v))) / 100;
   playSound(soundAmbience);
 }
 
@@ -177,6 +182,10 @@ const radioResults = document.getElementById('radio-results');
 const radioStopBtn = document.getElementById('radio-stop');
 const radioVolumeSlider = document.getElementById('radio-volume');
 const radioVolumeValue = document.getElementById('radio-volume-value');
+const cardFxVolumeSlider = document.getElementById('card-fx-volume');
+const cardFxVolumeValue = document.getElementById('card-fx-volume-value');
+const ambienceVolumeSlider = document.getElementById('ambience-volume');
+const ambienceVolumeValue = document.getElementById('ambience-volume-value');
 const nowPlayingRadio = document.getElementById('now-playing-radio');
 const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
 
@@ -200,6 +209,8 @@ const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
 const radioAudio = new Audio();
 let currentRadioName = '';
 const RADIO_VOLUME_KEY = 'poker_radio_volume';
+const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
+const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 
 joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -637,8 +648,15 @@ function renderTable() {
 
     if (p.betThisRound && p.betThisRound > 0) {
       const betChipsDiv = document.createElement('div');
-      betChipsDiv.className = 'seat-bet-chips';
-      betChipsDiv.appendChild(renderChipStack(p.betThisRound, 3));
+      betChipsDiv.className = 'seat-bet';
+      const betAmount = document.createElement('span');
+      betAmount.className = 'seat-bet-amount';
+      betAmount.textContent = `$${p.betThisRound}`;
+      betChipsDiv.appendChild(betAmount);
+      const chipsSpan = document.createElement('span');
+      chipsSpan.className = 'seat-bet-chips';
+      chipsSpan.appendChild(renderChipStack(p.betThisRound, 3));
+      betChipsDiv.appendChild(chipsSpan);
       seat.appendChild(betChipsDiv);
     }
 
@@ -672,19 +690,6 @@ function renderTable() {
       chipsRow.appendChild(chipIcons);
       chipEl.appendChild(chipsRow);
 
-      if (p.betThisRound) {
-        const betRow = document.createElement('div');
-        betRow.className = 'bet-row-bar';
-        const betLabel = document.createElement('span');
-        betLabel.className = 'bet-label';
-        betLabel.textContent = `Bet: $${p.betThisRound}`;
-        betRow.appendChild(betLabel);
-        const betChips = document.createElement('span');
-        betChips.className = 'chip-icons';
-        betChips.appendChild(renderChipStack(p.betThisRound, 3));
-        betRow.appendChild(betChips);
-        chipEl.appendChild(betRow);
-      }
       if (p.folded) {
         const foldedEl = document.createElement('span');
         foldedEl.className = 'folded-label';
@@ -832,6 +837,16 @@ function initRadioVolume() {
   radioAudio.volume = vol / 100;
   if (radioVolumeSlider) radioVolumeSlider.value = vol;
   if (radioVolumeValue) radioVolumeValue.textContent = vol + '%';
+
+  const cardFx = parseInt(localStorage.getItem(CARD_FX_VOLUME_KEY), 10);
+  const cardFxVol = isNaN(cardFx) ? 80 : Math.max(0, Math.min(100, cardFx));
+  if (cardFxVolumeSlider) cardFxVolumeSlider.value = cardFxVol;
+  if (cardFxVolumeValue) cardFxVolumeValue.textContent = cardFxVol + '%';
+
+  const amb = parseInt(localStorage.getItem(AMBIENCE_VOLUME_KEY), 10);
+  const ambVol = isNaN(amb) ? 25 : Math.max(0, Math.min(100, amb));
+  if (ambienceVolumeSlider) ambienceVolumeSlider.value = ambVol;
+  if (ambienceVolumeValue) ambienceVolumeValue.textContent = ambVol + '%';
 }
 
 function searchRadioStations(query) {
@@ -922,6 +937,19 @@ if (radioVolumeSlider) radioVolumeSlider.addEventListener('input', () => {
   radioAudio.volume = v / 100;
   localStorage.setItem(RADIO_VOLUME_KEY, v);
   if (radioVolumeValue) radioVolumeValue.textContent = v + '%';
+});
+
+if (cardFxVolumeSlider) cardFxVolumeSlider.addEventListener('input', () => {
+  const v = parseInt(cardFxVolumeSlider.value, 10);
+  localStorage.setItem(CARD_FX_VOLUME_KEY, v);
+  if (cardFxVolumeValue) cardFxVolumeValue.textContent = v + '%';
+});
+
+if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
+  const v = parseInt(ambienceVolumeSlider.value, 10);
+  soundAmbience.volume = v / 100;
+  localStorage.setItem(AMBIENCE_VOLUME_KEY, v);
+  if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });
 
 const params = new URLSearchParams(window.location.search);
