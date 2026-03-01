@@ -9,6 +9,9 @@ Copy your sound files here. Supported names (first match wins):
   all_in.wav or all in.wav (plays on all-in)
   you_lose.wav or you lose.wav (plays when someone else wins)
   check.wav (plays on check)
+  small clap.wav / small_clap.wav (plays on 3-win streak)
+  medium reaction.wav / medium_reaction.wav (plays on 5-win streak)
+  big reaction.wav / big_reaction.wav (plays on 6+ win streak)
 
 To copy from Downloads: run copy-sounds.ps1 from the project root.
 If files are missing, a fallback click sound is used.

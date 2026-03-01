@@ -17,7 +17,13 @@ $files = @(
     @{ src = "shuffle.wav"; dest = "shuffle.wav" },
     @{ src = "card put down.wav"; dest = "card_put_down.wav" },
     @{ src = "card_put_down.wav"; dest = "card_put_down.wav" },
-    @{ src = "BACKGROUND_CASINO_AMBIENCE.wav"; dest = "BACKGROUND_CASINO_AMBIENCE.wav" }
+    @{ src = "BACKGROUND_CASINO_AMBIENCE.wav"; dest = "BACKGROUND_CASINO_AMBIENCE.wav" },
+    @{ src = "small clap.wav"; dest = "small clap.wav" },
+    @{ src = "small_clap.wav"; dest = "small clap.wav" },
+    @{ src = "medium reaction.wav"; dest = "medium reaction.wav" },
+    @{ src = "medium_reaction.wav"; dest = "medium reaction.wav" },
+    @{ src = "big reaction.wav"; dest = "big reaction.wav" },
+    @{ src = "big_reaction.wav"; dest = "big reaction.wav" }
 )
 
 foreach ($f in $files) {

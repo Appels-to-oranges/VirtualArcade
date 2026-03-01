@@ -13,6 +13,9 @@ const SOUND_FILES = {
   allIn: ['all_in.wav', 'all in.wav', 'all_in.mp3'],
   youLose: ['you_lose.wav', 'you lose.wav', 'you_lose.mp3'],
   check: ['check.wav', 'check.mp3'],
+  smallClap: ['small clap.wav', 'small_clap.wav', 'small clap.mp3', 'small_clap.mp3'],
+  mediumReaction: ['medium reaction.wav', 'medium_reaction.wav', 'medium reaction.mp3', 'medium_reaction.mp3'],
+  bigReaction: ['big reaction.wav', 'big_reaction.wav', 'big reaction.mp3', 'big_reaction.mp3'],
 };
 
 function createSoundAudio(keys) {
@@ -40,6 +43,9 @@ const soundBetting = createSoundAudio(SOUND_FILES.betting);
 const soundAllIn = createSoundAudio(SOUND_FILES.allIn);
 const soundYouLose = createSoundAudio(SOUND_FILES.youLose);
 const soundCheck = createSoundAudio(SOUND_FILES.check);
+const soundSmallClap = createSoundAudio(SOUND_FILES.smallClap);
+const soundMediumReaction = createSoundAudio(SOUND_FILES.mediumReaction);
+const soundBigReaction = createSoundAudio(SOUND_FILES.bigReaction);
 
 let audioCtx = null;
 function playFallbackClick(vol = 0.3) {
@@ -101,6 +107,18 @@ function playYouLose() {
 
 function playCheck() {
   playSound(soundCheck, CARD_FX_VOLUME_KEY);
+}
+
+function playSmallClap() {
+  playSound(soundSmallClap, CARD_FX_VOLUME_KEY);
+}
+
+function playMediumReaction() {
+  playSound(soundMediumReaction, CARD_FX_VOLUME_KEY);
+}
+
+function playBigReaction() {
+  playSound(soundBigReaction, CARD_FX_VOLUME_KEY);
 }
 
 function startAmbience() {
@@ -514,8 +532,19 @@ function handleMessage(msg) {
       lastWinnerNames = goWinnerText;
       lastNetWon = goNetWon;
       const amIWinner = goWinnerIds.includes(myId);
-      if (amIWinner) playWinner();
-      else playYouLose();
+      if (amIWinner) {
+        playWinner();
+        const me = players.find((p) => p.id === myId);
+        const streak = me?.winStreak ?? 0;
+        const playStreakSound = () => {
+          if (streak >= 6) playBigReaction();
+          else if (streak === 5) playMediumReaction();
+          else if (streak === 3) playSmallClap();
+        };
+        if (streak >= 3) setTimeout(playStreakSound, 400);
+      } else {
+        playYouLose();
+      }
       showShowdown(msg);
       gameState = null;
       renderTable();
