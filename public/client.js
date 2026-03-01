@@ -7,8 +7,9 @@ const SOUND_FILES = {
   shuffle: ['shuffle.wav', 'shuffle.mp3'],
   cardPutDown: ['card_put_down.wav', 'card put down.wav', 'card_put_down.mp3'],
   ambience: ['BACKGROUND_CASINO_AMBIENCE.wav', 'BACKGROUND_CASINO_AMBIENCE.mp3'],
-  winner: ['winner.wav', 'winner sound.wav', 'winner.mp3'],
+  winner: ['winner.wav', 'winner together.wav', 'winner sound.wav', 'winner.mp3'],
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
+  betting: ['chips_betting.wav', 'chips_betting.mp3'],
 };
 
 function createSoundAudio(keys) {
@@ -32,6 +33,7 @@ const soundCardPutDown = createSoundAudio(SOUND_FILES.cardPutDown);
 const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
 const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
+const soundBetting = createSoundAudio(SOUND_FILES.betting);
 
 let audioCtx = null;
 function playFallbackClick(vol = 0.3) {
@@ -77,6 +79,10 @@ function playWinner() {
 
 function playYourTurn() {
   playSound(soundYourTurn, CARD_FX_VOLUME_KEY);
+}
+
+function playBetting() {
+  playSound(soundBetting, CARD_FX_VOLUME_KEY);
 }
 
 function startAmbience() {
@@ -324,6 +330,8 @@ function handleMessage(msg) {
 
     case 'gameStarted':
       playShuffle();
+      const wbStart = document.getElementById('winner-banner');
+      if (wbStart) wbStart.classList.add('hidden');
       lastWinningCards = null;
       lastCommunityCards = null;
       lastHandName = null;
@@ -378,6 +386,7 @@ function handleMessage(msg) {
     }
 
     case 'action':
+      if (['call', 'bet', 'raise', 'allin'].includes(msg.action)) playBetting();
       if (msg.minRaise !== undefined && gameState) gameState.minRaise = msg.minRaise;
       if (msg.players) {
         msg.players.forEach((p) => {
@@ -407,6 +416,18 @@ function handleMessage(msg) {
       lastHandName = msg.handName || null;
       lastWinningHoleIndices = msg.winningHoleIndices || [];
       lastPot = msg.pot || 0;
+      const winnerIds = msg.winners || (msg.winner ? [msg.winner] : []);
+      const winnerNames = msg.winnerNicknames || (msg.winnerNickname ? [msg.winnerNickname] : []);
+      const winAmount = msg.winAmount ?? msg.pot ?? 0;
+      const pot = msg.pot ?? 0;
+      let netWon = winAmount;
+      if (winnerIds.length >= 1) {
+        const winnerBets = winnerIds.reduce((sum, id) => {
+          const p = players.find((x) => x.id === id);
+          return sum + (p?.betThisRound ?? 0);
+        }, 0);
+        netWon = Math.max(0, (winnerIds.length === 1 ? winAmount : pot) - winnerBets);
+      }
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -416,10 +437,13 @@ function handleMessage(msg) {
           }
         });
       }
-      const winnerText = msg.winnerNicknames
-        ? msg.winnerNicknames.join(', ')
-        : msg.winnerNickname || 'Unknown';
+      const winnerText = winnerNames.length ? winnerNames.join(', ') : 'Unknown';
       playWinner();
+      const bannerEl = document.getElementById('winner-banner');
+      if (bannerEl) {
+        bannerEl.textContent = `${winnerText} won $${netWon}`;
+        bannerEl.classList.remove('hidden');
+      }
       showToast(`${winnerText} wins $${msg.winAmount || msg.pot}${msg.handName ? ` with ${msg.handName}` : ''}!`);
       showShowdown(msg);
       gameState = null;
@@ -429,6 +453,8 @@ function handleMessage(msg) {
 
     case 'roundOver':
       hideShowdown();
+      const wb = document.getElementById('winner-banner');
+      if (wb) wb.classList.add('hidden');
       gameState = null;
       myHand = [];
       prevCommunityCount = 0;
@@ -616,8 +642,8 @@ function renderTable() {
 
   const cx = 50;
   const cy = 50;
-  const rx = 40;
-  const ry = 32;
+  const rx = 38;
+  const ry = 30;
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const offset = myPosIdx >= 0 ? Math.PI / 2 - (myPosIdx / count) * Math.PI * 2 : 0;
 

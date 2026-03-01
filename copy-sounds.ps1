@@ -7,6 +7,8 @@ $target = Join-Path $PSScriptRoot "public\sounds"
 $files = @(
     @{ src = "winner.wav"; dest = "winner.wav" },
     @{ src = "winner sound.wav"; dest = "winner.wav" },
+    @{ src = "winner together.wav"; dest = "winner.wav" },
+    @{ src = "chips_betting.wav"; dest = "chips_betting.wav" },
     @{ src = "your turn.wav"; dest = "your_turn.wav" },
     @{ src = "your_turn.wav"; dest = "your_turn.wav" },
     @{ src = "shuffle.wav"; dest = "shuffle.wav" },

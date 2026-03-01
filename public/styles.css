@@ -148,6 +148,20 @@ body {
   overflow: auto;
 }
 
+.winner-banner {
+  text-align: center;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+  border-bottom: 0.2rem solid #ffd700;
+  flex-shrink: 0;
+}
+
+.winner-banner.hidden {
+  display: none !important;
+}
+
 .game-scale-wrapper {
   width: 100vw;
   height: 100vh;
@@ -505,13 +519,13 @@ body {
 }
 
 .table-pot-label {
-  font-size: 0.5rem;
+  font-size: 0.65rem;
   color: #6a6a4a;
   text-transform: uppercase;
 }
 
 .table-pot-amount {
-  font-size: 0.6rem;
+  font-size: 0.8rem;
   color: #ffd700;
 }
 
@@ -631,7 +645,7 @@ body {
   align-items: center;
   gap: 0.25rem;
   pointer-events: auto;
-  max-width: 12rem;
+  max-width: 14rem;
   margin: 0.5rem;
   overflow: hidden;
 }
@@ -661,9 +675,9 @@ body {
 }
 
 .player-seat .player-cards .card {
-  width: 2.9rem;
-  height: 4rem;
-  background-size: 2.9rem 4rem;
+  width: 5rem;
+  height: 7rem;
+  background-size: 5rem 7rem;
 }
 
 .seat-info {
@@ -677,7 +691,7 @@ body {
 }
 
 .seat-info .seat-name {
-  font-size: 0.45rem;
+  font-size: 0.6rem;
   color: #ddd;
   font-weight: 600;
   max-width: 100%;
@@ -687,12 +701,12 @@ body {
 }
 
 .seat-info .seat-chips {
-  font-size: 0.45rem;
+  font-size: 0.6rem;
   color: #c9b896;
 }
 
 .seat-info .seat-folded {
-  font-size: 0.4rem;
+  font-size: 0.5rem;
   color: #666;
   font-style: italic;
 }
@@ -779,7 +793,7 @@ body {
 }
 
 .seat-bet-amount {
-  font-size: 0.45rem;
+  font-size: 0.6rem;
   color: #ffd700;
 }
 
@@ -829,7 +843,7 @@ body {
 }
 
 .pot-in-controls {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: #c9b896;
   min-width: 6.25rem;
   text-align: center;
