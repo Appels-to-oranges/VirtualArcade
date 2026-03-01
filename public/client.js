@@ -1,6 +1,40 @@
 const CARDS_BASE = '/cards';
 const CHIPS_BASE = '/chips';
+const SOUNDS_BASE = '/sounds';
 const TURN_TIMEOUT_MS = 60 * 1000;
+
+const soundShuffle = new Audio(SOUNDS_BASE + '/shuffle.wav');
+const soundCardPutDown = new Audio(SOUNDS_BASE + '/card%20put%20down.wav');
+const soundAmbience = new Audio(SOUNDS_BASE + '/BACKGROUND_CASINO_AMBIENCE.wav');
+
+function playSound(audio) {
+  if (!audio?.src) return;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
+function playShuffle() {
+  playSound(soundShuffle);
+}
+
+function playCardPutDown(delayMs = 0) {
+  if (delayMs > 0) {
+    setTimeout(() => playSound(soundCardPutDown), delayMs);
+  } else {
+    playSound(soundCardPutDown);
+  }
+}
+
+function startAmbience() {
+  soundAmbience.loop = true;
+  soundAmbience.volume = 0.25;
+  playSound(soundAmbience);
+}
+
+function stopAmbience() {
+  soundAmbience.pause();
+  soundAmbience.currentTime = 0;
+}
 
 const CHIP_DENOMS = [
   { value: 1000, color: 'gold' },
@@ -231,6 +265,7 @@ function handleMessage(msg) {
       break;
 
     case 'gameStarted':
+      playShuffle();
       lastWinningCards = null;
       lastCommunityCards = null;
       lastHandName = null;
@@ -480,7 +515,9 @@ function renderTable() {
     div.className = 'card';
     if (!lastWinningCards && idx >= prevCommunityCount) {
       div.classList.add('dealing');
-      div.style.animationDelay = `${(idx - prevCommunityCount) * 0.12}s`;
+      const delay = (idx - prevCommunityCount) * 0.12;
+      div.style.animationDelay = `${delay}s`;
+      playCardPutDown(delay * 1000);
     }
     div.style.backgroundImage = `url(${cardImagePath(card)})`;
     boardCardsEl.appendChild(div);
@@ -514,7 +551,9 @@ function renderTable() {
     div.className = 'card';
     if (myHandDealing && idx >= prevMyHandCount) {
       div.classList.add('dealing');
-      div.style.animationDelay = `${idx * 0.15}s`;
+      const delay = idx * 0.15;
+      div.style.animationDelay = `${delay}s`;
+      playCardPutDown(delay * 1000);
     }
     div.style.backgroundImage = `url(${cardImagePath(card)})`;
     myCardsEl.appendChild(div);
@@ -560,7 +599,9 @@ function renderTable() {
         cardEl.className = 'card' + (p.folded ? ' folded' : '');
         if (seatDealing && idx >= (p._prevHandCount || 0)) {
           cardEl.classList.add('dealing');
-          cardEl.style.animationDelay = `${idx * 0.15}s`;
+          const delay = idx * 0.15;
+          cardEl.style.animationDelay = `${delay}s`;
+          playCardPutDown(delay * 1000);
         }
         cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
         cardsDiv.appendChild(cardEl);
@@ -575,7 +616,9 @@ function renderTable() {
           cardEl.className = 'card' + (p.folded ? ' folded' : '');
           if (seatDealing && idx >= (p._prevHandCount || 0)) {
             cardEl.classList.add('dealing');
-            cardEl.style.animationDelay = `${idx * 0.15}s`;
+            const delay = idx * 0.15;
+            cardEl.style.animationDelay = `${delay}s`;
+            playCardPutDown(delay * 1000);
           }
           cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
           cardsDiv.appendChild(cardEl);
@@ -772,12 +815,14 @@ function playRadio(station) {
   currentRadioName = station.name || 'Radio';
   if (nowPlayingRadio) nowPlayingRadio.classList.remove('hidden');
   if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = '\u{1F4FB} ' + currentRadioName;
+  startAmbience();
 }
 
 function stopRadio() {
   radioAudio.pause();
   radioAudio.src = '';
   currentRadioName = '';
+  stopAmbience();
   if (nowPlayingRadio) nowPlayingRadio.classList.add('hidden');
 }
 
