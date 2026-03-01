@@ -201,8 +201,6 @@ function broadcastToRoom(roomKey, message, excludeWs = null) {
 function startGame(roomKey) {
   const room = getRoom(roomKey);
   if (room.players.length < 2) return;
-  const playersWithChips = room.players.filter((p) => (p.chips ?? 1000) > 0);
-  if (playersWithChips.length < 2) return;
 
   room.deck = shuffle(createDeck());
   room.communityCards = [];
