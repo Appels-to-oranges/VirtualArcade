@@ -65,9 +65,11 @@ function playFallbackClick(vol = 0.3) {
 }
 
 function playSound(audio, volumeKey) {
-  const vol = volumeKey
-    ? (parseInt(localStorage.getItem(volumeKey), 10) || 80) / 100
-    : 0.25;
+  let vol = 0.25;
+  if (volumeKey) {
+    const raw = parseInt(localStorage.getItem(volumeKey), 10);
+    vol = (isNaN(raw) ? 80 : Math.max(0, Math.min(100, raw))) / 100;
+  }
   audio.volume = Math.max(0, Math.min(1, vol));
   audio.currentTime = 0;
   audio.play().catch(() => playFallbackClick(vol));
@@ -1215,6 +1217,7 @@ function searchRadioStations(query) {
 }
 
 if (radioBtn) radioBtn.addEventListener('click', () => {
+  initRadioVolume();
   radioOverlay?.classList.remove('hidden');
   radioSearchInput?.focus();
 });
@@ -1291,3 +1294,5 @@ if (roomParam) {
   roomKeyInput.value = roomParam;
   nicknameInput.focus();
 }
+
+initRadioVolume();
