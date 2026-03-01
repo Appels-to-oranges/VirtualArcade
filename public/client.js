@@ -276,6 +276,9 @@ let lastWinnerNames = '';
 let lastNetWon = 0;
 let turnTimerInterval = null;
 let prevTurnIdx = -1;
+const CHAT_DURATION_MS = 8000;
+const playerChatMessages = {};
+const playerChatTimeouts = {};
 
 const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
 const radioAudio = new Audio();
@@ -526,6 +529,17 @@ function handleMessage(msg) {
       updateControls();
       break;
 
+    case 'chat':
+      playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + CHAT_DURATION_MS };
+      if (playerChatTimeouts[msg.playerId]) clearTimeout(playerChatTimeouts[msg.playerId]);
+      playerChatTimeouts[msg.playerId] = setTimeout(() => {
+        delete playerChatMessages[msg.playerId];
+        delete playerChatTimeouts[msg.playerId];
+        renderTable();
+      }, CHAT_DURATION_MS);
+      renderTable();
+      break;
+
     case 'error':
       showToast(msg.message || 'Error');
       break;
@@ -536,6 +550,11 @@ function showJoinScreen() {
   joinScreen.classList.remove('hidden');
   gameScreen.classList.add('hidden');
   stopAmbience();
+  Object.keys(playerChatTimeouts).forEach((id) => {
+    clearTimeout(playerChatTimeouts[id]);
+  });
+  Object.keys(playerChatTimeouts).forEach((k) => delete playerChatTimeouts[k]);
+  Object.keys(playerChatMessages).forEach((k) => delete playerChatMessages[k]);
   if (ws) ws.close();
   ws = null;
 }
@@ -742,6 +761,14 @@ function renderTable() {
 
     if (isTurn) seat.classList.add('is-turn');
     if (isDealer) seat.classList.add('is-dealer');
+
+    const chatData = playerChatMessages[p.id];
+    if (chatData && chatData.expiresAt > Date.now()) {
+      const chatBubble = document.createElement('div');
+      chatBubble.className = 'seat-chat-bubble';
+      chatBubble.textContent = chatData.text;
+      seat.appendChild(chatBubble);
+    }
 
     const seatInfo = document.createElement('div');
     seatInfo.className = 'seat-info';
@@ -1131,6 +1158,23 @@ if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   localStorage.setItem(AMBIENCE_VOLUME_KEY, v);
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });
+
+function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input?.value?.trim();
+  if (!text || !ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ type: 'chat', text }));
+  input.value = '';
+}
+
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+if (chatInput) {
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
+  });
+}
+if (chatSend) chatSend.addEventListener('click', sendChat);
 
 const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');

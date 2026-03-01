@@ -2,7 +2,7 @@
 
 /* Scale with viewport - supports 5120x2880 (5K) and smaller */
 html {
-  font-size: clamp(12px, 2vmin + 10px, 36px);
+  font-size: clamp(0.75rem, 2vmin + 0.625rem, 2.25rem);
 }
 
 * {
@@ -35,12 +35,12 @@ body {
 
 .join-card {
   background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 12px;
+  border: 0.0625rem solid #30363d;
+  border-radius: 0.75rem;
   padding: 2.5rem;
-  max-width: 420px;
+  max-width: 20rem;
   width: 100%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4), 0 0 0 0.0625rem rgba(255, 255, 255, 0.05);
   overflow: hidden;
 }
 
@@ -49,7 +49,7 @@ body {
   margin-bottom: 0.35rem;
   color: #c9b896;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
   text-align: center;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -60,7 +60,7 @@ body {
   color: #8b949e;
   font-size: 0.5rem;
   margin-bottom: 2rem;
-  letter-spacing: 1px;
+  letter-spacing: 0.0625rem;
   text-align: center;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -83,7 +83,7 @@ body {
 .join-form .form-group label {
   font-size: 0.5rem;
   color: #8b949e;
-  letter-spacing: 1px;
+  letter-spacing: 0.0625rem;
 }
 
 .join-form .form-control {
@@ -94,8 +94,8 @@ body {
   font-family: 'Press Start 2P', monospace;
   color: #e6edf3;
   background: #0d1117;
-  border: 1px solid #30363d;
-  border-radius: 8px;
+  border: 0.0625rem solid #30363d;
+  border-radius: 0.5rem;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -110,7 +110,7 @@ body {
 .join-form .form-control:focus {
   outline: none;
   border-color: #40916c;
-  box-shadow: 0 0 0 3px rgba(64, 145, 108, 0.25);
+  box-shadow: 0 0 0 0.1875rem rgba(64, 145, 108, 0.25);
 }
 
 .join-form .btn-join {
@@ -122,10 +122,10 @@ body {
   color: #fff;
   background: #238636;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
   transition: background 0.2s, transform 0.1s;
 }
 
@@ -255,19 +255,19 @@ body {
 .room-bar #room-label {
   font-size: 0.6rem;
   color: #666;
-  letter-spacing: 1px;
+  letter-spacing: 0.0625rem;
 }
 
 .btn-start {
-  padding: 8px 20px;
+  padding: 0.5rem 1.25rem;
   background: #1b4332;
-  border: 3px solid #40916c;
+  border: 0.1875rem solid #40916c;
   color: #ddd;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.55rem;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
 }
 
 .btn-start:hover { background: #2d6a4f; }
@@ -279,9 +279,9 @@ body {
 }
 
 .btn-radio {
-  padding: 6px 12px;
+  padding: 0.375rem 0.75rem;
   background: #1a1a1a;
-  border: 3px solid #333;
+  border: 0.1875rem solid #333;
   color: #c9b896;
   font-size: 1rem;
   cursor: pointer;
@@ -293,6 +293,73 @@ body {
   background: #222;
 }
 
+.chat-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.chat-input {
+  width: 8rem;
+  max-width: 12rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.45rem;
+  font-family: 'Press Start 2P', monospace;
+  color: #ddd;
+  background: #0a0a0a;
+  border: 0.125rem solid #333;
+  border-radius: 0.25rem;
+}
+
+.chat-input::placeholder {
+  color: #555;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #555;
+}
+
+.chat-send {
+  padding: 0.3rem 0.5rem;
+  background: #1a1a1a;
+  border: 0.125rem solid #333;
+  color: #c9b896;
+  font-size: 0.6rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chat-send:hover {
+  border-color: #c9b896;
+  background: #222;
+}
+
+.seat-chat-bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-0.25rem);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.45rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.9);
+  border: 0.125rem solid #555;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 10;
+  animation: chatFadeIn 0.2s ease-out;
+}
+
+@keyframes chatFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(0); }
+  to { opacity: 1; transform: translateX(-50%) translateY(-0.25rem); }
+}
+
 /* Radio overlay */
 .radio-overlay {
   position: fixed;
@@ -302,7 +369,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 800;
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .radio-overlay.hidden {
@@ -311,11 +378,11 @@ body {
 
 .radio-panel {
   background: #111;
-  border: 3px solid #8b6914;
+  border: 0.1875rem solid #8b6914;
   padding: 1.5rem;
-  max-width: 420px;
+  max-width: 20rem;
   width: 100%;
-  box-shadow: 0 0 0 6px #000;
+  box-shadow: 0 0 0 0.375rem #000;
 }
 
 .radio-header {
@@ -329,16 +396,16 @@ body {
   font-size: 0.7rem;
   color: #c9b896;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
 }
 
 .radio-close {
   background: none;
-  border: 2px solid #333;
+  border: 0.125rem solid #333;
   color: #ddd;
   font-size: 1.2rem;
   cursor: pointer;
-  padding: 4px 10px;
+  padding: 0.25rem 0.625rem;
   line-height: 1;
 }
 
@@ -349,14 +416,14 @@ body {
 
 .radio-search-wrap {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
 
 .radio-search-wrap input {
   flex: 1;
-  padding: 10px 12px;
-  border: 3px solid #333;
+  padding: 0.625rem 0.75rem;
+  border: 0.1875rem solid #333;
   background: #0a0a0a;
   color: #c9b896;
   font-family: 'Press Start 2P', monospace;
@@ -369,9 +436,9 @@ body {
 }
 
 .radio-search-wrap button {
-  padding: 10px 14px;
+  padding: 0.625rem 0.875rem;
   background: #1b4332;
-  border: 3px solid #40916c;
+  border: 0.1875rem solid #40916c;
   color: #ddd;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.5rem;
@@ -393,7 +460,7 @@ body {
 .radio-volume-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .radio-volume-wrap label {
@@ -403,21 +470,21 @@ body {
 
 .radio-volume-wrap input[type="range"] {
   flex: 1;
-  max-width: 120px;
+  max-width: 7.5rem;
 }
 
 .radio-volume-wrap span {
   font-size: 0.5rem;
   color: #c9b896;
-  min-width: 36px;
+  min-width: 2.25rem;
 }
 
 .radio-results {
-  max-height: 240px;
+  max-height: 15rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .radio-results .radio-empty {
@@ -430,9 +497,9 @@ body {
 .radio-station {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 2px solid #333;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: 0.125rem solid #333;
   background: #0a0a0a;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
@@ -444,8 +511,8 @@ body {
 }
 
 .radio-station-icon {
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   border-radius: 0;
   object-fit: cover;
   background: #222;
@@ -497,9 +564,9 @@ body {
 }
 
 .now-playing-stop {
-  padding: 6px 12px;
+  padding: 0.375rem 0.75rem;
   background: #2a0e0e;
-  border: 2px solid #5a1a1a;
+  border: 0.125rem solid #5a1a1a;
   color: #e74c3c;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.45rem;
@@ -544,7 +611,7 @@ body {
   font-size: 0.55rem;
   color: #6a6a4a;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
   z-index: 2;
   margin: 0.25rem 0;
 }
@@ -557,7 +624,7 @@ body {
   font-size: 0.5rem;
   color: #c9b896;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.0625rem;
   z-index: 2;
   margin: 0.25rem 0;
 }
@@ -915,7 +982,7 @@ body {
   font-size: 0.55rem;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.0625rem;
   transition: background 0.1s, border-color 0.1s;
 }
 
@@ -946,15 +1013,15 @@ body {
 
 .bet-row {
   display: flex;
-  gap: 6px;
+  gap: 0.375rem;
   align-items: center;
 }
 
 .bet-row input {
   width: 5rem;
   min-width: 0;
-  padding: 10px 8px;
-  border: 3px solid #333;
+  padding: 0.625rem 0.5rem;
+  border: 0.1875rem solid #333;
   background: #0a0a0a;
   color: #c9b896;
   font-family: 'Press Start 2P', monospace;
@@ -970,13 +1037,13 @@ body {
 /* ── Toast ── */
 .message-toast {
   position: fixed;
-  bottom: 20px;
+  bottom: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
   background: #111;
-  border: 3px solid #333;
+  border: 0.1875rem solid #333;
   color: #ddd;
-  padding: 12px 24px;
+  padding: 0.75rem 1.5rem;
   font-size: 0.55rem;
   opacity: 0;
   transition: opacity 0.3s;
@@ -1001,13 +1068,13 @@ body {
 
 .showdown-modal {
   background: #111;
-  border: 3px solid #8b6914;
+  border: 0.1875rem solid #8b6914;
   padding: 2rem;
-  max-width: 720px;
+  max-width: 45rem;
   width: 100%;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  box-shadow: 0 0 0 6px #000;
+  box-shadow: 0 0 0 0.375rem #000;
 }
 
 .showdown-winner-banner {
@@ -1017,8 +1084,8 @@ body {
   margin-bottom: 0.75rem;
   padding: 0.5rem;
   background: rgba(255, 215, 0, 0.12);
-  border: 2px solid #ffd700;
-  letter-spacing: 2px;
+  border: 0.125rem solid #ffd700;
+  letter-spacing: 0.125rem;
 }
 
 .showdown-modal h2 {
@@ -1033,7 +1100,7 @@ body {
   font-size: 0.5rem;
   color: #6a6a4a;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
   margin-bottom: 0.5rem;
   text-align: center;
 }
@@ -1044,15 +1111,15 @@ body {
 
 .showdown-board-cards {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   justify-content: center;
 }
 
 .showdown-winning-section {
   margin-bottom: 1.25rem;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   background: rgba(255, 215, 0, 0.08);
-  border: 2px solid #ffd700;
+  border: 0.125rem solid #ffd700;
 }
 
 .showdown-winning-label {
@@ -1060,26 +1127,26 @@ body {
   color: #ffd700;
   text-align: center;
   margin-bottom: 0.5rem;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
 }
 
 .showdown-winning-cards {
   display: flex;
-  gap: 10px;
+  gap: 0.625rem;
   justify-content: center;
 }
 
 .showdown-winning-card {
-  width: 96px;
-  height: 133px;
-  background-size: 96px 133px;
+  width: 6rem;
+  height: 8.3125rem;
+  background-size: 6rem 8.3125rem;
   image-rendering: pixelated;
 }
 
 .showdown-winning-card.from-hole {
-  box-shadow: 0 0 14px rgba(255, 215, 0, 0.9);
-  border: 3px solid #ffd700;
-  outline: 2px solid rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 0.875rem rgba(255, 215, 0, 0.9);
+  border: 0.1875rem solid #ffd700;
+  outline: 0.125rem solid rgba(255, 215, 0, 0.5);
 }
 
 .showdown-hands-section {
@@ -1087,12 +1154,12 @@ body {
 }
 
 .showdown-card {
-  width: 88px;
-  height: 123px;
-  background-size: 88px 123px;
+  width: 5.5rem;
+  height: 7.6875rem;
+  background-size: 5.5rem 7.6875rem;
   background-repeat: no-repeat;
   background-position: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  box-shadow: 0 0.125rem 0.375rem rgba(0,0,0,0.6);
   image-rendering: pixelated;
 }
 
@@ -1106,14 +1173,14 @@ body {
 .showdown-hand-row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 10px;
-  border: 2px solid #222;
+  gap: 0.875rem;
+  padding: 0.625rem;
+  border: 0.125rem solid #222;
   background: rgba(255,255,255,0.02);
 }
 
 .showdown-hand-row.winner {
-  border: 3px solid #ffd700;
+  border: 0.1875rem solid #ffd700;
   background: rgba(255,215,0,0.08);
 }
 
@@ -1127,7 +1194,7 @@ body {
 }
 
 .showdown-player-name {
-  min-width: 120px;
+  min-width: 7.5rem;
   font-size: 0.55rem;
   color: #ddd;
 }
@@ -1138,21 +1205,21 @@ body {
 
 .showdown-hand-cards {
   display: flex;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .btn-dismiss {
   display: block;
   width: 100%;
-  padding: 12px;
+  padding: 0.75rem;
   background: #1b4332;
-  border: 3px solid #40916c;
+  border: 0.1875rem solid #40916c;
   color: #ddd;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.55rem;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.125rem;
 }
 
 .btn-dismiss:hover { background: #2d6a4f; }

@@ -628,6 +628,17 @@ wss.on('connection', (ws) => {
           nickname: 'Bot',
           chips: 1000,
         });
+      } else if (type === 'chat') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const text = String(msg.text || '').trim().slice(0, 100);
+        if (!text) return;
+        broadcastToRoom(data.roomKey, {
+          type: 'chat',
+          playerId: ws.id,
+          nickname: data.nickname,
+          text,
+        });
       } else if (type === 'rebuy') {
         const data = clients.get(ws);
         if (!data) return;
