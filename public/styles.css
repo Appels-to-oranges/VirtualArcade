@@ -29,31 +29,35 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 20px;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
 }
 
 .join-card {
-  background: #111;
-  border: 3px solid #333;
-  padding: 3rem 2.5rem;
-  max-width: 460px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 2.5rem;
+  max-width: 400px;
   width: 100%;
-  box-shadow: 0 0 0 6px #000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .join-card h1 {
-  font-size: 1.4rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  margin-bottom: 0.25rem;
   color: #c9b896;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
+  text-align: center;
 }
 
 .join-card .tagline {
-  color: #666;
-  font-size: 0.55rem;
-  margin-bottom: 2.5rem;
+  color: #8b949e;
+  font-size: 0.5rem;
+  margin-bottom: 2rem;
   letter-spacing: 1px;
+  text-align: center;
 }
 
 .join-form {
@@ -62,49 +66,75 @@ body {
   gap: 1.25rem;
 }
 
-.join-form input {
-  padding: 14px 16px;
-  border: 3px solid #333;
-  background: #0a0a0a;
-  color: #c9b896;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.7rem;
+.join-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.join-form .form-group label {
+  font-size: 0.5rem;
+  color: #8b949e;
   letter-spacing: 1px;
-  transition: border-color 0.15s;
 }
 
-.join-form input::placeholder {
-  color: #3a3a2a;
-}
-
-.join-form input:focus {
-  outline: none;
-  border-color: #c9b896;
-  background: #0f0f08;
-}
-
-.join-form button {
-  padding: 14px 24px;
-  background: #1b4332;
-  border: 3px solid #40916c;
-  color: #ddd;
+.join-form .form-control {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.6rem;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.75rem;
+  color: #e6edf3;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.join-form .form-control::placeholder {
+  color: #484f58;
+}
+
+.join-form .form-control:hover {
+  border-color: #484f58;
+}
+
+.join-form .form-control:focus {
+  outline: none;
+  border-color: #40916c;
+  box-shadow: 0 0 0 3px rgba(64, 145, 108, 0.25);
+}
+
+.join-form .btn-join {
+  margin-top: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.6rem;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 600;
+  color: #fff;
+  background: #238636;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 3px;
-  transition: background 0.15s;
+  letter-spacing: 2px;
+  transition: background 0.2s, transform 0.1s;
 }
 
-.join-form button:hover {
-  background: #2d6a4f;
+.join-form .btn-join:hover {
+  background: #2ea043;
+}
+
+.join-form .btn-join:active {
+  transform: scale(0.98);
 }
 
 .join-card .hint {
-  margin-top: 1.5rem;
-  font-size: 0.5rem;
-  color: #444;
-  line-height: 1.8;
+  margin-top: 1.25rem;
+  font-size: 0.45rem;
+  color: #6e7681;
+  line-height: 1.6;
+  text-align: center;
 }
 
 /* ── Game screen ── */
