@@ -770,14 +770,6 @@ function renderTable() {
     if (isTurn) seat.classList.add('is-turn');
     if (isDealer) seat.classList.add('is-dealer');
 
-    const chatData = playerChatMessages[p.id];
-    if (chatData && chatData.expiresAt > Date.now()) {
-      const chatBubble = document.createElement('div');
-      chatBubble.className = 'seat-chat-bubble';
-      chatBubble.textContent = chatData.text;
-      seat.appendChild(chatBubble);
-    }
-
     const seatInfo = document.createElement('div');
     seatInfo.className = 'seat-info';
     const nameSpan = document.createElement('span');
@@ -795,6 +787,14 @@ function renderTable() {
       seatInfo.appendChild(foldedSpan);
     }
     seat.appendChild(seatInfo);
+
+    const chatData = playerChatMessages[p.id];
+    if (chatData && chatData.expiresAt > Date.now()) {
+      const chatBubble = document.createElement('div');
+      chatBubble.className = 'seat-chat-bubble';
+      chatBubble.textContent = chatData.text;
+      seat.appendChild(chatBubble);
+    }
 
     const chipStackDiv = document.createElement('div');
     chipStackDiv.className = 'seat-chip-stack';

@@ -338,10 +338,6 @@ body {
 }
 
 .seat-chat-bubble {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-0.25rem);
   padding: 0.35rem 0.6rem;
   font-size: 0.45rem;
   color: #fff;
@@ -355,11 +351,12 @@ body {
   pointer-events: none;
   z-index: 10;
   animation: chatFadeIn 0.2s ease-out;
+  flex-shrink: 0;
 }
 
 @keyframes chatFadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(0); }
-  to { opacity: 1; transform: translateX(-50%) translateY(-0.25rem); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Radio overlay */
@@ -771,7 +768,7 @@ body {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .player-seat {
@@ -783,7 +780,7 @@ body {
   pointer-events: auto;
   max-width: 14rem;
   margin: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .seat-chip-stack {
