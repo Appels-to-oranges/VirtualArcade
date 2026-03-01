@@ -43,6 +43,13 @@ function toSolverFormat(card) {
   return r + s;
 }
 
+// Pokersolver card back to our format
+function fromSolverCard(sc) {
+  const rankMap = { T: '10', J: 'J', Q: 'Q', K: 'K', A: 'A' };
+  const suitMap = { h: 'hearts', d: 'diamonds', c: 'clubs', s: 'spades' };
+  return { rank: rankMap[sc.value] || sc.value, suit: suitMap[sc.suit] || 'hearts' };
+}
+
 function createDeck() {
   const deck = [];
   for (const suit of SUITS) {
@@ -61,6 +68,8 @@ function shuffle(deck) {
   return deck;
 }
 
+const TURN_TIMEOUT_MS = 60 * 1000;
+
 function getRoom(roomKey) {
   if (!rooms.has(roomKey)) {
     rooms.set(roomKey, {
@@ -78,9 +87,56 @@ function getRoom(roomKey) {
       lastRaiserIdx: -1,
       minRaise: 20,
       sidePots: [],
+      turnTimeout: null,
     });
   }
   return rooms.get(roomKey);
+}
+
+function clearTurnTimer(room) {
+  if (room.turnTimeout) {
+    clearTimeout(room.turnTimeout);
+    room.turnTimeout = null;
+  }
+}
+
+function startTurnTimer(roomKey) {
+  const room = getRoom(roomKey);
+  clearTurnTimer(room);
+  room.turnTimeout = setTimeout(() => {
+    room.turnTimeout = null;
+    if (room.phase === 'lobby') return;
+    const idx = room.turnIdx;
+    const player = room.players[idx];
+    if (!player || player.folded || player.allIn) return;
+    player.folded = true;
+    const activeCount = room.players.filter((p) => !p.folded).length;
+    broadcastToRoom(roomKey, {
+      type: 'action',
+      playerId: player.id,
+      action: 'fold',
+      reason: 'timeout',
+      pot: room.pot,
+      players: room.players.map((p, i) => ({
+        id: p.id,
+        folded: p.folded,
+        chips: p.chips,
+        betThisRound: p.betThisRound,
+        isTurn: i === room.turnIdx,
+      })),
+    });
+    if (activeCount <= 1) {
+      showdown(roomKey);
+      return;
+    }
+    room.turnIdx = advanceTurn(room, room.turnIdx);
+    if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
+      checkBettingComplete(roomKey);
+    } else {
+      broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+      startTurnTimer(roomKey);
+    }
+  }, TURN_TIMEOUT_MS);
 }
 
 function broadcastToRoom(roomKey, message, excludeWs = null) {
@@ -163,6 +219,7 @@ function startGame(roomKey) {
       }));
     }
   });
+  startTurnTimer(roomKey);
 }
 
 function nextPhase(roomKey) {
@@ -234,11 +291,14 @@ function nextPhase(roomKey) {
       isTurn: i === room.turnIdx,
     })),
   });
+  startTurnTimer(roomKey);
 }
 
 function showdown(roomKey) {
   const room = getRoom(roomKey);
   const active = room.players.filter((p) => !p.folded);
+
+  clearTurnTimer(room);
 
   if (active.length === 1) {
     active[0].chips += room.pot;
@@ -252,6 +312,7 @@ function showdown(roomKey) {
       pot: room.pot,
       winAmount: room.pot,
       communityCards: room.communityCards,
+      winningCards: active[0].hand,
       players: room.players.map((p) => ({
         id: p.id,
         nickname: p.nickname,
@@ -272,6 +333,10 @@ function showdown(roomKey) {
     const winAmount = Math.floor(room.pot / winnerIds.length);
     winnerHands.forEach((h) => (h.player.chips += winAmount));
 
+    const winningCards = winners[0]?.cards
+      ? winners[0].cards.map(fromSolverCard)
+      : [];
+
     broadcastToRoom(roomKey, {
       type: 'gameOver',
       winners: winnerIds,
@@ -280,6 +345,7 @@ function showdown(roomKey) {
       pot: room.pot,
       winAmount,
       communityCards: room.communityCards,
+      winningCards,
       players: room.players.map((p) => ({
         id: p.id,
         nickname: p.nickname,
@@ -404,6 +470,7 @@ wss.on('connection', (ws) => {
         const player = room.players[idx];
 
         if (action === 'fold') {
+          clearTurnTimer(room);
           player.folded = true;
           const activeCount = room.players.filter((p) => !p.folded).length;
           broadcastToRoom(data.roomKey, {
@@ -428,8 +495,10 @@ wss.on('connection', (ws) => {
             checkBettingComplete(data.roomKey);
           } else {
             broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+            startTurnTimer(data.roomKey);
           }
         } else if (action === 'check') {
+          clearTurnTimer(room);
           if (player.betThisRound < room.currentBet) return;
           broadcastToRoom(data.roomKey, {
             type: 'action',
@@ -441,8 +510,10 @@ wss.on('connection', (ws) => {
             checkBettingComplete(data.roomKey);
           } else {
             broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+            startTurnTimer(data.roomKey);
           }
         } else if (action === 'call') {
+          clearTurnTimer(room);
           const toCall = room.currentBet - player.betThisRound;
           const actual = Math.min(toCall, player.chips);
           player.chips -= actual;
@@ -470,8 +541,10 @@ wss.on('connection', (ws) => {
             checkBettingComplete(data.roomKey);
           } else {
             broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+            startTurnTimer(data.roomKey);
           }
         } else if (action === 'bet' || action === 'raise') {
+          clearTurnTimer(room);
           const raiseTo = Math.max(0, Math.floor(Number(amount) || 0));
           const minRaiseTo = room.currentBet + (action === 'raise' ? room.minRaise : room.bigBlind);
           if (raiseTo < minRaiseTo) return;
@@ -506,7 +579,9 @@ wss.on('connection', (ws) => {
 
           room.turnIdx = advanceTurn(room, room.turnIdx);
           broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          startTurnTimer(data.roomKey);
         } else if (action === 'allin') {
+          clearTurnTimer(room);
           const allInAmount = player.chips;
           if (allInAmount <= 0) return;
           player.betThisRound += allInAmount;
@@ -543,6 +618,7 @@ wss.on('connection', (ws) => {
             checkBettingComplete(data.roomKey);
           } else {
             broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+            startTurnTimer(data.roomKey);
           }
         }
       }

@@ -24,6 +24,7 @@ const startBtn = document.getElementById('start-btn');
 const messageToast = document.getElementById('message-toast');
 const showdownOverlay = document.getElementById('showdown-overlay');
 const showdownTitle = document.getElementById('showdown-title');
+const showdownWinningCards = document.getElementById('showdown-winning-cards');
 const showdownCommunity = document.getElementById('showdown-community');
 const showdownHands = document.getElementById('showdown-hands');
 const showdownDismiss = document.getElementById('showdown-dismiss');
@@ -43,6 +44,7 @@ let players = [];
 let myHand = [];
 let gameState = null;
 let prevCommunityCount = 0;
+let lastWinningCards = null;
 
 joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -167,6 +169,7 @@ function handleMessage(msg) {
       break;
 
     case 'gameOver':
+      lastWinningCards = msg.winningCards || [];
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -188,6 +191,7 @@ function handleMessage(msg) {
 
     case 'roundOver':
       hideShowdown();
+      lastWinningCards = null;
       gameState = null;
       myHand = [];
       prevCommunityCount = 0;
@@ -240,6 +244,20 @@ function showShowdown(msg) {
   if (msg.reason === 'fold') title += ' (all others folded)';
   showdownTitle.textContent = title;
 
+  const winningCards = msg.winningCards || [];
+  const winningLabel = document.querySelector('.showdown-winning-label');
+  if (winningLabel) {
+    winningLabel.textContent = winningCards.length === 5 ? 'Winning hand (5 cards)' : winningCards.length > 0 ? 'Winner\'s cards' : '';
+    winningLabel.style.display = winningCards.length ? 'block' : 'none';
+  }
+  showdownWinningCards.innerHTML = '';
+  winningCards.forEach((card) => {
+    const div = document.createElement('div');
+    div.className = 'card showdown-card showdown-winning-card';
+    div.style.backgroundImage = `url(${cardImagePath(card)})`;
+    showdownWinningCards.appendChild(div);
+  });
+
   showdownCommunity.innerHTML = '';
   (msg.communityCards || []).forEach((card) => {
     const div = document.createElement('div');
@@ -281,18 +299,20 @@ function renderTable() {
   phaseLabel.textContent = gameState?.phase ? gameState.phase.toUpperCase() : '';
 
   communityCardsEl.innerHTML = '';
-  const cards = gameState?.communityCards || [];
+  const cards = lastWinningCards?.length
+    ? lastWinningCards
+    : (gameState?.communityCards || []);
   cards.forEach((card, idx) => {
     const div = document.createElement('div');
     div.className = 'card';
-    if (idx >= prevCommunityCount) div.classList.add('dealing');
-    div.style.backgroundImage = `url(${cardImagePath(card)})`;
-    if (idx >= prevCommunityCount) {
+    if (!lastWinningCards && idx >= prevCommunityCount) {
+      div.classList.add('dealing');
       div.style.animationDelay = `${(idx - prevCommunityCount) * 0.12}s`;
     }
+    div.style.backgroundImage = `url(${cardImagePath(card)})`;
     communityCardsEl.appendChild(div);
   });
-  prevCommunityCount = cards.length;
+  if (!lastWinningCards) prevCommunityCount = cards.length;
 
   myCardsEl.innerHTML = '';
   myHand.forEach((card) => {
