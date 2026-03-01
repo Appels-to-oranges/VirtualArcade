@@ -125,7 +125,8 @@ function startTurnTimer(roomKey) {
     const player = room.players[idx];
     if (!player || player.folded || player.allIn) return;
 
-    const canCheck = player.betThisRound >= room.currentBet;
+    const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
+    const canCheck = !facingAllIn && player.betThisRound >= room.currentBet;
     const toCall = room.currentBet - player.betThisRound;
 
     if (canCheck) {
@@ -194,9 +195,16 @@ function broadcastToRoom(roomKey, message, excludeWs = null) {
   });
 }
 
-function startGame(roomKey) {
+function startGame(roomKey, resetStreaks = false) {
   const room = getRoom(roomKey);
   if (room.players.length < 2) return;
+
+  if (resetStreaks) {
+    room.players.forEach((p) => {
+      p.winStreak = 0;
+      p.maxWinStreak = 0;
+    });
+  }
 
   const count = room.players.length;
   room.deck = shuffle(createDeck());
@@ -265,6 +273,8 @@ function startGame(roomKey) {
       isSB: i === sbIdx,
       isBB: i === bbIdx,
       isTurn: i === room.turnIdx,
+      winStreak: p.winStreak ?? 0,
+      maxWinStreak: p.maxWinStreak ?? 0,
     })),
   });
 
@@ -370,6 +380,15 @@ function showdown(roomKey) {
   if (active.length === 1) {
     active[0].chips += room.pot;
     const holeCards = active[0].hand;
+    const winnerIds = [active[0].id];
+    room.players.forEach((p) => {
+      if (winnerIds.includes(p.id)) {
+        p.winStreak = (p.winStreak || 0) + 1;
+        p.maxWinStreak = Math.max(p.maxWinStreak || 0, p.winStreak);
+      } else {
+        p.winStreak = 0;
+      }
+    });
     broadcastToRoom(roomKey, {
       type: 'gameOver',
       winner: active[0].id,
@@ -382,6 +401,7 @@ function showdown(roomKey) {
       communityCards: room.communityCards,
       winningCards: holeCards,
       winningHoleIndices: [0, 1],
+      handName: '',
       players: room.players.map((p) => ({
         id: p.id,
         nickname: p.nickname,
@@ -389,6 +409,8 @@ function showdown(roomKey) {
         hand: p.hand,
         folded: p.folded,
         totalBet: p.totalBet ?? 0,
+        winStreak: p.winStreak ?? 0,
+        maxWinStreak: p.maxWinStreak ?? 0,
       })),
     });
   } else {
@@ -402,6 +424,15 @@ function showdown(roomKey) {
     const winnerIds = winnerHands.map((h) => h.player.id);
     const winAmount = Math.floor(room.pot / winnerIds.length);
     winnerHands.forEach((h) => (h.player.chips += winAmount));
+
+    room.players.forEach((p) => {
+      if (winnerIds.includes(p.id)) {
+        p.winStreak = (p.winStreak || 0) + 1;
+        p.maxWinStreak = Math.max(p.maxWinStreak || 0, p.winStreak);
+      } else {
+        p.winStreak = 0;
+      }
+    });
 
     const winningCards = winners[0]?.cards
       ? winners[0].cards.map(fromSolverCard)
@@ -428,6 +459,8 @@ function showdown(roomKey) {
         hand: p.hand,
         folded: p.folded,
         totalBet: p.totalBet ?? 0,
+        winStreak: p.winStreak ?? 0,
+        maxWinStreak: p.maxWinStreak ?? 0,
       })),
     });
   }
@@ -436,7 +469,13 @@ function showdown(roomKey) {
   room.gameState = null;
   broadcastToRoom(roomKey, {
     type: 'roundOver',
-    players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
+    players: room.players.map((p) => ({
+      id: p.id,
+      nickname: p.nickname,
+      chips: p.chips,
+      winStreak: p.winStreak ?? 0,
+      maxWinStreak: p.maxWinStreak ?? 0,
+    })),
   });
 }
 
@@ -504,7 +543,8 @@ function checkBettingComplete(roomKey) {
     return;
   }
   const turnPlayer = room.players[room.turnIdx];
-  broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: turnPlayer?.id });
+  const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
+  broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: turnPlayer?.id, facingAllIn });
   if (turnPlayer?.isBot) {
     scheduleBotAction(roomKey);
   } else {
@@ -547,6 +587,8 @@ wss.on('connection', (ws) => {
             totalBet: 0,
             folded: false,
             allIn: false,
+            winStreak: 0,
+            maxWinStreak: 0,
           });
         }
 
@@ -560,6 +602,8 @@ wss.on('connection', (ws) => {
             id: p.id,
             nickname: p.nickname,
             chips: p.chips,
+            winStreak: p.winStreak ?? 0,
+            maxWinStreak: p.maxWinStreak ?? 0,
           })),
           gameState: room.phase === 'lobby' ? null : {
             phase: room.phase,
@@ -572,14 +616,22 @@ wss.on('connection', (ws) => {
           radio: room.radio,
         }));
 
-        broadcastToRoom(safeRoom, { type: 'userJoined', id: ws.id, nickname: safeNick }, ws);
+        broadcastToRoom(safeRoom, {
+          type: 'userJoined',
+          id: ws.id,
+          nickname: safeNick,
+          chips: 1000,
+          winStreak: 0,
+          maxWinStreak: 0,
+        }, ws);
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
         const idx = room.players.findIndex((p) => p.ws === ws);
         if (idx < 0) return;
-        startGame(data.roomKey);
+        const resetStreaks = msg.resetStreaks === true;
+        startGame(data.roomKey, resetStreaks);
       } else if (type === 'changeRadio') {
         const data = clients.get(ws);
         if (!data) return;
@@ -621,12 +673,16 @@ wss.on('connection', (ws) => {
           folded: false,
           allIn: false,
           isBot: true,
+          winStreak: 0,
+          maxWinStreak: 0,
         });
         broadcastToRoom(data.roomKey, {
           type: 'userJoined',
           id: botId,
           nickname: 'Bot',
           chips: 1000,
+          winStreak: 0,
+          maxWinStreak: 0,
         });
       } else if (type === 'chat') {
         const data = clients.get(ws);
@@ -698,7 +754,8 @@ wss.on('connection', (ws) => {
           checkBettingComplete(data.roomKey);
         } else if (action === 'check') {
           clearTurnTimer(room);
-          if (player.betThisRound < room.currentBet) return;
+          const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
+          if (facingAllIn || player.betThisRound < room.currentBet) return;
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,

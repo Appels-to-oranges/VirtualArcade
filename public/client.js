@@ -362,7 +362,13 @@ function handleMessage(msg) {
       break;
 
     case 'userJoined':
-      players.push({ id: msg.id, nickname: msg.nickname, chips: 1000 });
+      players.push({
+        id: msg.id,
+        nickname: msg.nickname,
+        chips: msg.chips ?? 1000,
+        winStreak: msg.winStreak ?? 0,
+        maxWinStreak: msg.maxWinStreak ?? 0,
+      });
       renderTable();
       break;
 
@@ -425,7 +431,9 @@ function handleMessage(msg) {
       gameState.currentBet = msg.currentBet;
       gameState.minRaise = msg.minRaise ?? 20;
       gameState.turnIdx = msg.turnIdx;
+      gameState.facingAllIn = false;
       prevCommunityCount = oldCount;
+      if (msg.turnIdx === -1) stopTurnTimer();
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -446,6 +454,7 @@ function handleMessage(msg) {
       else if (msg.action === 'check') playCheck();
       else if (['call', 'bet', 'raise'].includes(msg.action)) playBetting();
       if (msg.minRaise !== undefined && gameState) gameState.minRaise = msg.minRaise;
+      if (msg.facingAllIn !== undefined && gameState) gameState.facingAllIn = msg.facingAllIn;
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -453,6 +462,8 @@ function handleMessage(msg) {
             pl.chips = p.chips;
             pl.betThisRound = p.betThisRound;
             pl.folded = p.folded;
+            if (p.winStreak !== undefined) pl.winStreak = p.winStreak;
+            if (p.maxWinStreak !== undefined) pl.maxWinStreak = p.maxWinStreak;
           }
         });
       }
@@ -463,13 +474,17 @@ function handleMessage(msg) {
       break;
 
     case 'turn':
-      if (gameState) gameState.turnIdx = msg.turnIdx;
+      if (gameState) {
+        gameState.turnIdx = msg.turnIdx;
+        gameState.facingAllIn = msg.facingAllIn === true;
+      }
       renderTable();
       updateControls();
       break;
 
     case 'gameOver': {
       stopTurnTimer();
+      if (gameState) gameState.facingAllIn = false;
       lastWinningCards = msg.winningCards || [];
       lastCommunityCards = msg.communityCards || [];
       lastHandName = msg.handName || null;
@@ -489,6 +504,8 @@ function handleMessage(msg) {
           if (pl) {
             pl.chips = p.chips;
             if (p.hand) pl.hand = p.hand;
+            if (p.winStreak !== undefined) pl.winStreak = p.winStreak;
+            if (p.maxWinStreak !== undefined) pl.maxWinStreak = p.maxWinStreak;
           }
         });
       }
@@ -529,6 +546,8 @@ function handleMessage(msg) {
             pl.hand = null;
             pl.folded = false;
             pl.betThisRound = 0;
+            if (p.winStreak !== undefined) pl.winStreak = p.winStreak;
+            if (p.maxWinStreak !== undefined) pl.maxWinStreak = p.maxWinStreak;
           }
         });
       }
@@ -709,7 +728,8 @@ function renderTable() {
   const winnerNotifEl = document.getElementById('winner-notification');
   if (winnerNotifEl) {
     if (lastWinnerNames) {
-      winnerNotifEl.textContent = `${lastWinnerNames} won $${lastNetWon}`;
+      const handPart = lastHandName ? ` with ${lastHandName}` : '';
+      winnerNotifEl.textContent = `${lastWinnerNames} won $${lastNetWon}${handPart}`;
       winnerNotifEl.classList.remove('hidden');
     } else {
       winnerNotifEl.textContent = '';
@@ -793,6 +813,17 @@ function renderTable() {
     chipsSpan.className = 'seat-chips';
     chipsSpan.textContent = `$${p.chips ?? 0}`;
     seatInfo.appendChild(chipsSpan);
+    const winStreak = p.winStreak ?? 0;
+    const maxWinStreak = p.maxWinStreak ?? 0;
+    if (winStreak > 0 || maxWinStreak > 0) {
+      const streakSpan = document.createElement('span');
+      streakSpan.className = 'seat-streak';
+      const parts = [];
+      if (winStreak > 0) parts.push(`${winStreak}W`);
+      if (maxWinStreak > 0) parts.push(`Best ${maxWinStreak}`);
+      streakSpan.textContent = parts.join(' · ');
+      seatInfo.appendChild(streakSpan);
+    }
     if (p.folded) {
       const foldedSpan = document.createElement('span');
       foldedSpan.className = 'seat-folded';
@@ -931,7 +962,7 @@ function updateControls() {
   }
   prevTurnIdx = turnIdx;
 
-  if (isMyTurn && !folded) {
+  if (isMyTurn && !folded && gameState?.phase && gameState.phase !== 'lobby') {
     startTurnTimer();
   } else {
     stopTurnTimer();
@@ -941,7 +972,8 @@ function updateControls() {
   const myBet = me?.betThisRound || 0;
   const toCall = currentBet - myBet;
   const pot = gameState?.pot ?? 0;
-  const canCheck = (currentBet === 0 || myBet >= currentBet) && toCall <= 0;
+  const facingAllIn = gameState?.facingAllIn === true;
+  const canCheck = !facingAllIn && (currentBet === 0 || myBet >= currentBet) && toCall <= 0;
 
   if (!gameState) {
     stopTurnTimer();
@@ -982,13 +1014,13 @@ function updateControls() {
 }
 
 startBtn.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame' }));
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: true }));
 });
 
 const restartBtnEl = document.getElementById('restart-btn');
 if (restartBtnEl) {
   restartBtnEl.addEventListener('click', () => {
-    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame' }));
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: false }));
   });
 }
 
