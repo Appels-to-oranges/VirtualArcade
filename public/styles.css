@@ -845,6 +845,24 @@ body {
   margin-top: 0.15rem;
 }
 
+.seat-info .seat-streak-fire {
+  position: relative;
+  display: inline-block;
+  padding: 0.2rem 0.35rem;
+  z-index: 1;
+  color: #ffd700;
+  text-shadow: 0 0 0.2rem #000, 0 0 0.4rem #000;
+}
+
+.seat-info .seat-streak-fire::before {
+  content: '';
+  position: absolute;
+  inset: -0.3rem -0.5rem;
+  background: url('/feuer-fire.gif') center / 2.5rem no-repeat;
+  z-index: -1;
+  opacity: 0.85;
+}
+
 .seat-info .seat-folded {
   font-size: 0.6rem;
   color: #666;

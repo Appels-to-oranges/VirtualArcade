@@ -260,6 +260,8 @@ const btnCheck = document.getElementById('btn-check');
 const btnCall = document.getElementById('btn-call');
 const betAmountInput = document.getElementById('bet-amount');
 const btnBet = document.getElementById('btn-bet');
+const btnHalfPot = document.getElementById('btn-half-pot');
+const btnFullPot = document.getElementById('btn-full-pot');
 const btnAllin = document.getElementById('btn-allin');
 
 const radioBtn = document.getElementById('radio-btn');
@@ -849,13 +851,13 @@ function renderTable() {
     const winStreak = p.winStreak ?? 0;
     const maxWinStreak = p.maxWinStreak ?? 0;
     if (winStreak > 0 || maxWinStreak > 0) {
-      const streakSpan = document.createElement('span');
-      streakSpan.className = 'seat-streak';
+      const streakWrapper = document.createElement('span');
+      streakWrapper.className = 'seat-streak' + (winStreak >= 3 ? ' seat-streak-fire' : '');
       const parts = [];
       if (winStreak > 0) parts.push(`${winStreak}W`);
       if (maxWinStreak > 0) parts.push(`Best ${maxWinStreak}`);
-      streakSpan.textContent = parts.join(' · ');
-      seatInfo.appendChild(streakSpan);
+      streakWrapper.textContent = parts.join(' · ');
+      seatInfo.appendChild(streakWrapper);
     }
     if (p.folded) {
       const foldedSpan = document.createElement('span');
@@ -1006,7 +1008,7 @@ function updateControls() {
   const toCall = currentBet - myBet;
   const pot = gameState?.pot ?? 0;
   const facingAllIn = gameState?.facingAllIn === true;
-  const canCheck = !facingAllIn && (currentBet === 0 || myBet >= currentBet) && toCall <= 0;
+  const canCheck = currentBet === 0;
 
   if (!gameState) {
     stopTurnTimer();
@@ -1024,9 +1026,11 @@ function updateControls() {
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
   const minRaise = gameState?.minRaise || 20;
   const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
-  const canRaise = isMyTurn && !folded && myChips > 0;
+  const canRaise = isMyTurn && !folded && myChips > 0 && !facingAllIn;
   btnBet.disabled = !canRaise;
   btnAllin.disabled = !isMyTurn || folded || myChips <= 0;
+  if (btnHalfPot) btnHalfPot.disabled = !canRaise;
+  if (btnFullPot) btnFullPot.disabled = !canRaise;
 
   if (toCall > 0) {
     btnCall.textContent = `Call $${toCall}`;
@@ -1092,8 +1096,6 @@ btnBet.addEventListener('click', () => {
   }
 });
 
-const btnHalfPot = document.getElementById('btn-half-pot');
-const btnFullPot = document.getElementById('btn-full-pot');
 if (btnHalfPot) {
   btnHalfPot.addEventListener('click', () => {
     const pot = gameState?.pot ?? 0;

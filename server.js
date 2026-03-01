@@ -126,8 +126,7 @@ function startTurnTimer(roomKey) {
     const player = roomNow.players[idx];
     if (!player || player.folded || player.allIn) return;
 
-    const facingAllIn = roomNow.currentBet > 0 && roomNow.lastRaiserIdx >= 0 && roomNow.players[roomNow.lastRaiserIdx]?.allIn === true;
-    const canCheck = !facingAllIn && player.betThisRound >= roomNow.currentBet;
+    const canCheck = roomNow.currentBet === 0;
     const toCall = roomNow.currentBet - player.betThisRound;
 
     if (canCheck) {
@@ -756,8 +755,7 @@ wss.on('connection', (ws) => {
           checkBettingComplete(data.roomKey);
         } else if (action === 'check') {
           clearTurnTimer(room);
-          const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
-          if (facingAllIn || player.betThisRound < room.currentBet) return;
+          if (room.currentBet > 0) return;
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,
@@ -793,6 +791,8 @@ wss.on('connection', (ws) => {
           checkBettingComplete(data.roomKey);
         } else if (action === 'bet' || action === 'raise') {
           clearTurnTimer(room);
+          const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
+          if (facingAllIn) return;
           const raiseTo = Math.max(0, Math.floor(Number(amount) || 0));
           const minRaiseTo = room.currentBet + (action === 'raise' ? room.minRaise : room.bigBlind);
           if (raiseTo < minRaiseTo) return;
@@ -914,7 +914,8 @@ wss.on('connection', (ws) => {
           } else if (wasInGame && wasTurn) {
             clearTurnTimer(room);
             const nextPlayer = room.players[room.turnIdx];
-            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer?.id });
+            const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
+            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer?.id, facingAllIn });
             if (nextPlayer?.isBot) scheduleBotAction(data.roomKey);
             else startTurnTimer(data.roomKey);
           }
