@@ -844,6 +844,7 @@ wss.on('connection', (ws) => {
             room.minRaise = Math.max(room.bigBlind, player.betThisRound - prevBet);
           }
 
+          const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,
@@ -852,6 +853,7 @@ wss.on('connection', (ws) => {
             currentBet: room.currentBet,
             minRaise: room.minRaise,
             pot: room.pot,
+            facingAllIn,
             players: room.players.map((p, i) => ({
               id: p.id,
               chips: p.chips,
