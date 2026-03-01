@@ -18,17 +18,22 @@ const playersContainer = document.getElementById('players-container');
 const communityCardsEl = document.getElementById('community-cards');
 const myCardsEl = document.getElementById('my-cards');
 const potLabel = document.getElementById('pot-label');
+const potInControls = document.getElementById('pot-in-controls');
 const phaseLabel = document.getElementById('phase-label');
 const roomLabel = document.getElementById('room-label');
 const startBtn = document.getElementById('start-btn');
 const messageToast = document.getElementById('message-toast');
+const showdownOverlay = document.getElementById('showdown-overlay');
+const showdownTitle = document.getElementById('showdown-title');
+const showdownCommunity = document.getElementById('showdown-community');
+const showdownHands = document.getElementById('showdown-hands');
+const showdownDismiss = document.getElementById('showdown-dismiss');
 
 const btnFold = document.getElementById('btn-fold');
 const btnCheck = document.getElementById('btn-check');
 const btnCall = document.getElementById('btn-call');
 const betAmountInput = document.getElementById('bet-amount');
 const btnBet = document.getElementById('btn-bet');
-const btnRaise = document.getElementById('btn-raise');
 
 let ws = null;
 let myId = null;
@@ -163,7 +168,10 @@ function handleMessage(msg) {
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
-          if (pl) pl.chips = p.chips;
+          if (pl) {
+            pl.chips = p.chips;
+            if (p.hand) pl.hand = p.hand;
+          }
         });
       }
       const winnerText = msg.winnerNicknames
@@ -172,9 +180,13 @@ function handleMessage(msg) {
       showToast(`${winnerText} wins $${msg.winAmount || msg.pot}${msg.handName ? ` with ${msg.handName}` : ''}!`);
       renderTable();
       updateControls();
+      if (msg.communityCards && msg.communityCards.length > 0 && msg.players?.some((p) => p.hand)) {
+        showShowdown(msg);
+      }
       break;
 
     case 'roundOver':
+      hideShowdown();
       gameState = null;
       myHand = [];
       if (msg.players) {
@@ -213,12 +225,55 @@ function showGameScreen() {
 function showToast(text) {
   messageToast.textContent = text;
   messageToast.classList.add('show');
-  setTimeout(() => messageToast.classList.remove('show'), 3000);
+  setTimeout(() => messageToast.classList.remove('show'), 3500);
+}
+
+function showShowdown(msg) {
+  const winText = msg.winnerNicknames?.join(', ') || msg.winnerNickname || 'Unknown';
+  const handName = msg.handName || '';
+  const winAmount = msg.winAmount ?? msg.pot ?? 0;
+  showdownTitle.textContent = `${winText} wins $${winAmount}${handName ? ` with ${handName}` : ''}`;
+
+  showdownCommunity.innerHTML = '';
+  (msg.communityCards || []).forEach((card) => {
+    const div = document.createElement('div');
+    div.className = 'card showdown-card';
+    div.style.backgroundImage = `url(${cardImagePath(card)})`;
+    showdownCommunity.appendChild(div);
+  });
+
+  const winnerIds = new Set(msg.winners || (msg.winner ? [msg.winner] : []));
+  showdownHands.innerHTML = '';
+  (msg.players || []).forEach((p) => {
+    if (!p.hand?.length) return;
+    const isWinner = winnerIds.has(p.id);
+    const row = document.createElement('div');
+    row.className = 'showdown-hand-row' + (isWinner ? ' winner' : '');
+    row.innerHTML = `<span class="showdown-player-name">${p.nickname || 'Player'}${isWinner ? ' (Winner)' : ''}</span>`;
+    const cardsDiv = document.createElement('div');
+    cardsDiv.className = 'showdown-hand-cards';
+    p.hand.forEach((card) => {
+      const div = document.createElement('div');
+      div.className = 'card showdown-card';
+      div.style.backgroundImage = `url(${cardImagePath(card)})`;
+      cardsDiv.appendChild(div);
+    });
+    row.appendChild(cardsDiv);
+    showdownHands.appendChild(row);
+  });
+
+  showdownOverlay.classList.remove('hidden');
+}
+
+function hideShowdown() {
+  showdownOverlay.classList.add('hidden');
 }
 
 function renderTable() {
-  potLabel.textContent = `Pot: $${(gameState?.pot || 0)}`;
-  phaseLabel.textContent = gameState?.phase ? gameState.phase.charAt(0).toUpperCase() + gameState.phase.slice(1) : '';
+  const pot = gameState?.pot || 0;
+  potLabel.textContent = `Pot: $${pot}`;
+  if (potInControls) potInControls.textContent = `Pot: $${pot}`;
+  phaseLabel.textContent = gameState?.phase ? gameState.phase.toUpperCase() : '';
 
   communityCardsEl.innerHTML = '';
   (gameState?.communityCards || []).forEach((card) => {
@@ -243,7 +298,7 @@ function renderTable() {
   const cx = 50;
   const cy = 50;
   const rx = 42;
-  const ry = 38;
+  const ry = 36;
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const offset = myPosIdx >= 0 ? Math.PI / 2 - (myPosIdx / count) * Math.PI * 2 : 0;
 
@@ -268,34 +323,39 @@ function renderTable() {
     const cardsDiv = document.createElement('div');
     cardsDiv.className = 'player-cards';
 
-    const hand = p.hand || [];
-    hand.forEach((card) => {
-      const cardEl = document.createElement('div');
-      cardEl.className = 'card' + (p.folded ? ' folded' : '');
-      if (isMe || !p.folded) {
-        cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
-      } else {
-        cardEl.style.backgroundImage = `url(${cardImagePathBack()})`;
-      }
-      cardsDiv.appendChild(cardEl);
-    });
-
-    if (hand.length === 0 && gameState && gameState.phase !== 'lobby') {
-      [1, 2].forEach(() => {
+    if (isMe && myHand.length > 0) {
+      myHand.forEach((card) => {
         const cardEl = document.createElement('div');
-        cardEl.className = 'card back';
+        cardEl.className = 'card' + (p.folded ? ' folded' : '');
+        cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
         cardsDiv.appendChild(cardEl);
       });
+    } else {
+      const hand = p.hand || [];
+      if (hand.length > 0) {
+        hand.forEach((card) => {
+          const cardEl = document.createElement('div');
+          cardEl.className = 'card' + (p.folded ? ' folded' : '');
+          cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
+          cardsDiv.appendChild(cardEl);
+        });
+      } else if (gameState && gameState.phase !== 'lobby' && !p.folded) {
+        [1, 2].forEach(() => {
+          const cardEl = document.createElement('div');
+          cardEl.className = 'card back';
+          cardsDiv.appendChild(cardEl);
+        });
+      }
     }
 
     const info = document.createElement('div');
     info.className = 'player-info';
-    info.innerHTML = `
-      <span>${p.nickname || 'Player'}</span>
-      <span class="chips">$${p.chips ?? 0}</span>
-      ${p.betThisRound ? `<span>Bet: $${p.betThisRound}</span>` : ''}
-      ${p.folded ? '<span style="color:#888">Folded</span>' : ''}
-    `;
+
+    let infoHtml = `<span class="player-name">${p.nickname || 'Player'}</span>`;
+    infoHtml += `<span class="chips">$${p.chips ?? 0}</span>`;
+    if (p.betThisRound) infoHtml += `<span class="bet-label">Bet: $${p.betThisRound}</span>`;
+    if (p.folded) infoHtml += `<span class="folded-label">Folded</span>`;
+    info.innerHTML = infoHtml;
 
     seat.appendChild(cardsDiv);
     seat.appendChild(info);
@@ -320,7 +380,6 @@ function updateControls() {
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
   btnBet.disabled = !isMyTurn || folded;
-  btnRaise.disabled = !isMyTurn || folded;
 
   if (toCall > 0) {
     btnCall.textContent = `Call $${toCall}`;
@@ -328,8 +387,14 @@ function updateControls() {
     btnCall.textContent = 'Call';
   }
 
+  if (currentBet > 0) {
+    btnBet.textContent = 'Raise';
+  } else {
+    btnBet.textContent = 'Bet';
+  }
+
   const minRaise = gameState?.minRaise || 20;
-  betAmountInput.placeholder = `Min $${minRaise}`;
+  betAmountInput.placeholder = `$${minRaise}`;
   betAmountInput.min = minRaise;
 }
 
@@ -360,18 +425,16 @@ btnCall.addEventListener('click', () => {
 btnBet.addEventListener('click', () => {
   if (ws && ws.readyState === 1) {
     const amt = parseInt(betAmountInput.value, 10) || 0;
-    ws.send(JSON.stringify({ type: 'action', action: 'bet', amount: amt }));
+    const currentBet = gameState?.currentBet || 0;
+    const action = currentBet > 0 ? 'raise' : 'bet';
+    ws.send(JSON.stringify({ type: 'action', action, amount: amt }));
   }
 });
 
-btnRaise.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) {
-    const amt = parseInt(betAmountInput.value, 10) || 0;
-    ws.send(JSON.stringify({ type: 'action', action: 'raise', amount: amt }));
-  }
-});
+if (showdownDismiss) {
+  showdownDismiss.addEventListener('click', hideShowdown);
+}
 
-// URL params for room
 const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');
 if (roomParam) {

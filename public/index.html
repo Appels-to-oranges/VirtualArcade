@@ -21,32 +21,40 @@
   </div>
 
   <div id="game-screen" class="hidden">
+    <div class="room-bar">
+      <span id="room-label"></span>
+      <button id="start-btn" class="btn-start">Start Game</button>
+    </div>
     <div class="table-container">
       <div class="poker-table">
         <div class="pot-display">
           <span id="pot-label">Pot: $0</span>
         </div>
+        <div class="phase-label" id="phase-label"></div>
         <div class="community-cards" id="community-cards"></div>
         <div class="players-container" id="players-container"></div>
-        <div class="my-cards" id="my-cards"></div>
-        <div class="controls" id="controls">
-          <button id="btn-fold" class="btn btn-fold">Fold</button>
-          <button id="btn-check" class="btn btn-check">Check</button>
-          <button id="btn-call" class="btn btn-call">Call</button>
-          <div class="bet-row">
-            <input type="number" id="bet-amount" placeholder="Amount" min="0" value="40">
-            <button id="btn-bet" class="btn btn-bet">Bet</button>
-            <button id="btn-raise" class="btn btn-raise">Raise</button>
-          </div>
-        </div>
-        <div class="phase-label" id="phase-label"></div>
-        <div class="room-bar">
-          <span id="room-label"></span>
-          <button id="start-btn" class="btn-start">Start Game</button>
-        </div>
+      </div>
+    </div>
+    <div class="my-cards" id="my-cards"></div>
+    <div class="controls" id="controls">
+      <div class="pot-in-controls" id="pot-in-controls">Pot: $0</div>
+      <button id="btn-fold" class="btn btn-fold">Fold</button>
+      <button id="btn-check" class="btn btn-check">Check</button>
+      <button id="btn-call" class="btn btn-call">Call</button>
+      <div class="bet-row">
+        <input type="number" id="bet-amount" placeholder="Amount" min="0" value="40">
+        <button id="btn-bet" class="btn btn-bet">Bet</button>
       </div>
     </div>
     <div class="message-toast" id="message-toast"></div>
+    <div id="showdown-overlay" class="showdown-overlay hidden">
+      <div class="showdown-modal">
+        <h2 id="showdown-title"></h2>
+        <div class="showdown-community" id="showdown-community"></div>
+        <div class="showdown-hands" id="showdown-hands"></div>
+        <button id="showdown-dismiss" class="btn-dismiss">Continue</button>
+      </div>
+    </div>
   </div>
 
   <script src="client.js"></script>
