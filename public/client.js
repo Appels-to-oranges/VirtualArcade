@@ -7,6 +7,8 @@ const SOUND_FILES = {
   shuffle: ['shuffle.wav', 'shuffle.mp3'],
   cardPutDown: ['card_put_down.wav', 'card put down.wav', 'card_put_down.mp3'],
   ambience: ['BACKGROUND_CASINO_AMBIENCE.wav', 'BACKGROUND_CASINO_AMBIENCE.mp3'],
+  winner: ['winner.wav', 'winner sound.wav', 'winner.mp3'],
+  yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
 };
 
 function createSoundAudio(keys) {
@@ -28,6 +30,8 @@ function createSoundAudio(keys) {
 const soundShuffle = createSoundAudio(SOUND_FILES.shuffle);
 const soundCardPutDown = createSoundAudio(SOUND_FILES.cardPutDown);
 const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
+const soundWinner = createSoundAudio(SOUND_FILES.winner);
+const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 
 let audioCtx = null;
 function playFallbackClick(vol = 0.3) {
@@ -65,6 +69,14 @@ function playCardPutDown(delayMs = 0) {
   } else {
     playSound(soundCardPutDown, CARD_FX_VOLUME_KEY);
   }
+}
+
+function playWinner() {
+  playSound(soundWinner, CARD_FX_VOLUME_KEY);
+}
+
+function playYourTurn() {
+  playSound(soundYourTurn, CARD_FX_VOLUME_KEY);
 }
 
 function startAmbience() {
@@ -238,6 +250,7 @@ let lastHandName = null;
 let lastWinningHoleIndices = [];
 let lastPot = 0;
 let turnTimerInterval = null;
+let prevTurnIdx = -1;
 
 const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
 const radioAudio = new Audio();
@@ -406,6 +419,7 @@ function handleMessage(msg) {
       const winnerText = msg.winnerNicknames
         ? msg.winnerNicknames.join(', ')
         : msg.winnerNickname || 'Unknown';
+      playWinner();
       showToast(`${winnerText} wins $${msg.winAmount || msg.pot}${msg.handName ? ` with ${msg.handName}` : ''}!`);
       showShowdown(msg);
       gameState = null;
@@ -442,6 +456,7 @@ function handleMessage(msg) {
 function showJoinScreen() {
   joinScreen.classList.remove('hidden');
   gameScreen.classList.add('hidden');
+  stopAmbience();
   if (ws) ws.close();
   ws = null;
 }
@@ -449,6 +464,7 @@ function showJoinScreen() {
 function showGameScreen() {
   joinScreen.classList.add('hidden');
   gameScreen.classList.remove('hidden');
+  startAmbience();
 }
 
 function showToast(text) {
@@ -461,6 +477,9 @@ function showShowdown(msg) {
   const winText = msg.winnerNicknames?.join(', ') || msg.winnerNickname || 'Unknown';
   const handName = msg.handName || '';
   const winAmount = msg.winAmount ?? msg.pot ?? 0;
+
+  const bannerEl = document.getElementById('showdown-winner-banner');
+  if (bannerEl) bannerEl.textContent = `Winner: ${winText}`;
 
   let title = `${winText} wins $${winAmount}`;
   if (handName) title += ` with ${handName}`;
@@ -638,6 +657,11 @@ function renderTable() {
     }
     seat.appendChild(seatInfo);
 
+    const chipStackDiv = document.createElement('div');
+    chipStackDiv.className = 'seat-chip-stack';
+    chipStackDiv.appendChild(renderChipIcons(p.chips ?? 0, 6));
+    seat.appendChild(chipStackDiv);
+
     const cardsDiv = document.createElement('div');
     cardsDiv.className = 'player-cards';
 
@@ -736,9 +760,15 @@ function stopTurnTimer() {
 
 function updateControls() {
   const myIdx = players.findIndex((p) => p.id === myId);
-  const isMyTurn = gameState && gameState.turnIdx === myIdx;
+  const turnIdx = gameState?.turnIdx ?? -1;
+  const isMyTurn = gameState && turnIdx === myIdx;
   const me = players[myIdx];
   const folded = me?.folded;
+
+  if (isMyTurn && turnIdx !== prevTurnIdx && !folded) {
+    playYourTurn();
+  }
+  prevTurnIdx = turnIdx;
 
   if (isMyTurn && !folded) {
     startTurnTimer();
@@ -751,7 +781,10 @@ function updateControls() {
   const toCall = currentBet - myBet;
   const canCheck = currentBet === 0 || myBet >= currentBet;
 
-  if (!gameState) stopTurnTimer();
+  if (!gameState) {
+    stopTurnTimer();
+    prevTurnIdx = -1;
+  }
 
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
@@ -821,14 +854,12 @@ function playRadio(station) {
   currentRadioName = station.name || 'Radio';
   if (nowPlayingRadio) nowPlayingRadio.classList.remove('hidden');
   if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = '\u{1F4FB} ' + currentRadioName;
-  startAmbience();
 }
 
 function stopRadio() {
   radioAudio.pause();
   radioAudio.src = '';
   currentRadioName = '';
-  stopAmbience();
   if (nowPlayingRadio) nowPlayingRadio.classList.add('hidden');
 }
 

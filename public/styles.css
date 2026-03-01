@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+/* Scale with viewport for 4K and smaller screens */
+html {
+  font-size: clamp(10px, 1.2vmin + 8px, 18px);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -114,11 +119,8 @@ body {
 }
 
 .game-scale-wrapper {
-  transform: scale(1.5);
-  transform-origin: top center;
-  width: 66.67%;
-  min-width: 400px;
-  max-width: 853px;
+  width: min(95vw, 900px);
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -401,7 +403,7 @@ body {
 .table-container {
   width: 100%;
   max-width: 1280px;
-  padding: 6px 12px;
+  padding: 0.5rem 1rem;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -415,8 +417,8 @@ body {
   box-shadow: inset 0 0 40px rgba(0,0,0,0.5), 0 0 0 3px #000;
   position: relative;
   flex: 1;
-  min-height: 320px;
-  max-height: 480px;
+  min-height: min(35vh, 500px);
+  max-height: min(55vh, 600px);
   border-radius: 0;
   width: 100%;
 }
@@ -424,7 +426,7 @@ body {
 /* Phase label */
 .phase-label {
   position: absolute;
-  top: 8px;
+  top: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.55rem;
@@ -432,11 +434,12 @@ body {
   text-transform: uppercase;
   letter-spacing: 2px;
   z-index: 2;
+  margin: 0.25rem 0;
 }
 
 .hand-rank-label {
   position: absolute;
-  top: 26px;
+  top: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.5rem;
@@ -444,6 +447,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
   z-index: 2;
+  margin: 0.25rem 0;
 }
 
 /* Community area: pot + board + winning hand */
@@ -456,6 +460,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  margin: 0.5rem;
 }
 
 .table-pot {
@@ -463,6 +468,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
+  margin: 0.25rem;
   background: rgba(0,0,0,0.7);
   border: 2px solid #8b6914;
 }
@@ -498,18 +504,19 @@ body {
   display: flex;
   gap: 8px;
   justify-content: center;
+  margin: 0.25rem;
 }
 
 .board-cards .card {
-  width: 80px;
-  height: 112px;
-  background-size: 80px 112px;
+  width: 5rem;
+  height: 7rem;
+  background-size: 5rem 7rem;
 }
 
 .winning-hand-row .winning-hand-cards .card {
-  width: 80px;
-  height: 112px;
-  background-size: 80px 112px;
+  width: 5rem;
+  height: 7rem;
+  background-size: 5rem 7rem;
 }
 
 .winning-hand-row {
@@ -517,6 +524,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  margin: 0.25rem;
 }
 
 .winning-hand-row .winning-hand-label {
@@ -592,6 +600,24 @@ body {
   gap: 3px;
   pointer-events: auto;
   max-width: 140px;
+  margin: 0.25rem;
+}
+
+.seat-chip-stack {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.seat-chip-stack .chip-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.seat-chip-stack .chip-icon.chip-stack {
+  width: 1.25rem;
+  height: 1.75rem;
 }
 
 .player-seat .player-cards {
@@ -600,9 +626,9 @@ body {
 }
 
 .player-seat .player-cards .card {
-  width: 46px;
-  height: 65px;
-  background-size: 46px 65px;
+  width: 2.9rem;
+  height: 4rem;
+  background-size: 2.9rem 4rem;
 }
 
 .seat-info {
@@ -875,6 +901,17 @@ body {
   max-width: 720px;
   width: 100%;
   box-shadow: 0 0 0 6px #000;
+}
+
+.showdown-winner-banner {
+  font-size: 0.85rem;
+  color: #ffd700;
+  text-align: center;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 215, 0, 0.12);
+  border: 2px solid #ffd700;
+  letter-spacing: 2px;
 }
 
 .showdown-modal h2 {
