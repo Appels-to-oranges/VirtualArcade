@@ -109,6 +109,9 @@ const communityAreaEl = document.getElementById('community-area');
 const boardCardsEl = document.getElementById('board-cards');
 const winningHandRowEl = document.getElementById('winning-hand-row');
 const winningHandCardsEl = document.getElementById('winning-hand-cards');
+const tablePotEl = document.getElementById('table-pot');
+const tablePotAmountEl = document.getElementById('table-pot-amount');
+const tablePotChipsEl = document.getElementById('table-pot-chips');
 const myCardsEl = document.getElementById('my-cards');
 const potInControls = document.getElementById('pot-in-controls');
 const phaseLabel = document.getElementById('phase-label');
@@ -155,6 +158,8 @@ let prevMyHandCount = 0;
 let lastWinningCards = null;
 let lastCommunityCards = null;
 let lastHandName = null;
+let lastWinningHoleIndices = [];
+let lastPot = 0;
 let turnTimerInterval = null;
 
 const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
@@ -229,6 +234,8 @@ function handleMessage(msg) {
       lastWinningCards = null;
       lastCommunityCards = null;
       lastHandName = null;
+      lastWinningHoleIndices = [];
+      lastPot = 0;
       gameState = {
         phase: msg.phase,
         communityCards: [],
@@ -305,6 +312,8 @@ function handleMessage(msg) {
       lastWinningCards = msg.winningCards || [];
       lastCommunityCards = msg.communityCards || [];
       lastHandName = msg.handName || null;
+      lastWinningHoleIndices = msg.winningHoleIndices || [];
+      lastPot = msg.pot || 0;
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -392,14 +401,16 @@ function showShowdown(msg) {
     });
   }
 
-  /* Winning hand: 5 (or 2) cards, highlighted */
+  /* Winning hand: 5 (or 2) cards, highlight hole cards */
   const winningCards = msg.winningCards || [];
+  const holeIndices = new Set(msg.winningHoleIndices || []);
   if (showdownWinningCards) {
     showdownWinningCards.innerHTML = '';
-    winningCards.forEach((card) => {
+    winningCards.forEach((card, idx) => {
       const div = document.createElement('div');
-      div.className = 'card showdown-card showdown-winning-card';
+      div.className = 'card showdown-card showdown-winning-card' + (holeIndices.has(idx) ? ' from-hole' : '');
       div.style.backgroundImage = `url(${cardImagePath(card)})`;
+      div.title = holeIndices.has(idx) ? 'From player\'s hand' : 'From board';
       showdownWinningCards.appendChild(div);
     });
   }
@@ -439,7 +450,7 @@ function hideShowdown() {
 }
 
 function renderTable() {
-  const pot = gameState?.pot || 0;
+  const pot = gameState?.pot ?? lastPot ?? 0;
   if (potInControls) {
     potInControls.innerHTML = '';
     const potText = document.createElement('span');
@@ -451,6 +462,11 @@ function renderTable() {
       potChips.appendChild(renderChipStack(pot, 4));
       potInControls.appendChild(potChips);
     }
+  }
+  if (tablePotAmountEl) tablePotAmountEl.textContent = `$${pot}`;
+  if (tablePotChipsEl) {
+    tablePotChipsEl.innerHTML = '';
+    if (pot > 0) tablePotChipsEl.appendChild(renderChipStack(pot, 5));
   }
   phaseLabel.textContent = gameState?.phase ? gameState.phase.toUpperCase() : '';
 
@@ -471,17 +487,19 @@ function renderTable() {
   });
   if (!lastWinningCards) prevCommunityCount = boardCards.length;
 
-  /* Winning hand row: 5 cards moved down (showdown only) */
+  /* Winning hand row: 5 cards moved down (showdown only), highlight hole cards */
   if (winningHandRowEl && winningHandCardsEl) {
     const labelEl = winningHandRowEl.querySelector('.winning-hand-label');
+    const holeSet = new Set(lastWinningHoleIndices || []);
     if (lastWinningCards?.length) {
       winningHandRowEl.classList.remove('hidden');
       if (labelEl) labelEl.textContent = lastHandName ? `Winning hand: ${lastHandName}` : 'Winning hand';
       winningHandCardsEl.innerHTML = '';
-      lastWinningCards.forEach((card) => {
+      lastWinningCards.forEach((card, idx) => {
         const div = document.createElement('div');
-        div.className = 'card winning-card';
+        div.className = 'card winning-card' + (holeSet.has(idx) ? ' from-hole' : '');
         div.style.backgroundImage = `url(${cardImagePath(card)})`;
+        div.title = holeSet.has(idx) ? 'From player\'s hand' : 'From board';
         winningHandCardsEl.appendChild(div);
       });
     } else {

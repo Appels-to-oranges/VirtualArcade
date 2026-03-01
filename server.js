@@ -50,6 +50,19 @@ function fromSolverCard(sc) {
   return { rank: rankMap[sc.value] || sc.value, suit: suitMap[sc.suit] || 'hearts' };
 }
 
+function cardInHole(card, holeCards) {
+  if (!card || !holeCards?.length) return false;
+  return holeCards.some((h) => h.rank === card.rank && h.suit === card.suit);
+}
+
+function winningHoleIndices(winningCards, holeCards) {
+  const indices = [];
+  winningCards.forEach((card, i) => {
+    if (cardInHole(card, holeCards)) indices.push(i);
+  });
+  return indices;
+}
+
 function createDeck() {
   const deck = [];
   for (const suit of SUITS) {
@@ -303,6 +316,7 @@ function showdown(roomKey) {
 
   if (active.length === 1) {
     active[0].chips += room.pot;
+    const holeCards = active[0].hand;
     broadcastToRoom(roomKey, {
       type: 'gameOver',
       winner: active[0].id,
@@ -313,7 +327,8 @@ function showdown(roomKey) {
       pot: room.pot,
       winAmount: room.pot,
       communityCards: room.communityCards,
-      winningCards: active[0].hand,
+      winningCards: holeCards,
+      winningHoleIndices: [0, 1],
       players: room.players.map((p) => ({
         id: p.id,
         nickname: p.nickname,
@@ -337,6 +352,10 @@ function showdown(roomKey) {
     const winningCards = winners[0]?.cards
       ? winners[0].cards.map(fromSolverCard)
       : [];
+    const firstWinner = winnerHands[0]?.player;
+    const winningHoleInds = firstWinner
+      ? winningHoleIndices(winningCards, firstWinner.hand)
+      : [];
 
     broadcastToRoom(roomKey, {
       type: 'gameOver',
@@ -347,6 +366,7 @@ function showdown(roomKey) {
       winAmount,
       communityCards: room.communityCards,
       winningCards,
+      winningHoleIndices: winningHoleInds,
       players: room.players.map((p) => ({
         id: p.id,
         nickname: p.nickname,
