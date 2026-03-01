@@ -11,7 +11,7 @@
     <div class="join-card">
       <h1>Texas Hold'em</h1>
       <p class="tagline">Room-based poker with friends</p>
-      <form id="join-form" class="join-form">
+      <form id="join-form" class="join-form" action="javascript:void(0)" method="post">
         <div class="form-group">
           <label for="room-key">Room key</label>
           <input type="text" id="room-key" class="form-control" placeholder="Enter room key" maxlength="32" autocomplete="off">
@@ -20,7 +20,7 @@
           <label for="nickname">Nickname</label>
           <input type="text" id="nickname" class="form-control" placeholder="Enter nickname" maxlength="20" autocomplete="off">
         </div>
-        <button type="submit" class="btn-join">Join</button>
+        <button type="button" id="join-btn" class="btn-join">Join</button>
       </form>
       <p class="hint">Share the same room key to play together.</p>
     </div>

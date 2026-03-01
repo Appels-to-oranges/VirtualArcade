@@ -285,13 +285,20 @@ const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 
-joinForm.addEventListener('submit', (e) => {
-  e.preventDefault();
+function doJoin() {
   const key = roomKeyInput.value.trim();
   const nick = nicknameInput.value.trim();
   if (!key || !nick) return;
   join(key, nick);
+}
+
+joinForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  doJoin();
 });
+
+const joinBtn = document.getElementById('join-btn');
+if (joinBtn) joinBtn.addEventListener('click', doJoin);
 
 function join(key, nick) {
   roomKey = key;
