@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-/* Scale with viewport for 4K and smaller screens */
+/* Scale with viewport - supports 5120x2880 (5K) and smaller */
 html {
-  font-size: clamp(10px, 1.2vmin + 8px, 18px);
+  font-size: clamp(12px, 2vmin + 10px, 36px);
 }
 
 * {
@@ -148,19 +148,47 @@ body {
   overflow: auto;
 }
 
-.winner-banner {
+.winner-notification {
   text-align: center;
-  padding: 0.6rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
   color: #ffd700;
-  background: rgba(255, 215, 0, 0.15);
-  border-bottom: 0.2rem solid #ffd700;
-  flex-shrink: 0;
+  background: rgba(255, 215, 0, 0.2);
+  border: 0.15rem solid #ffd700;
+  border-radius: 0.3rem;
+  margin: 0.5rem 0;
 }
 
-.winner-banner.hidden {
+.winner-notification.hidden {
   display: none !important;
 }
+
+.btn-restart {
+  padding: 0.4rem 1rem;
+  background: #1b4332;
+  border: 0.2rem solid #40916c;
+  color: #ddd;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+}
+
+.btn-restart:hover { background: #2d6a4f; }
+.btn-restart:disabled {
+  background: #1a1a1a;
+  border-color: #333;
+  color: #444;
+  cursor: not-allowed;
+}
+
+.btn-rebuy {
+  background: #2d5016;
+  border-color: #4a7c23;
+}
+
+.btn-rebuy:hover { background: #3d6b1f; }
 
 .game-scale-wrapper {
   width: 100vw;

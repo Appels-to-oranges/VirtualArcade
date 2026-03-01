@@ -11,6 +11,8 @@ const SOUND_FILES = {
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
   betting: ['chips_betting.wav', 'chips_betting.mp3'],
   allIn: ['all_in.wav', 'all in.wav', 'all_in.mp3'],
+  youLose: ['you_lose.wav', 'you lose.wav', 'you_lose.mp3'],
+  check: ['check.wav', 'check.mp3'],
 };
 
 function createSoundAudio(keys) {
@@ -36,6 +38,8 @@ const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 const soundBetting = createSoundAudio(SOUND_FILES.betting);
 const soundAllIn = createSoundAudio(SOUND_FILES.allIn);
+const soundYouLose = createSoundAudio(SOUND_FILES.youLose);
+const soundCheck = createSoundAudio(SOUND_FILES.check);
 
 let audioCtx = null;
 function playFallbackClick(vol = 0.3) {
@@ -89,6 +93,14 @@ function playBetting() {
 
 function playAllIn() {
   playSound(soundAllIn, CARD_FX_VOLUME_KEY);
+}
+
+function playYouLose() {
+  playSound(soundYouLose, CARD_FX_VOLUME_KEY);
+}
+
+function playCheck() {
+  playSound(soundCheck, CARD_FX_VOLUME_KEY);
 }
 
 function startAmbience() {
@@ -261,6 +273,8 @@ let lastCommunityCards = null;
 let lastHandName = null;
 let lastWinningHoleIndices = [];
 let lastPot = 0;
+let lastWinnerNames = '';
+let lastNetWon = 0;
 let turnTimerInterval = null;
 let prevTurnIdx = -1;
 
@@ -334,11 +348,23 @@ function handleMessage(msg) {
       renderTable();
       break;
 
+    case 'userRebuy':
+      if (msg.players) {
+        msg.players.forEach((p) => {
+          const pl = players.find((x) => x.id === p.id);
+          if (pl) pl.chips = p.chips;
+        });
+      }
+      renderTable();
+      updateControls();
+      break;
+
     case 'gameStarted':
       playShuffle();
-      const wbStart = document.getElementById('winner-banner');
-      if (wbStart) wbStart.classList.add('hidden');
       lastWinningCards = null;
+      lastWinnerNames = '';
+      lastNetWon = 0;
+      prevTurnIdx = -1;
       lastCommunityCards = null;
       lastHandName = null;
       lastWinningHoleIndices = [];
@@ -393,6 +419,7 @@ function handleMessage(msg) {
 
     case 'action':
       if (msg.action === 'allin') playAllIn();
+      else if (msg.action === 'check') playCheck();
       else if (['call', 'bet', 'raise'].includes(msg.action)) playBetting();
       if (msg.minRaise !== undefined && gameState) gameState.minRaise = msg.minRaise;
       if (msg.players) {
@@ -445,23 +472,28 @@ function handleMessage(msg) {
         });
       }
       const winnerText = winnerNames.length ? winnerNames.join(', ') : 'Unknown';
-      playWinner();
-      const bannerEl = document.getElementById('winner-banner');
-      if (bannerEl) {
-        bannerEl.textContent = `${winnerText} won $${netWon}`;
-        bannerEl.classList.remove('hidden');
-      }
-      showToast(`${winnerText} wins $${msg.winAmount || msg.pot}${msg.handName ? ` with ${msg.handName}` : ''}!`);
+      lastWinnerNames = winnerText;
+      lastNetWon = netWon;
+      const amIWinner = winnerIds.includes(myId);
+      if (amIWinner) playWinner();
+      else playYouLose();
       showShowdown(msg);
       gameState = null;
       renderTable();
       updateControls();
       break;
 
+    case 'rebuySuccess':
+      if (msg.chips !== undefined) {
+        const pl = players.find((p) => p.id === myId);
+        if (pl) pl.chips = msg.chips;
+      }
+      renderTable();
+      updateControls();
+      break;
+
     case 'roundOver':
       hideShowdown();
-      const wb = document.getElementById('winner-banner');
-      if (wb) wb.classList.add('hidden');
       gameState = null;
       myHand = [];
       prevCommunityCount = 0;
@@ -509,12 +541,19 @@ function showToast(text) {
 function showShowdown(msg) {
   const winText = msg.winnerNicknames?.join(', ') || msg.winnerNickname || 'Unknown';
   const handName = msg.handName || '';
-  const winAmount = msg.winAmount ?? msg.pot ?? 0;
+  const winnerIds = msg.winners || (msg.winner ? [msg.winner] : []);
+  const winnerBets = winnerIds.reduce((sum, id) => {
+    const p = players.find((x) => x.id === id);
+    return sum + (p?.betThisRound ?? 0);
+  }, 0);
+  const pot = msg.pot ?? 0;
+  const winAmount = msg.winAmount ?? pot;
+  const netWon = Math.max(0, (winnerIds.length === 1 ? winAmount : pot) - winnerBets);
 
   const bannerEl = document.getElementById('showdown-winner-banner');
-  if (bannerEl) bannerEl.textContent = `Winner: ${winText}`;
+  if (bannerEl) bannerEl.textContent = `Winner: ${winText} (won $${netWon})`;
 
-  let title = `${winText} wins $${winAmount}`;
+  let title = `${winText} won $${netWon}`;
   if (handName) title += ` with ${handName}`;
   if (msg.reason === 'fold') title += ' (all others folded)';
   showdownTitle.textContent = title;
@@ -620,6 +659,18 @@ function renderTable() {
     boardCardsEl.appendChild(div);
   });
   if (!lastWinningCards) prevCommunityCount = boardCards.length;
+
+  /* Winner notification (persistent, above winning hand) */
+  const winnerNotifEl = document.getElementById('winner-notification');
+  if (winnerNotifEl) {
+    if (lastWinnerNames && lastWinningCards?.length) {
+      winnerNotifEl.textContent = `${lastWinnerNames} won $${lastNetWon}`;
+      winnerNotifEl.classList.remove('hidden');
+    } else {
+      winnerNotifEl.textContent = '';
+      winnerNotifEl.classList.add('hidden');
+    }
+  }
 
   /* Winning hand row: 5 cards moved down (showdown only), highlight hole cards */
   if (winningHandRowEl && winningHandCardsEl) {
@@ -766,6 +817,11 @@ function renderTable() {
 
   const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
   startBtn.disabled = !canStart;
+  const restartBtn = document.getElementById('restart-btn');
+  if (restartBtn) {
+    restartBtn.classList.toggle('hidden', !canStart);
+    restartBtn.disabled = !canStart;
+  }
 
   const handRank = evaluateHand(myHand, gameState?.communityCards);
   if (handRankLabel) {
@@ -825,6 +881,12 @@ function updateControls() {
     prevTurnIdx = -1;
   }
 
+  const canRebuy = !gameState && myChips <= 0;
+  if (btnRebuy) {
+    btnRebuy.classList.toggle('hidden', !canRebuy);
+    btnRebuy.disabled = !canRebuy;
+  }
+
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
@@ -853,6 +915,20 @@ function updateControls() {
 startBtn.addEventListener('click', () => {
   if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame' }));
 });
+
+const restartBtnEl = document.getElementById('restart-btn');
+if (restartBtnEl) {
+  restartBtnEl.addEventListener('click', () => {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame' }));
+  });
+}
+
+const btnRebuy = document.getElementById('btn-rebuy');
+if (btnRebuy) {
+  btnRebuy.addEventListener('click', () => {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'rebuy' }));
+  });
+}
 
 btnFold.addEventListener('click', () => {
   if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'action', action: 'fold' }));

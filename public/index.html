@@ -28,10 +28,10 @@
 
   <div id="game-screen" class="hidden">
     <div class="game-scale-wrapper">
-    <div class="winner-banner hidden" id="winner-banner"></div>
     <div class="room-bar">
       <span id="room-label"></span>
       <button id="start-btn" class="btn-start">Start Game</button>
+      <button id="restart-btn" class="btn-restart hidden">Restart</button>
       <button type="button" id="radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
     </div>
     <div class="table-container">
@@ -45,6 +45,7 @@
             <span class="table-pot-chips" id="table-pot-chips"></span>
           </div>
           <div class="board-cards" id="board-cards"></div>
+          <div class="winner-notification persistent" id="winner-notification"></div>
           <div class="winning-hand-row hidden" id="winning-hand-row">
             <span class="winning-hand-label">Winning hand</span>
             <div class="winning-hand-cards" id="winning-hand-cards"></div>
@@ -64,6 +65,7 @@
         <button id="btn-bet" class="btn btn-bet">Bet</button>
       </div>
       <button id="btn-allin" class="btn btn-allin">All In</button>
+      <button id="btn-rebuy" class="btn btn-rebuy hidden">Rebuy $1000</button>
     </div>
     <div class="now-playing-radio hidden" id="now-playing-radio">
       <span class="now-playing-label" id="now-playing-radio-label"></span>

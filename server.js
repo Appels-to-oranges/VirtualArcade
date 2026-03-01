@@ -201,6 +201,8 @@ function broadcastToRoom(roomKey, message, excludeWs = null) {
 function startGame(roomKey) {
   const room = getRoom(roomKey);
   if (room.players.length < 2) return;
+  const playersWithChips = room.players.filter((p) => (p.chips ?? 1000) > 0);
+  if (playersWithChips.length < 2) return;
 
   room.deck = shuffle(createDeck());
   room.communityCards = [];
@@ -225,13 +227,17 @@ function startGame(roomKey) {
     p.chips = p.chips ?? 1000;
   });
 
-  room.players[sbIdx].chips -= room.smallBlind;
-  room.players[sbIdx].betThisRound = room.smallBlind;
-  room.players[sbIdx].totalBet += room.smallBlind;
-  room.players[bbIdx].chips -= room.bigBlind;
-  room.players[bbIdx].betThisRound = room.bigBlind;
-  room.players[bbIdx].totalBet += room.bigBlind;
-  room.pot = room.smallBlind + room.bigBlind;
+  const sbPay = Math.min(room.smallBlind, Math.max(0, room.players[sbIdx].chips));
+  const bbPay = Math.min(room.bigBlind, Math.max(0, room.players[bbIdx].chips));
+  room.players[sbIdx].chips -= sbPay;
+  room.players[sbIdx].betThisRound = sbPay;
+  room.players[sbIdx].totalBet += sbPay;
+  if (room.players[sbIdx].chips === 0) room.players[sbIdx].allIn = true;
+  room.players[bbIdx].chips -= bbPay;
+  room.players[bbIdx].betThisRound = bbPay;
+  room.players[bbIdx].totalBet += bbPay;
+  if (room.players[bbIdx].chips === 0) room.players[bbIdx].allIn = true;
+  room.pot = sbPay + bbPay;
   room.currentBet = room.bigBlind;
 
   room.turnIdx = advanceTurn(room, (room.dealerIdx + 2) % room.players.length);
@@ -537,6 +543,24 @@ wss.on('connection', (ws) => {
         broadcastToRoom(data.roomKey, {
           type: 'radioStopped',
           nickname: data.nickname,
+        });
+      } else if (type === 'rebuy') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const idx = room.players.findIndex((p) => p.ws === ws);
+        if (idx < 0) return;
+        const player = room.players[idx];
+        if (player.chips > 0) return;
+        if (room.phase !== 'lobby') return;
+        player.chips = 1000;
+        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 1000 }));
+        broadcastToRoom(data.roomKey, {
+          type: 'userRebuy',
+          id: ws.id,
+          nickname: player.nickname,
+          chips: 1000,
+          players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
         });
       } else if (type === 'action') {
         const data = clients.get(ws);
