@@ -24,12 +24,19 @@
     <div class="room-bar">
       <span id="room-label"></span>
       <button id="start-btn" class="btn-start">Start Game</button>
+      <button type="button" id="radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
     </div>
     <div class="table-container">
       <div class="poker-table">
         <div class="phase-label" id="phase-label"></div>
         <div class="hand-rank-label" id="hand-rank-label"></div>
-        <div class="community-cards" id="community-cards"></div>
+        <div class="community-area" id="community-area">
+          <div class="board-cards" id="board-cards"></div>
+          <div class="winning-hand-row hidden" id="winning-hand-row">
+            <span class="winning-hand-label">Winning hand</span>
+            <div class="winning-hand-cards" id="winning-hand-cards"></div>
+          </div>
+        </div>
         <div class="players-container" id="players-container"></div>
       </div>
       <div class="players-bar" id="players-bar"></div>
@@ -47,14 +54,44 @@
       </div>
       <button id="btn-allin" class="btn btn-allin">All In</button>
     </div>
+    <div class="now-playing-radio hidden" id="now-playing-radio">
+      <span class="now-playing-label" id="now-playing-radio-label"></span>
+      <button type="button" class="now-playing-stop" id="radio-stop" title="Stop radio">&#x25A0;</button>
+    </div>
     <div class="message-toast" id="message-toast"></div>
+    <div id="radio-overlay" class="radio-overlay hidden">
+      <div class="radio-panel">
+        <div class="radio-header">
+          <h2>Radio</h2>
+          <button type="button" class="radio-close" id="radio-close" aria-label="Close">&#xD7;</button>
+        </div>
+        <div class="radio-search-wrap">
+          <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
+          <button type="button" id="radio-search-btn">Search</button>
+        </div>
+        <div class="radio-volume-wrap">
+          <label>Volume</label>
+          <input type="range" id="radio-volume" min="0" max="100" value="80">
+          <span id="radio-volume-value">80%</span>
+        </div>
+        <div class="radio-results" id="radio-results"></div>
+      </div>
+    </div>
     <div id="showdown-overlay" class="showdown-overlay hidden">
       <div class="showdown-modal">
         <h2 id="showdown-title"></h2>
-        <div class="showdown-winning-label">Winning hand (5 cards)</div>
-        <div class="showdown-winning-cards" id="showdown-winning-cards"></div>
-        <div class="showdown-community" id="showdown-community"></div>
-        <div class="showdown-hands" id="showdown-hands"></div>
+        <div class="showdown-board-section">
+          <div class="showdown-section-label">Board</div>
+          <div class="showdown-board-cards" id="showdown-board-cards"></div>
+        </div>
+        <div class="showdown-winning-section">
+          <div class="showdown-winning-label">Winning hand</div>
+          <div class="showdown-winning-cards" id="showdown-winning-cards"></div>
+        </div>
+        <div class="showdown-hands-section">
+          <div class="showdown-section-label">All hands</div>
+          <div class="showdown-hands" id="showdown-hands"></div>
+        </div>
         <button id="showdown-dismiss" class="btn-dismiss">Continue</button>
       </div>
     </div>

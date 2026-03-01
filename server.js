@@ -88,6 +88,7 @@ function getRoom(roomKey) {
       minRaise: 20,
       sidePots: [],
       turnTimeout: null,
+      radio: null,
     });
   }
   return rooms.get(roomKey);
@@ -448,6 +449,7 @@ wss.on('connection', (ws) => {
             turnIdx: room.turnIdx,
             dealerIdx: room.dealerIdx,
           },
+          radio: room.radio,
         }));
 
         broadcastToRoom(safeRoom, { type: 'userJoined', id: ws.id, nickname: safeNick }, ws);
@@ -458,6 +460,29 @@ wss.on('connection', (ws) => {
         const idx = room.players.findIndex((p) => p.ws === ws);
         if (idx < 0) return;
         startGame(data.roomKey);
+      } else if (type === 'changeRadio') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const station = msg.station;
+        if (!station || typeof station.name !== 'string' || typeof station.url !== 'string') return;
+        const s = { name: String(station.name).slice(0, 200), url: String(station.url) };
+        if (!s.url.startsWith('https://')) return;
+        const room = getRoom(data.roomKey);
+        room.radio = s;
+        broadcastToRoom(data.roomKey, {
+          type: 'radioChanged',
+          nickname: data.nickname,
+          station: s,
+        });
+      } else if (type === 'stopRadio') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        room.radio = null;
+        broadcastToRoom(data.roomKey, {
+          type: 'radioStopped',
+          nickname: data.nickname,
+        });
       } else if (type === 'action') {
         const data = clients.get(ws);
         if (!data) return;

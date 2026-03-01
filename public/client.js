@@ -1,5 +1,73 @@
 const CARDS_BASE = '/cards';
+const CHIPS_BASE = '/chips';
 const TURN_TIMEOUT_MS = 60 * 1000;
+
+const CHIP_DENOMS = [
+  { value: 1000, color: 'gold' },
+  { value: 500,  color: 'black' },
+  { value: 100,  color: 'green' },
+  { value: 50,   color: 'blue' },
+  { value: 25,   color: 'red' },
+  { value: 10,   color: 'white' },
+  { value: 5,    color: 'purple' },
+];
+
+function chipBreakdown(amount) {
+  const chips = [];
+  let remaining = Math.abs(Math.floor(amount));
+  for (const { value, color } of CHIP_DENOMS) {
+    const count = Math.floor(remaining / value);
+    if (count > 0) {
+      chips.push({ color, count, value });
+      remaining -= count * value;
+    }
+  }
+  return chips;
+}
+
+function renderChipIcons(amount, maxIcons = 8) {
+  const breakdown = chipBreakdown(amount);
+  const frag = document.createDocumentFragment();
+  let total = 0;
+  for (const { color, count } of breakdown) {
+    if (total >= maxIcons) break;
+    if (count >= 3 && total + 1 <= maxIcons) {
+      const img = document.createElement('img');
+      img.className = 'chip-icon chip-stack';
+      img.src = `${CHIPS_BASE}/${color}4.png`;
+      img.alt = `${color} stack`;
+      frag.appendChild(img);
+      total++;
+    } else {
+      const show = Math.min(count, maxIcons - total);
+      for (let i = 0; i < show; i++) {
+        const img = document.createElement('img');
+        img.className = 'chip-icon';
+        img.src = `${CHIPS_BASE}/${color}.png`;
+        img.alt = color;
+        frag.appendChild(img);
+        total++;
+      }
+    }
+  }
+  return frag;
+}
+
+function renderChipStack(amount, maxIcons = 4) {
+  const breakdown = chipBreakdown(amount);
+  const frag = document.createDocumentFragment();
+  let total = 0;
+  for (const { color, count } of breakdown) {
+    if (total >= maxIcons) break;
+    const img = document.createElement('img');
+    img.className = 'chip-icon chip-stack';
+    img.src = count >= 2 ? `${CHIPS_BASE}/${color}4.png` : `${CHIPS_BASE}/${color}.png`;
+    img.alt = color;
+    frag.appendChild(img);
+    total++;
+  }
+  return frag;
+}
 
 function cardImagePath(card) {
   if (!card) return `${CARDS_BASE}/empty.png`;
@@ -37,7 +105,10 @@ const roomKeyInput = document.getElementById('room-key');
 const nicknameInput = document.getElementById('nickname');
 const playersContainer = document.getElementById('players-container');
 const playersBarEl = document.getElementById('players-bar');
-const communityCardsEl = document.getElementById('community-cards');
+const communityAreaEl = document.getElementById('community-area');
+const boardCardsEl = document.getElementById('board-cards');
+const winningHandRowEl = document.getElementById('winning-hand-row');
+const winningHandCardsEl = document.getElementById('winning-hand-cards');
 const myCardsEl = document.getElementById('my-cards');
 const potInControls = document.getElementById('pot-in-controls');
 const phaseLabel = document.getElementById('phase-label');
@@ -48,8 +119,8 @@ const startBtn = document.getElementById('start-btn');
 const messageToast = document.getElementById('message-toast');
 const showdownOverlay = document.getElementById('showdown-overlay');
 const showdownTitle = document.getElementById('showdown-title');
+const showdownBoardCards = document.getElementById('showdown-board-cards');
 const showdownWinningCards = document.getElementById('showdown-winning-cards');
-const showdownCommunity = document.getElementById('showdown-community');
 const showdownHands = document.getElementById('showdown-hands');
 const showdownDismiss = document.getElementById('showdown-dismiss');
 
@@ -59,6 +130,18 @@ const btnCall = document.getElementById('btn-call');
 const betAmountInput = document.getElementById('bet-amount');
 const btnBet = document.getElementById('btn-bet');
 const btnAllin = document.getElementById('btn-allin');
+
+const radioBtn = document.getElementById('radio-btn');
+const radioOverlay = document.getElementById('radio-overlay');
+const radioCloseBtn = document.getElementById('radio-close');
+const radioSearchInput = document.getElementById('radio-search');
+const radioSearchBtn = document.getElementById('radio-search-btn');
+const radioResults = document.getElementById('radio-results');
+const radioStopBtn = document.getElementById('radio-stop');
+const radioVolumeSlider = document.getElementById('radio-volume');
+const radioVolumeValue = document.getElementById('radio-volume-value');
+const nowPlayingRadio = document.getElementById('now-playing-radio');
+const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
 
 let ws = null;
 let myId = null;
@@ -70,7 +153,14 @@ let gameState = null;
 let prevCommunityCount = 0;
 let prevMyHandCount = 0;
 let lastWinningCards = null;
+let lastCommunityCards = null;
+let lastHandName = null;
 let turnTimerInterval = null;
+
+const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
+const radioAudio = new Audio();
+let currentRadioName = '';
+const RADIO_VOLUME_KEY = 'poker_radio_volume';
 
 joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -111,6 +201,18 @@ function handleMessage(msg) {
       roomLabel.textContent = `Room: ${msg.roomKey}`;
       showGameScreen();
       renderTable();
+      if (msg.radio) playRadio(msg.radio);
+      initRadioVolume();
+      break;
+
+    case 'radioChanged':
+      playRadio(msg.station);
+      showToast(`${msg.nickname} tuned the radio to ${msg.station.name}`);
+      break;
+
+    case 'radioStopped':
+      stopRadio();
+      showToast(`${msg.nickname} stopped the radio`);
       break;
 
     case 'userJoined':
@@ -125,6 +227,8 @@ function handleMessage(msg) {
 
     case 'gameStarted':
       lastWinningCards = null;
+      lastCommunityCards = null;
+      lastHandName = null;
       gameState = {
         phase: msg.phase,
         communityCards: [],
@@ -199,6 +303,8 @@ function handleMessage(msg) {
 
     case 'gameOver':
       lastWinningCards = msg.winningCards || [];
+      lastCommunityCards = msg.communityCards || [];
+      lastHandName = msg.handName || null;
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -272,47 +378,58 @@ function showShowdown(msg) {
   if (msg.reason === 'fold') title += ' (all others folded)';
   showdownTitle.textContent = title;
 
-  const winningCards = msg.winningCards || [];
-  const winningLabel = document.querySelector('.showdown-winning-label');
-  if (winningLabel) {
-    winningLabel.textContent = winningCards.length === 5 ? 'Winning hand (5 cards)' : winningCards.length > 0 ? 'Winner\'s cards' : '';
-    winningLabel.style.display = winningCards.length ? 'block' : 'none';
-  }
-  showdownWinningCards.innerHTML = '';
-  winningCards.forEach((card) => {
-    const div = document.createElement('div');
-    div.className = 'card showdown-card showdown-winning-card';
-    div.style.backgroundImage = `url(${cardImagePath(card)})`;
-    showdownWinningCards.appendChild(div);
-  });
-
-  showdownCommunity.innerHTML = '';
-  (msg.communityCards || []).forEach((card) => {
-    const div = document.createElement('div');
-    div.className = 'card showdown-card';
-    div.style.backgroundImage = `url(${cardImagePath(card)})`;
-    showdownCommunity.appendChild(div);
-  });
-
-  const winnerIds = new Set(msg.winners || (msg.winner ? [msg.winner] : []));
-  showdownHands.innerHTML = '';
-  (msg.players || []).forEach((p) => {
-    if (!p.hand?.length) return;
-    const isWinner = winnerIds.has(p.id);
-    const row = document.createElement('div');
-    row.className = 'showdown-hand-row' + (isWinner ? ' winner' : '');
-    row.innerHTML = `<span class="showdown-player-name">${p.nickname || 'Player'}${isWinner ? ' (Winner)' : ''}</span>`;
-    const cardsDiv = document.createElement('div');
-    cardsDiv.className = 'showdown-hand-cards';
-    p.hand.forEach((card) => {
+  /* Board: all 5 community cards (hide section if preflop fold) */
+  const communityCards = msg.communityCards || [];
+  const boardSection = showdownBoardCards?.closest('.showdown-board-section');
+  if (boardSection) boardSection.style.display = communityCards.length ? 'block' : 'none';
+  if (showdownBoardCards) {
+    showdownBoardCards.innerHTML = '';
+    communityCards.forEach((card) => {
       const div = document.createElement('div');
       div.className = 'card showdown-card';
       div.style.backgroundImage = `url(${cardImagePath(card)})`;
-      cardsDiv.appendChild(div);
+      showdownBoardCards.appendChild(div);
     });
-    row.appendChild(cardsDiv);
-    showdownHands.appendChild(row);
-  });
+  }
+
+  /* Winning hand: 5 (or 2) cards, highlighted */
+  const winningCards = msg.winningCards || [];
+  if (showdownWinningCards) {
+    showdownWinningCards.innerHTML = '';
+    winningCards.forEach((card) => {
+      const div = document.createElement('div');
+      div.className = 'card showdown-card showdown-winning-card';
+      div.style.backgroundImage = `url(${cardImagePath(card)})`;
+      showdownWinningCards.appendChild(div);
+    });
+  }
+
+  /* All hands: every player including folded (full transparency) */
+  const winnerIds = new Set(msg.winners || (msg.winner ? [msg.winner] : []));
+  if (showdownHands) {
+    showdownHands.innerHTML = '';
+    (msg.players || []).forEach((p) => {
+      if (!p.hand?.length) return;
+      const isWinner = winnerIds.has(p.id);
+      const badges = [];
+      if (isWinner) badges.push('Winner');
+      if (p.folded) badges.push('Folded');
+      const badgeStr = badges.length ? ` (${badges.join(', ')})` : '';
+      const row = document.createElement('div');
+      row.className = 'showdown-hand-row' + (isWinner ? ' winner' : '') + (p.folded ? ' folded' : '');
+      row.innerHTML = `<span class="showdown-player-name">${p.nickname || 'Player'}${badgeStr}</span>`;
+      const cardsDiv = document.createElement('div');
+      cardsDiv.className = 'showdown-hand-cards';
+      p.hand.forEach((card) => {
+        const div = document.createElement('div');
+        div.className = 'card showdown-card' + (p.folded ? ' folded' : '');
+        div.style.backgroundImage = `url(${cardImagePath(card)})`;
+        cardsDiv.appendChild(div);
+      });
+      row.appendChild(cardsDiv);
+      showdownHands.appendChild(row);
+    });
+  }
 
   showdownOverlay.classList.remove('hidden');
 }
@@ -323,14 +440,26 @@ function hideShowdown() {
 
 function renderTable() {
   const pot = gameState?.pot || 0;
-  if (potInControls) potInControls.textContent = `Pot: $${pot}`;
+  if (potInControls) {
+    potInControls.innerHTML = '';
+    const potText = document.createElement('span');
+    potText.textContent = `Pot: $${pot}`;
+    potInControls.appendChild(potText);
+    if (pot > 0) {
+      const potChips = document.createElement('span');
+      potChips.className = 'pot-chips';
+      potChips.appendChild(renderChipStack(pot, 4));
+      potInControls.appendChild(potChips);
+    }
+  }
   phaseLabel.textContent = gameState?.phase ? gameState.phase.toUpperCase() : '';
 
-  communityCardsEl.innerHTML = '';
-  const cards = lastWinningCards?.length
-    ? lastWinningCards
+  /* Board: all 5 community cards (or winning hand replaces during play) */
+  boardCardsEl.innerHTML = '';
+  const boardCards = lastWinningCards?.length
+    ? (lastCommunityCards || [])
     : (gameState?.communityCards || []);
-  cards.forEach((card, idx) => {
+  boardCards.forEach((card, idx) => {
     const div = document.createElement('div');
     div.className = 'card';
     if (!lastWinningCards && idx >= prevCommunityCount) {
@@ -338,9 +467,27 @@ function renderTable() {
       div.style.animationDelay = `${(idx - prevCommunityCount) * 0.12}s`;
     }
     div.style.backgroundImage = `url(${cardImagePath(card)})`;
-    communityCardsEl.appendChild(div);
+    boardCardsEl.appendChild(div);
   });
-  if (!lastWinningCards) prevCommunityCount = cards.length;
+  if (!lastWinningCards) prevCommunityCount = boardCards.length;
+
+  /* Winning hand row: 5 cards moved down (showdown only) */
+  if (winningHandRowEl && winningHandCardsEl) {
+    const labelEl = winningHandRowEl.querySelector('.winning-hand-label');
+    if (lastWinningCards?.length) {
+      winningHandRowEl.classList.remove('hidden');
+      if (labelEl) labelEl.textContent = lastHandName ? `Winning hand: ${lastHandName}` : 'Winning hand';
+      winningHandCardsEl.innerHTML = '';
+      lastWinningCards.forEach((card) => {
+        const div = document.createElement('div');
+        div.className = 'card winning-card';
+        div.style.backgroundImage = `url(${cardImagePath(card)})`;
+        winningHandCardsEl.appendChild(div);
+      });
+    } else {
+      winningHandRowEl.classList.add('hidden');
+    }
+  }
 
   myCardsEl.innerHTML = '';
   const myHandDealing = myHand.length > prevMyHandCount;
@@ -426,6 +573,14 @@ function renderTable() {
     }
 
     seat.appendChild(cardsDiv);
+
+    if (p.betThisRound && p.betThisRound > 0) {
+      const betChipsDiv = document.createElement('div');
+      betChipsDiv.className = 'seat-bet-chips';
+      betChipsDiv.appendChild(renderChipStack(p.betThisRound, 3));
+      seat.appendChild(betChipsDiv);
+    }
+
     playersContainer.appendChild(seat);
   });
 
@@ -433,17 +588,49 @@ function renderTable() {
   if (playersBarEl) {
     playersBarEl.innerHTML = '';
     players.forEach((p, i) => {
-      const chip = document.createElement('div');
-      chip.className = 'player-chip';
+      const chipEl = document.createElement('div');
+      chipEl.className = 'player-chip';
       const isTurn = gameState && gameState.turnIdx === i;
       const isDealer = gameState && gameState.dealerIdx === i;
-      if (isTurn) chip.classList.add('is-turn');
-      let html = `<span class="player-name">${p.nickname || 'Player'}${isDealer ? ' (D)' : ''}</span>`;
-      html += `<span class="chips">$${p.chips ?? 0}</span>`;
-      if (p.betThisRound) html += `<span class="bet-label">Bet: $${p.betThisRound}</span>`;
-      if (p.folded) html += `<span class="folded-label">Folded</span>`;
-      chip.innerHTML = html;
-      playersBarEl.appendChild(chip);
+      if (isTurn) chipEl.classList.add('is-turn');
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'player-name';
+      nameEl.textContent = `${p.nickname || 'Player'}${isDealer ? ' (D)' : ''}`;
+      chipEl.appendChild(nameEl);
+
+      const chipsRow = document.createElement('div');
+      chipsRow.className = 'chips-row';
+      const chipsText = document.createElement('span');
+      chipsText.className = 'chips';
+      chipsText.textContent = `$${p.chips ?? 0}`;
+      chipsRow.appendChild(chipsText);
+      const chipIcons = document.createElement('span');
+      chipIcons.className = 'chip-icons';
+      chipIcons.appendChild(renderChipIcons(p.chips ?? 0, 6));
+      chipsRow.appendChild(chipIcons);
+      chipEl.appendChild(chipsRow);
+
+      if (p.betThisRound) {
+        const betRow = document.createElement('div');
+        betRow.className = 'bet-row-bar';
+        const betLabel = document.createElement('span');
+        betLabel.className = 'bet-label';
+        betLabel.textContent = `Bet: $${p.betThisRound}`;
+        betRow.appendChild(betLabel);
+        const betChips = document.createElement('span');
+        betChips.className = 'chip-icons';
+        betChips.appendChild(renderChipStack(p.betThisRound, 3));
+        betRow.appendChild(betChips);
+        chipEl.appendChild(betRow);
+      }
+      if (p.folded) {
+        const foldedEl = document.createElement('span');
+        foldedEl.className = 'folded-label';
+        foldedEl.textContent = 'Folded';
+        chipEl.appendChild(foldedEl);
+      }
+      playersBarEl.appendChild(chipEl);
     });
   }
 
@@ -558,6 +745,121 @@ btnAllin.addEventListener('click', () => {
 if (showdownDismiss) {
   showdownDismiss.addEventListener('click', hideShowdown);
 }
+
+/* ---------- Radio ---------- */
+function playRadio(station) {
+  if (!station?.url) return;
+  radioAudio.src = station.url;
+  radioAudio.play().catch(() => {});
+  currentRadioName = station.name || 'Radio';
+  if (nowPlayingRadio) nowPlayingRadio.classList.remove('hidden');
+  if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = '\u{1F4FB} ' + currentRadioName;
+}
+
+function stopRadio() {
+  radioAudio.pause();
+  radioAudio.src = '';
+  currentRadioName = '';
+  if (nowPlayingRadio) nowPlayingRadio.classList.add('hidden');
+}
+
+function initRadioVolume() {
+  const saved = parseInt(localStorage.getItem(RADIO_VOLUME_KEY), 10);
+  const vol = isNaN(saved) ? 80 : Math.max(0, Math.min(100, saved));
+  radioAudio.volume = vol / 100;
+  if (radioVolumeSlider) radioVolumeSlider.value = vol;
+  if (radioVolumeValue) radioVolumeValue.textContent = vol + '%';
+}
+
+function searchRadioStations(query) {
+  if (!radioResults) return;
+  radioResults.innerHTML = '<div class="radio-empty">Searching...</div>';
+  const params = '?name=' + encodeURIComponent(query) + '&limit=25&order=votes&reverse=true&hidebroken=true';
+  const ctrl = new AbortController();
+  setTimeout(() => ctrl.abort(), 10000);
+  fetch(RADIO_API + params, { signal: ctrl.signal })
+    .then((r) => r.json())
+    .then((stations) => {
+      radioResults.innerHTML = '';
+      const secure = (stations || []).filter((st) => {
+        const u = st.url_resolved || st.url;
+        return u && u.startsWith('https');
+      });
+      if (!secure.length) {
+        radioResults.innerHTML = '<div class="radio-empty">No stations found</div>';
+        return;
+      }
+      secure.forEach((st) => {
+        const url = st.url_resolved || st.url;
+        const row = document.createElement('div');
+        row.className = 'radio-station';
+        const icon = document.createElement('img');
+        icon.className = 'radio-station-icon';
+        icon.src = st.favicon || '';
+        icon.alt = '';
+        icon.onerror = () => { icon.style.display = 'none'; };
+        const info = document.createElement('div');
+        info.className = 'radio-station-info';
+        const name = document.createElement('div');
+        name.className = 'radio-station-name';
+        name.textContent = st.name;
+        const meta = document.createElement('div');
+        meta.className = 'radio-station-meta';
+        meta.textContent = [st.country, st.tags].filter(Boolean).join(' \u00B7 ');
+        info.appendChild(name);
+        info.appendChild(meta);
+        row.appendChild(icon);
+        row.appendChild(info);
+        row.addEventListener('click', () => {
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'changeRadio', station: { name: st.name, url } }));
+          }
+          radioOverlay?.classList.add('hidden');
+        });
+        radioResults.appendChild(row);
+      });
+    })
+    .catch(() => {
+      radioResults.innerHTML = '<div class="radio-empty">Search failed — try again</div>';
+    });
+}
+
+if (radioBtn) radioBtn.addEventListener('click', () => {
+  radioOverlay?.classList.remove('hidden');
+  radioSearchInput?.focus();
+});
+
+if (radioCloseBtn) radioCloseBtn.addEventListener('click', () => radioOverlay?.classList.add('hidden'));
+
+if (radioOverlay) radioOverlay.addEventListener('click', (e) => {
+  if (e.target === radioOverlay) radioOverlay.classList.add('hidden');
+});
+
+if (radioSearchBtn) radioSearchBtn.addEventListener('click', () => {
+  const q = radioSearchInput?.value?.trim();
+  if (q) searchRadioStations(q);
+});
+
+if (radioSearchInput) radioSearchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const q = radioSearchInput.value.trim();
+    if (q) searchRadioStations(q);
+  }
+});
+
+if (radioStopBtn) radioStopBtn.addEventListener('click', () => {
+  if (currentRadioName && ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'stopRadio' }));
+  }
+});
+
+if (radioVolumeSlider) radioVolumeSlider.addEventListener('input', () => {
+  const v = parseInt(radioVolumeSlider.value, 10);
+  radioAudio.volume = v / 100;
+  localStorage.setItem(RADIO_VOLUME_KEY, v);
+  if (radioVolumeValue) radioVolumeValue.textContent = v + '%';
+});
 
 const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');
