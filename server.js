@@ -119,7 +119,8 @@ function startTurnTimer(roomKey) {
   clearTurnTimer(room);
   room.turnTimeout = setTimeout(() => {
     room.turnTimeout = null;
-    if (room.phase === 'lobby') return;
+    const activePhases = ['preflop', 'flop', 'turn', 'river'];
+    if (!activePhases.includes(room.phase)) return;
     const idx = room.turnIdx;
     const player = room.players[idx];
     if (!player || player.folded || player.allIn) return;

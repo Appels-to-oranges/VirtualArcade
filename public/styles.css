@@ -38,18 +38,22 @@ body {
   border: 1px solid #30363d;
   border-radius: 12px;
   padding: 2.5rem;
-  max-width: 400px;
+  max-width: 420px;
   width: 100%;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
 }
 
 .join-card h1 {
-  font-size: 1.25rem;
-  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+  margin-bottom: 0.35rem;
   color: #c9b896;
   text-transform: uppercase;
   letter-spacing: 2px;
   text-align: center;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding: 0 0.5rem;
 }
 
 .join-card .tagline {
@@ -58,6 +62,10 @@ body {
   margin-bottom: 2rem;
   letter-spacing: 1px;
   text-align: center;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding: 0 0.5rem;
+  line-height: 1.6;
 }
 
 .join-form {
@@ -143,9 +151,9 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   padding: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .winner-notification {
@@ -205,19 +213,29 @@ body {
 
 .btn-rebuy {
   background: #2d5016;
-  border-color: #4a7c23;
+  border: 0.25rem solid #6bcb2d;
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 0.75rem 1.25rem;
+  box-shadow: 0 0 1rem rgba(107, 203, 45, 0.4);
+  animation: rebuy-pulse 1.5s ease-in-out infinite;
 }
 
-.btn-rebuy:hover { background: #3d6b1f; }
+.btn-rebuy:hover { background: #3d6b1f; box-shadow: 0 0 1.25rem rgba(107, 203, 45, 0.6); }
+
+@keyframes rebuy-pulse {
+  0%, 100% { box-shadow: 0 0 1rem rgba(107, 203, 45, 0.4); }
+  50% { box-shadow: 0 0 1.5rem rgba(107, 203, 45, 0.7); }
+}
 
 .game-scale-wrapper {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  flex-shrink: 0;
-  overflow: hidden;
+  flex: 1;
+  overflow: auto;
 }
 
 /* Room bar */
@@ -226,6 +244,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
   padding: 0.4rem 0.75rem;
   background: #111;
@@ -501,7 +520,7 @@ body {
   flex-direction: column;
   align-items: stretch;
   padding: 0.5rem;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .poker-table {
@@ -607,9 +626,9 @@ body {
 }
 
 .winning-hand-row .winning-hand-cards .card {
-  width: 5rem;
-  height: 7rem;
-  background-size: 5rem 7rem;
+  width: 4rem;
+  height: 5.6rem;
+  background-size: 4rem 5.6rem;
 }
 
 .winning-hand-row {
@@ -860,6 +879,7 @@ body {
   background: #111;
   border: 0.2rem solid #1a1a1a;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .turn-timer {
@@ -931,7 +951,8 @@ body {
 }
 
 .bet-row input {
-  width: 80px;
+  width: 5rem;
+  min-width: 0;
   padding: 10px 8px;
   border: 3px solid #333;
   background: #0a0a0a;
@@ -974,15 +995,18 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 1rem;
+  overflow-y: auto;
 }
 
 .showdown-modal {
   background: #111;
   border: 3px solid #8b6914;
-  padding: 2.5rem;
+  padding: 2rem;
   max-width: 720px;
   width: 100%;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   box-shadow: 0 0 0 6px #000;
 }
 

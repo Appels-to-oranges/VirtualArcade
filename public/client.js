@@ -460,6 +460,7 @@ function handleMessage(msg) {
       break;
 
     case 'gameOver': {
+      stopTurnTimer();
       lastWinningCards = msg.winningCards || [];
       lastCommunityCards = msg.communityCards || [];
       lastHandName = msg.handName || null;
@@ -505,6 +506,7 @@ function handleMessage(msg) {
       break;
 
     case 'roundOver':
+      stopTurnTimer();
       hideShowdown();
       gameState = null;
       myHand = [];
