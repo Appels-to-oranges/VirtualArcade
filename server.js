@@ -630,7 +630,12 @@ wss.on('connection', (ws) => {
         });
       } else if (type === 'chat') {
         const data = clients.get(ws);
-        if (!data) return;
+        if (!data) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Join a room first' }));
+          return;
+        }
+        const room = getRoom(data.roomKey);
+        if (room.players.findIndex((p) => p.ws === ws) < 0) return;
         const text = String(msg.text || '').trim().slice(0, 100);
         if (!text) return;
         broadcastToRoom(data.roomKey, {

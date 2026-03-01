@@ -297,6 +297,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .chat-input {
@@ -599,7 +601,7 @@ body {
   min-height: 0;
   width: 100%;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Phase label */

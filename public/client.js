@@ -274,6 +274,7 @@ let lastWinningHoleIndices = [];
 let lastPot = 0;
 let lastWinnerNames = '';
 let lastNetWon = 0;
+let lastDidIFold = false;
 let turnTimerInterval = null;
 let prevTurnIdx = -1;
 const CHAT_DURATION_MS = 8000;
@@ -382,6 +383,7 @@ function handleMessage(msg) {
       lastWinningCards = null;
       lastWinnerNames = '';
       lastNetWon = 0;
+      lastDidIFold = false;
       prevTurnIdx = -1;
       lastCommunityCards = null;
       lastHandName = null;
@@ -510,6 +512,7 @@ function handleMessage(msg) {
 
     case 'roundOver':
       stopTurnTimer();
+      lastDidIFold = false;
       hideShowdown();
       gameState = null;
       myHand = [];
@@ -594,6 +597,8 @@ function showShowdown(msg) {
   const communityCards = msg.communityCards || [];
   const boardSection = showdownBoardCards?.closest('.showdown-board-section');
   if (boardSection) boardSection.style.display = communityCards.length ? 'block' : 'none';
+  const winningSection = document.querySelector('.showdown-winning-section');
+  if (winningSection) winningSection.style.display = didIFold ? 'none' : 'block';
   if (showdownBoardCards) {
     showdownBoardCards.innerHTML = '';
     communityCards.forEach((card) => {
@@ -618,13 +623,14 @@ function showShowdown(msg) {
     });
   }
 
-  /* All hands: every player including folded (full transparency) */
+  /* All hands: every player including folded. If viewer folded, hide winner's cards. */
   const winnerIdSet = new Set(winnerIds);
   if (showdownHands) {
     showdownHands.innerHTML = '';
     (msg.players || []).forEach((p) => {
       if (!p.hand?.length) return;
       const isWinner = winnerIdSet.has(p.id);
+      if (didIFold && isWinner) return;
       const badges = [];
       if (isWinner) badges.push('Winner');
       if (p.folded) badges.push('Folded');
@@ -692,10 +698,12 @@ function renderTable() {
   });
   if (!lastWinningCards) prevCommunityCount = boardCards.length;
 
-  /* Winner notification (persistent, above winning hand) */
+  const showWinningHand = lastWinningCards?.length && !lastDidIFold;
+
+  /* Winner notification (persistent, above winning hand) - folded players see who won but not the cards */
   const winnerNotifEl = document.getElementById('winner-notification');
   if (winnerNotifEl) {
-    if (lastWinnerNames && lastWinningCards?.length) {
+    if (lastWinnerNames) {
       winnerNotifEl.textContent = `${lastWinnerNames} won $${lastNetWon}`;
       winnerNotifEl.classList.remove('hidden');
     } else {
@@ -704,11 +712,11 @@ function renderTable() {
     }
   }
 
-  /* Winning hand row: 5 cards moved down (showdown only), highlight hole cards */
+  /* Winning hand row: only show to players who didn't fold */
   if (winningHandRowEl && winningHandCardsEl) {
     const labelEl = winningHandRowEl.querySelector('.winning-hand-label');
     const holeSet = new Set(lastWinningHoleIndices || []);
-    if (lastWinningCards?.length) {
+    if (showWinningHand) {
       winningHandRowEl.classList.remove('hidden');
       if (labelEl) labelEl.textContent = lastHandName ? `Winning hand: ${lastHandName}` : 'Winning hand';
       winningHandCardsEl.innerHTML = '';
@@ -1163,8 +1171,12 @@ function sendChat() {
   const input = document.getElementById('chat-input');
   const text = input?.value?.trim();
   if (!text || !ws || ws.readyState !== 1) return;
-  ws.send(JSON.stringify({ type: 'chat', text }));
-  input.value = '';
+  try {
+    ws.send(JSON.stringify({ type: 'chat', text }));
+    input.value = '';
+  } catch (e) {
+    showToast('Failed to send message');
+  }
 }
 
 const chatInput = document.getElementById('chat-input');
