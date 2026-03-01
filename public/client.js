@@ -616,8 +616,8 @@ function renderTable() {
 
   const cx = 50;
   const cy = 50;
-  const rx = 44;
-  const ry = 36;
+  const rx = 40;
+  const ry = 32;
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const offset = myPosIdx >= 0 ? Math.PI / 2 - (myPosIdx / count) * Math.PI * 2 : 0;
 
