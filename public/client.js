@@ -1024,7 +1024,7 @@ function updateControls() {
   const toCall = currentBet - myBet;
   const pot = gameState?.pot ?? 0;
   const facingAllIn = gameState?.facingAllIn === true;
-  const canCheck = currentBet === 0;
+  const canCheck = toCall <= 0 && !facingAllIn;
 
   if (!gameState) {
     stopTurnTimer();

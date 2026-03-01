@@ -820,7 +820,7 @@ body {
   align-items: center;
   gap: 0.1rem;
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
   margin: 0.25rem 0;
 }
 
@@ -864,14 +864,17 @@ body {
 
 .seat-info .seat-streak-current-wrap.seat-streak-current-fire {
   position: relative;
-  padding: 0.2rem 0.35rem;
-  min-width: 1.8rem;
+  padding: 0.15rem 0.3rem;
 }
 
 .seat-info .seat-streak-current-wrap .seat-streak-fire {
   position: absolute;
-  inset: 0;
-  background: url('/feuer-fire.gif') center / 2.5rem no-repeat;
+  top: 50%;
+  left: 50%;
+  width: 1.6rem;
+  height: 1.6rem;
+  transform: translate(-50%, -50%);
+  background: url('/feuer-fire.gif') center / contain no-repeat;
   opacity: 0.85;
   pointer-events: none;
 }
@@ -884,7 +887,8 @@ body {
 
 .seat-info .seat-streak-current-wrap.seat-streak-current-fire .seat-streak-current {
   color: #ffd700;
-  text-shadow: 0 0 0.2rem #000, 0 0 0.4rem #000;
+  font-weight: bold;
+  text-shadow: 0 0 0.15rem #000, 0 0 0.3rem #000;
 }
 
 .seat-info .seat-folded {

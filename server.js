@@ -126,8 +126,9 @@ function startTurnTimer(roomKey) {
     const player = roomNow.players[idx];
     if (!player || player.folded || player.allIn) return;
 
-    const canCheck = roomNow.currentBet === 0;
+    const anyAllIn = roomNow.players.some((p) => !p.folded && p.allIn && p.betThisRound > 0);
     const toCall = roomNow.currentBet - player.betThisRound;
+    const canCheck = toCall <= 0 && !anyAllIn;
 
     if (canCheck) {
       broadcastToRoom(roomKey, {
@@ -755,7 +756,8 @@ wss.on('connection', (ws) => {
           checkBettingComplete(data.roomKey);
         } else if (action === 'check') {
           clearTurnTimer(room);
-          if (room.currentBet > 0) return;
+          const anyAllIn = room.players.some((p) => !p.folded && p.allIn && p.betThisRound > 0);
+          if (player.betThisRound < room.currentBet || anyAllIn) return;
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,
