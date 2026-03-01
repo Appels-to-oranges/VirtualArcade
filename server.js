@@ -1,6 +1,7 @@
 const express = require('express');
-const { WebSocketServer } = require('ws');
+const fs = require('fs');
 const path = require('path');
+const { WebSocketServer } = require('ws');
 const Hand = require('pokersolver').Hand;
 
 const PORT = process.env.PORT || 3000;
@@ -8,11 +9,21 @@ const app = express();
 
 // Serve static files from public
 app.use(express.static(path.join(__dirname, 'public')));
-// Serve card assets from Desktop/cards (parent of Poker folder)
-app.use('/cards', express.static(path.join(__dirname, '..', 'cards')));
 
-const server = app.listen(PORT, () => {
-  console.log(`Poker running at http://localhost:${PORT}`);
+app.get('/health', (req, res) => res.send('ok'));
+
+// Serve card assets - use ./public/cards if bundled, else ../cards (Desktop)
+const cardsPath = path.join(__dirname, 'public', 'cards');
+const cardsPathAlt = path.join(__dirname, '..', 'cards');
+if (fs.existsSync(cardsPath)) {
+  app.use('/cards', express.static(cardsPath));
+} else if (fs.existsSync(cardsPathAlt)) {
+  app.use('/cards', express.static(cardsPathAlt));
+}
+
+const HOST = process.env.HOST || '0.0.0.0';
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Poker running at http://${HOST}:${PORT}`);
 });
 
 const wss = new WebSocketServer({ server });
@@ -358,22 +369,33 @@ wss.on('connection', (ws) => {
 
         if (action === 'fold') {
           player.folded = true;
+          const activeCount = room.players.filter((p) => !p.folded).length;
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,
             action: 'fold',
+            pot: room.pot,
             players: room.players.map((p, i) => ({
               id: p.id,
               folded: p.folded,
+              chips: p.chips,
+              betThisRound: p.betThisRound,
               isTurn: i === room.turnIdx,
             })),
           });
+          if (activeCount <= 1) {
+            showdown(data.roomKey);
+            return;
+          }
           room.turnIdx = (room.turnIdx + 1) % room.players.length;
-          while (room.players[room.turnIdx].folded && room.turnIdx !== idx) {
+          while (room.players[room.turnIdx].folded && room.turnIdx !== room.lastRaiserIdx) {
             room.turnIdx = (room.turnIdx + 1) % room.players.length;
           }
-          if (room.turnIdx === room.lastRaiserIdx) checkBettingComplete(data.roomKey);
-          else broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          if (room.turnIdx === room.lastRaiserIdx || room.players[room.lastRaiserIdx].folded) {
+            checkBettingComplete(data.roomKey);
+          } else {
+            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          }
         } else if (action === 'check') {
           if (player.betThisRound < room.currentBet) return;
           broadcastToRoom(data.roomKey, {
@@ -385,8 +407,11 @@ wss.on('connection', (ws) => {
           while (room.players[room.turnIdx].folded && room.turnIdx !== room.lastRaiserIdx) {
             room.turnIdx = (room.turnIdx + 1) % room.players.length;
           }
-          if (room.turnIdx === room.lastRaiserIdx) checkBettingComplete(data.roomKey);
-          else broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          if (room.turnIdx === room.lastRaiserIdx || room.players[room.lastRaiserIdx].folded) {
+            checkBettingComplete(data.roomKey);
+          } else {
+            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          }
         } else if (action === 'call') {
           const toCall = room.currentBet - player.betThisRound;
           const actual = Math.min(toCall, player.chips);
@@ -394,7 +419,7 @@ wss.on('connection', (ws) => {
           player.betThisRound += actual;
           player.totalBet += actual;
           room.pot += actual;
-          if (actual >= player.chips + toCall) player.allIn = true;
+          if (player.chips === 0) player.allIn = true;
 
           broadcastToRoom(data.roomKey, {
             type: 'action',
@@ -414,8 +439,11 @@ wss.on('connection', (ws) => {
           while (room.players[room.turnIdx].folded && room.turnIdx !== room.lastRaiserIdx) {
             room.turnIdx = (room.turnIdx + 1) % room.players.length;
           }
-          if (room.turnIdx === room.lastRaiserIdx) checkBettingComplete(data.roomKey);
-          else broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          if (room.turnIdx === room.lastRaiserIdx || room.players[room.lastRaiserIdx].folded) {
+            checkBettingComplete(data.roomKey);
+          } else {
+            broadcastToRoom(data.roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
+          }
         } else if (action === 'bet' || action === 'raise') {
           const raiseTo = Math.max(0, Math.floor(Number(amount) || 0));
           const minRaiseTo = room.currentBet + (action === 'raise' ? room.minRaise : room.bigBlind);
