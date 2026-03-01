@@ -182,8 +182,13 @@ function startTurnTimer(roomKey) {
     if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
       checkBettingComplete(roomKey);
     } else {
-      broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: room.players[room.turnIdx].id });
-      startTurnTimer(roomKey);
+      const nextPlayer = room.players[room.turnIdx];
+      broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer.id });
+      if (nextPlayer?.isBot) {
+        scheduleBotAction(roomKey);
+      } else {
+        startTurnTimer(roomKey);
+      }
     }
   }, TURN_TIMEOUT_MS);
 }
@@ -272,7 +277,12 @@ function startGame(roomKey) {
       }));
     }
   });
-  startTurnTimer(roomKey);
+  const turnPlayer = room.players[room.turnIdx];
+  if (turnPlayer?.isBot) {
+    scheduleBotAction(roomKey);
+  } else {
+    startTurnTimer(roomKey);
+  }
 }
 
 function nextPhase(roomKey) {
@@ -344,7 +354,12 @@ function nextPhase(roomKey) {
       isTurn: i === room.turnIdx,
     })),
   });
-  startTurnTimer(roomKey);
+  const turnPlayer = room.players[room.turnIdx];
+  if (turnPlayer?.isBot) {
+    scheduleBotAction(roomKey);
+  } else {
+    startTurnTimer(roomKey);
+  }
 }
 
 function showdown(roomKey) {
@@ -426,6 +441,51 @@ function showdown(roomKey) {
 
 function canAct(player) {
   return !player.folded && !player.allIn && player.chips > 0;
+}
+
+function scheduleBotAction(roomKey) {
+  const room = getRoom(roomKey);
+  if (room.phase === 'lobby') return;
+  const idx = room.turnIdx;
+  const player = room.players[idx];
+  if (!player?.isBot || player.folded || player.allIn) return;
+
+  setTimeout(() => {
+    if (room.phase === 'lobby') return;
+    clearTurnTimer(room);
+    player.folded = true;
+    const activeCount = room.players.filter((p) => !p.folded).length;
+    broadcastToRoom(roomKey, {
+      type: 'action',
+      playerId: player.id,
+      action: 'fold',
+      reason: 'bot',
+      pot: room.pot,
+      players: room.players.map((p, i) => ({
+        id: p.id,
+        folded: p.folded,
+        chips: p.chips,
+        betThisRound: p.betThisRound,
+        isTurn: i === room.turnIdx,
+      })),
+    });
+    if (activeCount <= 1) {
+      showdown(roomKey);
+      return;
+    }
+    room.turnIdx = advanceTurn(room, room.turnIdx);
+    if (room.turnIdx === room.lastRaiserIdx || !canAct(room.players[room.lastRaiserIdx])) {
+      checkBettingComplete(roomKey);
+    } else {
+      const nextPlayer = room.players[room.turnIdx];
+      broadcastToRoom(roomKey, { type: 'turn', turnIdx: room.turnIdx, playerId: nextPlayer.id });
+      if (nextPlayer?.isBot) {
+        scheduleBotAction(roomKey);
+      } else {
+        startTurnTimer(roomKey);
+      }
+    }
+  }, 800);
 }
 
 function advanceTurn(room, fromIdx) {
@@ -541,6 +601,31 @@ wss.on('connection', (ws) => {
         broadcastToRoom(data.roomKey, {
           type: 'radioStopped',
           nickname: data.nickname,
+        });
+      } else if (type === 'addBot') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        if (room.phase !== 'lobby') return;
+        if (room.players.length >= 2) return;
+        const botId = 'bot-' + Date.now();
+        room.players.push({
+          id: botId,
+          ws: null,
+          nickname: 'Bot',
+          chips: 1000,
+          hand: null,
+          betThisRound: 0,
+          totalBet: 0,
+          folded: false,
+          allIn: false,
+          isBot: true,
+        });
+        broadcastToRoom(data.roomKey, {
+          type: 'userJoined',
+          id: botId,
+          nickname: 'Bot',
+          chips: 1000,
         });
       } else if (type === 'rebuy') {
         const data = clients.get(ws);

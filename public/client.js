@@ -311,7 +311,14 @@ function join(key, nick) {
     }
   };
 
-  ws.onclose = () => showJoinScreen();
+  ws.onclose = () => {
+    showJoinScreen();
+    showToast('Disconnected from server');
+  };
+
+  ws.onerror = () => {
+    showToast('Connection failed - is the server running?');
+  };
 }
 
 function handleMessage(msg) {
@@ -324,6 +331,7 @@ function handleMessage(msg) {
       roomLabel.textContent = `Room: ${msg.roomKey}`;
       showGameScreen();
       renderTable();
+      updateControls();
       if (msg.radio) playRadio(msg.radio);
       initRadioVolume();
       break;
@@ -817,10 +825,22 @@ function renderTable() {
 
   const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
   startBtn.disabled = !canStart;
+  startBtn.title = players.length < 2 ? 'Need 2 players to start' : '';
   const restartBtn = document.getElementById('restart-btn');
   if (restartBtn) {
     restartBtn.classList.toggle('hidden', !canStart);
     restartBtn.disabled = !canStart;
+  }
+  const waitingEl = document.getElementById('waiting-for-players');
+  const addBotBtn = document.getElementById('add-bot-btn');
+  if (waitingEl) {
+    waitingEl.classList.toggle('hidden', players.length >= 2 || !!gameState);
+    waitingEl.textContent = players.length === 1 ? 'Waiting for another player...' : 'Need 2 players to start';
+  }
+  if (addBotBtn) {
+    const showAddBot = !gameState && players.length === 1;
+    addBotBtn.classList.toggle('hidden', !showAddBot);
+    addBotBtn.disabled = !showAddBot;
   }
 
   const handRank = evaluateHand(myHand, gameState?.communityCards);
@@ -920,6 +940,13 @@ const restartBtnEl = document.getElementById('restart-btn');
 if (restartBtnEl) {
   restartBtnEl.addEventListener('click', () => {
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame' }));
+  });
+}
+
+const addBotBtnEl = document.getElementById('add-bot-btn');
+if (addBotBtnEl) {
+  addBotBtnEl.addEventListener('click', () => {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'addBot' }));
   });
 }
 

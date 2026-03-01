@@ -175,6 +175,26 @@ body {
   letter-spacing: 0.1rem;
 }
 
+.waiting-msg {
+  font-size: 0.5rem;
+  color: #8b949e;
+  padding: 0 0.5rem;
+}
+
+.btn-add-bot {
+  padding: 0.4rem 1rem;
+  background: #1a3a5a;
+  border: 0.2rem solid #3498db;
+  color: #ddd;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.btn-add-bot:hover { background: #2a4a6a; }
+
 .btn-restart:hover { background: #2d6a4f; }
 .btn-restart:disabled {
   background: #1a1a1a;
