@@ -485,10 +485,11 @@ function handleMessage(msg) {
     case 'gameOver': {
       stopTurnTimer();
       if (gameState) gameState.facingAllIn = false;
-      lastWinningCards = msg.winningCards || [];
+      const winByFold = msg.reason === 'fold';
+      lastWinningCards = winByFold ? [] : (msg.winningCards || []);
       lastCommunityCards = msg.communityCards || [];
-      lastHandName = msg.handName || null;
-      lastWinningHoleIndices = msg.winningHoleIndices || [];
+      lastHandName = winByFold ? null : (msg.handName || null);
+      lastWinningHoleIndices = winByFold ? [] : (msg.winningHoleIndices || []);
       lastPot = msg.pot || 0;
       const goWinnerIds = msg.winners || (msg.winner ? [msg.winner] : []);
       const goWinnerNames = msg.winnerNicknames || (msg.winnerNickname ? [msg.winnerNickname] : []);
@@ -613,7 +614,7 @@ function showShowdown(msg) {
   if (bannerEl) bannerEl.textContent = `Winner: ${winText} (won $${netWon})`;
 
   let title = `${winText} won $${netWon}`;
-  if (handName) title += ` with ${handName}`;
+  if (handName && msg.reason !== 'fold') title += ` with ${handName}`;
   if (msg.reason === 'fold') title += ' (all others folded)';
   showdownTitle.textContent = title;
 
@@ -622,7 +623,8 @@ function showShowdown(msg) {
   const boardSection = showdownBoardCards?.closest('.showdown-board-section');
   if (boardSection) boardSection.style.display = communityCards.length ? 'block' : 'none';
   const winningSection = document.querySelector('.showdown-winning-section');
-  if (winningSection) winningSection.style.display = didIFold ? 'none' : 'block';
+  const showWinningSection = msg.reason !== 'fold' && !didIFold;
+  if (winningSection) winningSection.style.display = showWinningSection ? 'block' : 'none';
   if (showdownBoardCards) {
     showdownBoardCards.innerHTML = '';
     communityCards.forEach((card) => {
@@ -633,8 +635,8 @@ function showShowdown(msg) {
     });
   }
 
-  /* Winning hand: 5 (or 2) cards, highlight hole cards */
-  const winningCards = msg.winningCards || [];
+  /* Winning hand: 5 (or 2) cards, highlight hole cards - hidden when win by fold (cards mucked) */
+  const winningCards = msg.reason === 'fold' ? [] : (msg.winningCards || []);
   const holeIndices = new Set(msg.winningHoleIndices || []);
   if (showdownWinningCards) {
     showdownWinningCards.innerHTML = '';
@@ -647,14 +649,14 @@ function showShowdown(msg) {
     });
   }
 
-  /* All hands: every player including folded. If viewer folded, hide winner's cards. */
+  /* All hands: every player including folded. Hide winner's cards when viewer folded or when win by fold (mucked). */
   const winnerIdSet = new Set(winnerIds);
   if (showdownHands) {
     showdownHands.innerHTML = '';
     (msg.players || []).forEach((p) => {
       if (!p.hand?.length) return;
       const isWinner = winnerIdSet.has(p.id);
-      if (didIFold && isWinner) return;
+      if (isWinner && (didIFold || msg.reason === 'fold')) return;
       const badges = [];
       if (isWinner) badges.push('Winner');
       if (p.folded) badges.push('Folded');

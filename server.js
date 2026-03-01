@@ -119,15 +119,16 @@ function startTurnTimer(roomKey) {
   clearTurnTimer(room);
   room.turnTimeout = setTimeout(() => {
     room.turnTimeout = null;
+    const roomNow = getRoom(roomKey);
     const activePhases = ['preflop', 'flop', 'turn', 'river'];
-    if (!activePhases.includes(room.phase)) return;
-    const idx = room.turnIdx;
-    const player = room.players[idx];
+    if (!activePhases.includes(roomNow.phase)) return;
+    const idx = roomNow.turnIdx;
+    const player = roomNow.players[idx];
     if (!player || player.folded || player.allIn) return;
 
-    const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && room.players[room.lastRaiserIdx]?.allIn === true;
-    const canCheck = !facingAllIn && player.betThisRound >= room.currentBet;
-    const toCall = room.currentBet - player.betThisRound;
+    const facingAllIn = roomNow.currentBet > 0 && roomNow.lastRaiserIdx >= 0 && roomNow.players[roomNow.lastRaiserIdx]?.allIn === true;
+    const canCheck = !facingAllIn && player.betThisRound >= roomNow.currentBet;
+    const toCall = roomNow.currentBet - player.betThisRound;
 
     if (canCheck) {
       broadcastToRoom(roomKey, {
@@ -154,24 +155,24 @@ function startTurnTimer(roomKey) {
           id: p.id,
           chips: p.chips,
           betThisRound: p.betThisRound,
-          isTurn: i === room.turnIdx,
+          isTurn: i === roomNow.turnIdx,
         })),
       });
     } else {
       player.folded = true;
-      const activeCount = room.players.filter((p) => !p.folded).length;
+      const activeCount = roomNow.players.filter((p) => !p.folded).length;
       broadcastToRoom(roomKey, {
         type: 'action',
         playerId: player.id,
         action: 'fold',
         reason: 'timeout',
-        pot: room.pot,
-        players: room.players.map((p, i) => ({
+        pot: roomNow.pot,
+        players: roomNow.players.map((p, i) => ({
           id: p.id,
           folded: p.folded,
           chips: p.chips,
           betThisRound: p.betThisRound,
-          isTurn: i === room.turnIdx,
+          isTurn: i === roomNow.turnIdx,
         })),
       });
       if (activeCount <= 1) {
@@ -180,7 +181,7 @@ function startTurnTimer(roomKey) {
       }
     }
 
-    room.turnIdx = advanceTurn(room, room.turnIdx);
+    roomNow.turnIdx = advanceTurn(roomNow, idx);
     checkBettingComplete(roomKey);
   }, TURN_TIMEOUT_MS);
 }
@@ -467,6 +468,7 @@ function showdown(roomKey) {
 
   room.phase = 'lobby';
   room.gameState = null;
+  clearTurnTimer(room);
   broadcastToRoom(roomKey, {
     type: 'roundOver',
     players: room.players.map((p) => ({
