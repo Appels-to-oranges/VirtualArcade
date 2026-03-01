@@ -3,18 +3,56 @@ const CHIPS_BASE = '/chips';
 const SOUNDS_BASE = '/sounds';
 const TURN_TIMEOUT_MS = 60 * 1000;
 
-const soundShuffle = new Audio(SOUNDS_BASE + '/shuffle.wav');
-const soundCardPutDown = new Audio(SOUNDS_BASE + '/card%20put%20down.wav');
-const soundAmbience = new Audio(SOUNDS_BASE + '/BACKGROUND_CASINO_AMBIENCE.wav');
+const SOUND_FILES = {
+  shuffle: ['shuffle.wav', 'shuffle.mp3'],
+  cardPutDown: ['card_put_down.wav', 'card put down.wav', 'card_put_down.mp3'],
+  ambience: ['BACKGROUND_CASINO_AMBIENCE.wav', 'BACKGROUND_CASINO_AMBIENCE.mp3'],
+};
+
+function createSoundAudio(keys) {
+  const a = new Audio();
+  a.preload = 'auto';
+  let idx = 0;
+  const tryNext = () => {
+    if (idx >= keys.length) return;
+    a.src = SOUNDS_BASE + '/' + encodeURIComponent(keys[idx]);
+    a.load();
+    idx++;
+  };
+  a.addEventListener('error', tryNext);
+  a.addEventListener('canplaythrough', () => { a._ready = true; });
+  tryNext(); // start loading first file
+  return a;
+}
+
+const soundShuffle = createSoundAudio(SOUND_FILES.shuffle);
+const soundCardPutDown = createSoundAudio(SOUND_FILES.cardPutDown);
+const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
+
+let audioCtx = null;
+function playFallbackClick(vol = 0.3) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.05);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.1);
+  } catch (_) {}
+}
 
 function playSound(audio, volumeKey) {
-  if (!audio?.src) return;
-  if (volumeKey) {
-    const v = parseInt(localStorage.getItem(volumeKey), 10);
-    audio.volume = (isNaN(v) ? 80 : Math.max(0, Math.min(100, v))) / 100;
-  }
+  const vol = volumeKey
+    ? (parseInt(localStorage.getItem(volumeKey), 10) || 80) / 100
+    : 0.25;
+  audio.volume = Math.max(0, Math.min(1, vol));
   audio.currentTime = 0;
-  audio.play().catch(() => {});
+  audio.play().catch(() => playFallbackClick(vol));
 }
 
 function playShuffle() {
@@ -31,9 +69,7 @@ function playCardPutDown(delayMs = 0) {
 
 function startAmbience() {
   soundAmbience.loop = true;
-  const v = parseInt(localStorage.getItem(AMBIENCE_VOLUME_KEY), 10);
-  soundAmbience.volume = (isNaN(v) ? 25 : Math.max(0, Math.min(100, v))) / 100;
-  playSound(soundAmbience);
+  playSound(soundAmbience, AMBIENCE_VOLUME_KEY);
 }
 
 function stopAmbience() {
@@ -143,7 +179,6 @@ const joinForm = document.getElementById('join-form');
 const roomKeyInput = document.getElementById('room-key');
 const nicknameInput = document.getElementById('nickname');
 const playersContainer = document.getElementById('players-container');
-const playersBarEl = document.getElementById('players-bar');
 const communityAreaEl = document.getElementById('community-area');
 const boardCardsEl = document.getElementById('board-cards');
 const winningHandRowEl = document.getElementById('winning-hand-row');
@@ -151,7 +186,6 @@ const winningHandCardsEl = document.getElementById('winning-hand-cards');
 const tablePotEl = document.getElementById('table-pot');
 const tablePotAmountEl = document.getElementById('table-pot-amount');
 const tablePotChipsEl = document.getElementById('table-pot-chips');
-const myCardsEl = document.getElementById('my-cards');
 const potInControls = document.getElementById('pot-in-controls');
 const phaseLabel = document.getElementById('phase-label');
 const handRankLabel = document.getElementById('hand-rank-label');
@@ -555,20 +589,6 @@ function renderTable() {
     }
   }
 
-  myCardsEl.innerHTML = '';
-  const myHandDealing = myHand.length > prevMyHandCount;
-  myHand.forEach((card, idx) => {
-    const div = document.createElement('div');
-    div.className = 'card';
-    if (myHandDealing && idx >= prevMyHandCount) {
-      div.classList.add('dealing');
-      const delay = idx * 0.15;
-      div.style.animationDelay = `${delay}s`;
-      playCardPutDown(delay * 1000);
-    }
-    div.style.backgroundImage = `url(${cardImagePath(card)})`;
-    myCardsEl.appendChild(div);
-  });
   prevMyHandCount = myHand.length;
 
   playersContainer.innerHTML = '';
@@ -577,8 +597,8 @@ function renderTable() {
 
   const cx = 50;
   const cy = 50;
-  const rx = 42;
-  const ry = 34;
+  const rx = 44;
+  const ry = 36;
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const offset = myPosIdx >= 0 ? Math.PI / 2 - (myPosIdx / count) * Math.PI * 2 : 0;
 
@@ -599,6 +619,24 @@ function renderTable() {
 
     if (isTurn) seat.classList.add('is-turn');
     if (isDealer) seat.classList.add('is-dealer');
+
+    const seatInfo = document.createElement('div');
+    seatInfo.className = 'seat-info';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'seat-name';
+    nameSpan.textContent = `${p.nickname || 'Player'}${isDealer ? ' (D)' : ''}`;
+    seatInfo.appendChild(nameSpan);
+    const chipsSpan = document.createElement('span');
+    chipsSpan.className = 'seat-chips';
+    chipsSpan.textContent = `$${p.chips ?? 0}`;
+    seatInfo.appendChild(chipsSpan);
+    if (p.folded) {
+      const foldedSpan = document.createElement('span');
+      foldedSpan.className = 'seat-folded';
+      foldedSpan.textContent = 'Folded';
+      seatInfo.appendChild(foldedSpan);
+    }
+    seat.appendChild(seatInfo);
 
     const cardsDiv = document.createElement('div');
     cardsDiv.className = 'player-cards';
@@ -662,43 +700,6 @@ function renderTable() {
 
     playersContainer.appendChild(seat);
   });
-
-  /* Players bar (names/chips off table) */
-  if (playersBarEl) {
-    playersBarEl.innerHTML = '';
-    players.forEach((p, i) => {
-      const chipEl = document.createElement('div');
-      chipEl.className = 'player-chip';
-      const isTurn = gameState && gameState.turnIdx === i;
-      const isDealer = gameState && gameState.dealerIdx === i;
-      if (isTurn) chipEl.classList.add('is-turn');
-
-      const nameEl = document.createElement('span');
-      nameEl.className = 'player-name';
-      nameEl.textContent = `${p.nickname || 'Player'}${isDealer ? ' (D)' : ''}`;
-      chipEl.appendChild(nameEl);
-
-      const chipsRow = document.createElement('div');
-      chipsRow.className = 'chips-row';
-      const chipsText = document.createElement('span');
-      chipsText.className = 'chips';
-      chipsText.textContent = `$${p.chips ?? 0}`;
-      chipsRow.appendChild(chipsText);
-      const chipIcons = document.createElement('span');
-      chipIcons.className = 'chip-icons';
-      chipIcons.appendChild(renderChipIcons(p.chips ?? 0, 6));
-      chipsRow.appendChild(chipIcons);
-      chipEl.appendChild(chipsRow);
-
-      if (p.folded) {
-        const foldedEl = document.createElement('span');
-        foldedEl.className = 'folded-label';
-        foldedEl.textContent = 'Folded';
-        chipEl.appendChild(foldedEl);
-      }
-      playersBarEl.appendChild(chipEl);
-    });
-  }
 
   const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
   startBtn.disabled = !canStart;

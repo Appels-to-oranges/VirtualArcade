@@ -424,24 +424,26 @@ body {
 /* Phase label */
 .phase-label {
   position: absolute;
-  top: 12px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   color: #6a6a4a;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
+  z-index: 2;
 }
 
 .hand-rank-label {
   position: absolute;
-  top: 32px;
+  top: 26px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   color: #c9b896;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
+  z-index: 2;
 }
 
 /* Community area: pot + board + winning hand */
@@ -587,70 +589,54 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   pointer-events: auto;
+  max-width: 140px;
 }
 
 .player-seat .player-cards {
   display: flex;
-  gap: 4px;
+  gap: 3px;
 }
 
 .player-seat .player-cards .card {
-  width: 52px;
-  height: 73px;
-  background-size: 52px 73px;
+  width: 46px;
+  height: 65px;
+  background-size: 46px 65px;
 }
 
-/* Players bar (names/chips off table) */
-.players-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 16px;
-  margin-top: 6px;
-  padding: 6px 12px;
-  background: #0f0f0f;
-  border: 2px solid #1a1a1a;
-  flex-shrink: 0;
-}
-
-.players-bar .player-chip {
+.seat-info {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 14px;
-  background: rgba(0,0,0,0.6);
-  border: 2px solid #333;
-  min-width: 100px;
+  gap: 1px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
-.players-bar .player-chip.is-turn {
-  border-color: #ffd700;
-  box-shadow: 0 0 10px rgba(255,215,0,0.3);
-}
-
-.players-bar .player-chip .player-name {
-  font-size: 0.55rem;
+.seat-info .seat-name {
+  font-size: 0.45rem;
   color: #ddd;
-  margin-bottom: 4px;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.players-bar .player-chip .chips {
-  font-size: 0.6rem;
+.seat-info .seat-chips {
+  font-size: 0.45rem;
   color: #c9b896;
 }
 
-.players-bar .player-chip .bet-label {
-  font-size: 0.45rem;
-  color: #6a6a4a;
-  margin-top: 3px;
+.seat-info .seat-folded {
+  font-size: 0.4rem;
+  color: #666;
+  font-style: italic;
 }
 
-.players-bar .player-chip .folded-label {
-  font-size: 0.45rem;
-  color: #555;
-  margin-top: 3px;
+.player-seat.is-turn .seat-info .seat-name {
+  color: #ffd700;
 }
 
 .player-seat.is-dealer::after {
@@ -750,21 +736,6 @@ body {
 .seat-bet-chips .chip-icon.chip-stack {
   width: 20px;
   height: 28px;
-}
-
-/* ── My hand ── */
-.my-cards {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 6px;
-  flex-shrink: 0;
-}
-
-.my-cards .card {
-  width: 88px;
-  height: 123px;
-  background-size: 88px 123px;
 }
 
 /* ── Controls ── */

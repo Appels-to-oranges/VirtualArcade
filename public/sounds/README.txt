@@ -1,7 +1,7 @@
-Copy your sound files here with these exact names:
+Copy your sound files here. Supported names (first match wins):
 
-  shuffle.wav          - plays when the game starts
-  card put down.wav    - plays when a card is dealt
-  BACKGROUND_CASINO_AMBIENCE.wav - loops while the radio is playing
+  shuffle.wav / shuffle.mp3
+  card_put_down.wav, card put down.wav, or card_put_down.mp3
+  BACKGROUND_CASINO_AMBIENCE.wav or BACKGROUND_CASINO_AMBIENCE.mp3
 
-Supported formats: .wav or .mp3 (rename the extension in client.js if using .mp3)
+If files are missing, a fallback click sound is used.
