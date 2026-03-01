@@ -36,6 +36,7 @@ const joinForm = document.getElementById('join-form');
 const roomKeyInput = document.getElementById('room-key');
 const nicknameInput = document.getElementById('nickname');
 const playersContainer = document.getElementById('players-container');
+const playersBarEl = document.getElementById('players-bar');
 const communityCardsEl = document.getElementById('community-cards');
 const myCardsEl = document.getElementById('my-cards');
 const potInControls = document.getElementById('pot-in-controls');
@@ -67,6 +68,7 @@ let players = [];
 let myHand = [];
 let gameState = null;
 let prevCommunityCount = 0;
+let prevMyHandCount = 0;
 let lastWinningCards = null;
 let turnTimerInterval = null;
 
@@ -122,6 +124,7 @@ function handleMessage(msg) {
       break;
 
     case 'gameStarted':
+      lastWinningCards = null;
       gameState = {
         phase: msg.phase,
         communityCards: [],
@@ -132,8 +135,10 @@ function handleMessage(msg) {
         dealerIdx: msg.dealerIdx,
       };
       players = msg.players || players;
+      players.forEach((p) => { p._prevHandCount = 0; });
       myHand = [];
       prevCommunityCount = 0;
+      prevMyHandCount = 0;
       renderTable();
       updateControls();
       break;
@@ -215,7 +220,6 @@ function handleMessage(msg) {
 
     case 'roundOver':
       hideShowdown();
-      lastWinningCards = null;
       gameState = null;
       myHand = [];
       prevCommunityCount = 0;
@@ -339,12 +343,18 @@ function renderTable() {
   if (!lastWinningCards) prevCommunityCount = cards.length;
 
   myCardsEl.innerHTML = '';
-  myHand.forEach((card) => {
+  const myHandDealing = myHand.length > prevMyHandCount;
+  myHand.forEach((card, idx) => {
     const div = document.createElement('div');
     div.className = 'card';
+    if (myHandDealing && idx >= prevMyHandCount) {
+      div.classList.add('dealing');
+      div.style.animationDelay = `${idx * 0.15}s`;
+    }
     div.style.backgroundImage = `url(${cardImagePath(card)})`;
     myCardsEl.appendChild(div);
   });
+  prevMyHandCount = myHand.length;
 
   playersContainer.innerHTML = '';
   const count = players.length;
@@ -379,21 +389,33 @@ function renderTable() {
     cardsDiv.className = 'player-cards';
 
     if (isMe && myHand.length > 0) {
-      myHand.forEach((card) => {
+      const seatDealing = myHand.length > (p._prevHandCount || 0);
+      myHand.forEach((card, idx) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'card' + (p.folded ? ' folded' : '');
+        if (seatDealing && idx >= (p._prevHandCount || 0)) {
+          cardEl.classList.add('dealing');
+          cardEl.style.animationDelay = `${idx * 0.15}s`;
+        }
         cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
         cardsDiv.appendChild(cardEl);
       });
+      p._prevHandCount = myHand.length;
     } else {
       const hand = p.hand || [];
+      const seatDealing = hand.length > (p._prevHandCount || 0);
       if (hand.length > 0) {
-        hand.forEach((card) => {
+        hand.forEach((card, idx) => {
           const cardEl = document.createElement('div');
           cardEl.className = 'card' + (p.folded ? ' folded' : '');
+          if (seatDealing && idx >= (p._prevHandCount || 0)) {
+            cardEl.classList.add('dealing');
+            cardEl.style.animationDelay = `${idx * 0.15}s`;
+          }
           cardEl.style.backgroundImage = `url(${cardImagePath(card)})`;
           cardsDiv.appendChild(cardEl);
         });
+        p._prevHandCount = hand.length;
       } else if (gameState && gameState.phase !== 'lobby' && !p.folded) {
         [1, 2].forEach(() => {
           const cardEl = document.createElement('div');
@@ -403,19 +425,27 @@ function renderTable() {
       }
     }
 
-    const info = document.createElement('div');
-    info.className = 'player-info';
-
-    let html = `<span class="player-name">${p.nickname || 'Player'}</span>`;
-    html += `<span class="chips">$${p.chips ?? 0}</span>`;
-    if (p.betThisRound) html += `<span class="bet-label">Bet: $${p.betThisRound}</span>`;
-    if (p.folded) html += `<span class="folded-label">Folded</span>`;
-    info.innerHTML = html;
-
     seat.appendChild(cardsDiv);
-    seat.appendChild(info);
     playersContainer.appendChild(seat);
   });
+
+  /* Players bar (names/chips off table) */
+  if (playersBarEl) {
+    playersBarEl.innerHTML = '';
+    players.forEach((p, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'player-chip';
+      const isTurn = gameState && gameState.turnIdx === i;
+      const isDealer = gameState && gameState.dealerIdx === i;
+      if (isTurn) chip.classList.add('is-turn');
+      let html = `<span class="player-name">${p.nickname || 'Player'}${isDealer ? ' (D)' : ''}</span>`;
+      html += `<span class="chips">$${p.chips ?? 0}</span>`;
+      if (p.betThisRound) html += `<span class="bet-label">Bet: $${p.betThisRound}</span>`;
+      if (p.folded) html += `<span class="folded-label">Folded</span>`;
+      chip.innerHTML = html;
+      playersBarEl.appendChild(chip);
+    });
+  }
 
   const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
   startBtn.disabled = !canStart;

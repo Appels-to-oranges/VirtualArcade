@@ -262,44 +262,54 @@ body {
   background-size: 48px 67px;
 }
 
-.player-seat .player-info {
-  background: rgba(0,0,0,0.85);
-  border: 2px solid #333;
-  padding: 6px 12px;
-  text-align: center;
-  white-space: nowrap;
+/* Players bar (names/chips off table) */
+.players-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 24px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #0f0f0f;
+  border: 2px solid #1a1a1a;
 }
 
-.player-seat .player-info .player-name {
-  display: block;
-  font-size: 0.65rem;
+.players-bar .player-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(0,0,0,0.6);
+  border: 2px solid #333;
+  min-width: 100px;
+}
+
+.players-bar .player-chip.is-turn {
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255,215,0,0.3);
+}
+
+.players-bar .player-chip .player-name {
+  font-size: 0.55rem;
   color: #ddd;
   margin-bottom: 4px;
 }
 
-.player-seat .player-info .chips {
-  display: block;
-  font-size: 0.7rem;
+.players-bar .player-chip .chips {
+  font-size: 0.6rem;
   color: #c9b896;
 }
 
-.player-seat .player-info .bet-label {
-  display: block;
-  font-size: 0.5rem;
+.players-bar .player-chip .bet-label {
+  font-size: 0.45rem;
   color: #6a6a4a;
   margin-top: 3px;
 }
 
-.player-seat .player-info .folded-label {
-  display: block;
-  font-size: 0.5rem;
+.players-bar .player-chip .folded-label {
+  font-size: 0.45rem;
   color: #555;
   margin-top: 3px;
-}
-
-.player-seat.is-turn .player-info {
-  border: 3px solid #ffd700;
-  box-shadow: 0 0 10px rgba(255,215,0,0.4);
 }
 
 .player-seat.is-dealer::after {
