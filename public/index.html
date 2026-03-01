@@ -3,16 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Texas Hold'em</title>
+  <title>Card Games</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="message-toast" id="message-toast"></div>
   <div id="join-screen">
     <div class="join-card">
-      <h1>Texas Hold'em</h1>
-      <p class="tagline">Room-based poker with friends</p>
+      <h1>Card Games</h1>
+      <p class="tagline">Room-based games with friends</p>
       <div id="join-form" class="join-form">
+        <div class="form-group">
+          <label for="game-type">Game</label>
+          <div class="game-type-selector" id="game-type-selector">
+            <button type="button" class="game-type-btn active" data-game="holdem">Texas Hold'em</button>
+            <button type="button" class="game-type-btn" data-game="blackjack">Blackjack</button>
+          </div>
+        </div>
         <div class="form-group">
           <label for="room-key">Room key</label>
           <input type="text" id="room-key" class="form-control" placeholder="Enter room key" maxlength="32" autocomplete="off">
@@ -132,7 +139,44 @@
     </div>
   </div>
 
+  <div id="bj-screen" class="hidden">
+    <div class="game-scale-wrapper">
+    <div class="room-bar">
+      <span id="bj-room-label"></span>
+      <button id="bj-start-btn" class="btn-start">Start Game</button>
+      <button id="bj-next-btn" class="btn-restart hidden">Next Hand</button>
+      <div class="chat-input-wrap">
+        <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat..." maxlength="100" autocomplete="off">
+        <button type="button" id="bj-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
+      </div>
+    </div>
+    <div class="table-container">
+      <div class="poker-table bj-table">
+        <div class="bj-status-label" id="bj-status">Waiting for game to start...</div>
+        <div class="bj-dealer-area" id="bj-dealer-area">
+          <div class="bj-dealer-label">Dealer</div>
+          <div class="bj-dealer-cards" id="bj-dealer-cards"></div>
+          <div class="bj-dealer-total" id="bj-dealer-total"></div>
+        </div>
+        <div class="bj-players-area" id="bj-players-area"></div>
+      </div>
+    </div>
+    <div class="controls hidden" id="bj-bet-controls">
+      <div class="bet-row">
+        <input type="number" id="bj-bet-amount" placeholder="$10" min="10" value="20">
+        <button type="button" id="btn-bj-place-bet" class="btn btn-bet">Place Bet</button>
+      </div>
+    </div>
+    <div class="controls hidden" id="bj-controls">
+      <button type="button" id="btn-bj-hit" class="btn btn-call">Hit</button>
+      <button type="button" id="btn-bj-stand" class="btn btn-fold">Stand</button>
+      <button type="button" id="btn-bj-double" class="btn btn-allin">Double</button>
+    </div>
+    </div>
+  </div>
+
   <script src="pokersolver.js"></script>
+  <script src="blackjack.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

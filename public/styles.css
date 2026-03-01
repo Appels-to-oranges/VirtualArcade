@@ -1286,3 +1286,198 @@ body {
 }
 
 .btn-dismiss:hover { background: #2d6a4f; }
+
+/* ── Game type selector ── */
+.game-type-selector {
+  display: flex;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.game-type-btn {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.4rem;
+  color: #8b949e;
+  background: #0d1117;
+  border: 0.125rem solid #30363d;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.game-type-btn:hover {
+  border-color: #484f58;
+  color: #c9d1d9;
+}
+
+.game-type-btn.active {
+  background: #1b4332;
+  border-color: #40916c;
+  color: #fff;
+  box-shadow: 0 0 0.5rem rgba(64, 145, 108, 0.3);
+}
+
+/* ── Blackjack screen ── */
+#bj-screen {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  z-index: 1;
+}
+
+.bj-table {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  gap: 1.5rem;
+}
+
+.bj-status-label {
+  font-size: 0.7rem;
+  color: #c9b896;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  text-align: center;
+  padding: 0.5rem;
+  min-height: 1.5rem;
+}
+
+.bj-dealer-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bj-dealer-label {
+  font-size: 0.55rem;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+}
+
+.bj-dealer-cards {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: center;
+  min-height: 5rem;
+}
+
+.bj-dealer-total {
+  font-size: 0.65rem;
+  color: #e6edf3;
+  text-align: center;
+  min-height: 1rem;
+}
+
+.bj-players-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 40rem;
+  padding: 0.5rem;
+}
+
+.bj-player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(13, 17, 23, 0.6);
+  border: 0.125rem solid #30363d;
+  border-radius: 0.5rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.bj-player-row.bj-active-turn {
+  border-color: #f0ad4e;
+  box-shadow: 0 0 0.75rem rgba(240, 173, 78, 0.35);
+}
+
+.bj-player-row.bj-is-me {
+  background: rgba(27, 67, 50, 0.3);
+}
+
+.bj-player-name {
+  font-size: 0.5rem;
+  color: #c9b896;
+  min-width: 5rem;
+  text-transform: uppercase;
+}
+
+.bj-player-cards {
+  display: flex;
+  gap: 0.25rem;
+  min-height: 4rem;
+}
+
+.bj-player-cards .card {
+  width: 3rem;
+  height: 4.2rem;
+  background-size: 3rem 4.2rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.4);
+}
+
+.bj-dealer-cards .card {
+  width: 3.5rem;
+  height: 4.9rem;
+  background-size: 3.5rem 4.9rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.4);
+}
+
+.bj-player-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  font-size: 0.45rem;
+}
+
+.bj-player-total {
+  color: #e6edf3;
+  font-weight: bold;
+}
+
+.bj-player-bet {
+  color: #f0ad4e;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.bj-player-chips {
+  color: #40916c;
+}
+
+.bj-player-status {
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.bj-status-busted { background: #6b2020; color: #ff6b6b; }
+.bj-status-blackjack { background: #3d2e0a; color: #f0ad4e; }
+.bj-status-stood { background: #1a3a4a; color: #74c0fc; }
+.bj-status-won { background: #1b4332; color: #52b788; }
+.bj-status-lost { background: #3d1010; color: #e06666; }
+.bj-status-push { background: #2d2d2d; color: #aaa; }
+
+#bj-bet-controls .bet-row {
+  justify-content: center;
+}
+
+#bj-controls {
+  justify-content: center;
+  gap: 0.75rem;
+}

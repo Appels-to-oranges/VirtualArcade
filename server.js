@@ -102,6 +102,12 @@ function getRoom(roomKey) {
       sidePots: [],
       turnTimeout: null,
       radio: null,
+      gameType: 'holdem',
+      bjDeck: null,
+      bjDealerHand: [],
+      bjPlayerHands: {},
+      bjTurnIdx: 0,
+      bjPhase: 'lobby',
     });
   }
   return rooms.get(roomKey);
@@ -554,6 +560,317 @@ function checkBettingComplete(roomKey) {
   }
 }
 
+// ── Blackjack logic ──────────────────────────────────────────────────
+
+function bjHandTotal(cards) {
+  let total = 0, aces = 0;
+  for (const c of cards) {
+    if (c.rank === 'A') { aces++; total += 11; }
+    else if (['K', 'Q', 'J'].includes(c.rank)) total += 10;
+    else total += parseInt(c.rank, 10);
+  }
+  while (total > 21 && aces > 0) { total -= 10; aces--; }
+  return total;
+}
+
+function bjCreateShoe() {
+  const shoe = [];
+  for (let d = 0; d < 6; d++) shoe.push(...createDeck());
+  return shuffle(shoe);
+}
+
+function bjStartGame(roomKey) {
+  const room = getRoom(roomKey);
+  if (room.players.length < 1) return;
+  room.bjPhase = 'betting';
+  room.bjDeck = bjCreateShoe();
+  room.bjDealerHand = [];
+  room.bjPlayerHands = {};
+  room.bjTurnIdx = 0;
+
+  broadcastToRoom(roomKey, {
+    type: 'bjGameStarted',
+    players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
+  });
+}
+
+function bjPlaceBet(roomKey, playerId, amount) {
+  const room = getRoom(roomKey);
+  if (room.bjPhase !== 'betting') return;
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) return;
+  if (room.bjPlayerHands[playerId]?.bet > 0) return;
+
+  const bet = Math.floor(Number(amount) || 0);
+  if (bet < 10 || bet > player.chips) return;
+
+  player.chips -= bet;
+  room.bjPlayerHands[playerId] = { hand: [], bet, total: 0, status: 'playing' };
+
+  broadcastToRoom(roomKey, {
+    type: 'bjBetPlaced',
+    playerId,
+    bet,
+    chips: player.chips,
+  });
+
+  const allBet = room.players.every((p) => room.bjPlayerHands[p.id]?.bet > 0);
+  if (allBet) bjDeal(roomKey);
+}
+
+function bjDeal(roomKey) {
+  const room = getRoom(roomKey);
+  room.bjPhase = 'playing';
+  const deck = room.bjDeck;
+
+  for (const p of room.players) {
+    const ph = room.bjPlayerHands[p.id];
+    ph.hand = [deck.pop(), deck.pop()];
+    ph.total = bjHandTotal(ph.hand);
+  }
+  room.bjDealerHand = [deck.pop(), deck.pop()];
+
+  const dealerUpCard = room.bjDealerHand[0];
+  const dealerTotal = bjHandTotal(room.bjDealerHand);
+
+  const dealerHasBlackjack = dealerTotal === 21 && room.bjDealerHand.length === 2;
+  const dealerUpIs10orA = ['A', 'K', 'Q', 'J', '10'].includes(dealerUpCard.rank);
+
+  const playersPayload = room.players.map((op) => {
+    const oph = room.bjPlayerHands[op.id];
+    return { id: op.id, nickname: op.nickname, hand: oph.hand, total: oph.total, bet: oph.bet, status: oph.status };
+  });
+  broadcastToRoom(roomKey, {
+    type: 'bjDealt',
+    dealerUpCard,
+    dealerHand: [dealerUpCard, { hidden: true }],
+    players: playersPayload,
+  });
+
+  if (dealerUpIs10orA && dealerHasBlackjack) {
+    room.players.forEach((p) => {
+      const ph = room.bjPlayerHands[p.id];
+      if (ph.total === 21 && ph.hand.length === 2) {
+        ph.status = 'push';
+        p.chips += ph.bet;
+      } else {
+        ph.status = 'lost';
+      }
+    });
+    broadcastToRoom(roomKey, {
+      type: 'bjDealerTurn',
+      holeCard: room.bjDealerHand[1],
+      dealerTotal,
+    });
+    bjCalculateResults(roomKey);
+    return;
+  }
+
+  for (const p of room.players) {
+    const ph = room.bjPlayerHands[p.id];
+    if (ph.total === 21 && ph.hand.length === 2) {
+      ph.status = 'blackjack';
+    }
+  }
+
+  room.bjTurnIdx = 0;
+  bjStartPlayerTurn(roomKey);
+}
+
+function bjStartPlayerTurn(roomKey) {
+  const room = getRoom(roomKey);
+  while (room.bjTurnIdx < room.players.length) {
+    const p = room.players[room.bjTurnIdx];
+    const ph = room.bjPlayerHands[p.id];
+    if (ph.status === 'playing') {
+      broadcastToRoom(roomKey, { type: 'bjYourTurn', playerId: p.id });
+      return;
+    }
+    room.bjTurnIdx++;
+  }
+  bjDealerPlay(roomKey);
+}
+
+function bjAdvanceTurn(roomKey) {
+  const room = getRoom(roomKey);
+  room.bjTurnIdx++;
+  bjStartPlayerTurn(roomKey);
+}
+
+function bjPlayerAction(roomKey, playerId, action) {
+  const room = getRoom(roomKey);
+  if (room.bjPhase !== 'playing') return;
+  const pIdx = room.players.findIndex((p) => p.id === playerId);
+  if (pIdx < 0 || pIdx !== room.bjTurnIdx) return;
+  const player = room.players[pIdx];
+  const ph = room.bjPlayerHands[playerId];
+  if (ph.status !== 'playing') return;
+
+  if (action === 'hit') {
+    const card = room.bjDeck.pop();
+    ph.hand.push(card);
+    ph.total = bjHandTotal(ph.hand);
+    if (ph.total > 21) {
+      ph.status = 'busted';
+      broadcastToRoom(roomKey, {
+        type: 'bjCardDealt',
+        playerId,
+        card,
+        total: ph.total,
+        status: 'busted',
+      });
+      bjAdvanceTurn(roomKey);
+    } else {
+      broadcastToRoom(roomKey, {
+        type: 'bjCardDealt',
+        playerId,
+        card,
+        total: ph.total,
+        status: 'playing',
+      });
+    }
+  } else if (action === 'stand') {
+    ph.status = 'stood';
+    broadcastToRoom(roomKey, {
+      type: 'bjCardDealt',
+      playerId,
+      card: null,
+      total: ph.total,
+      status: 'stood',
+    });
+    bjAdvanceTurn(roomKey);
+  } else if (action === 'double') {
+    if (player.chips < ph.bet) return;
+    player.chips -= ph.bet;
+    ph.bet *= 2;
+    const card = room.bjDeck.pop();
+    ph.hand.push(card);
+    ph.total = bjHandTotal(ph.hand);
+    if (ph.total > 21) {
+      ph.status = 'busted';
+    } else {
+      ph.status = 'stood';
+    }
+    broadcastToRoom(roomKey, {
+      type: 'bjCardDealt',
+      playerId,
+      card,
+      total: ph.total,
+      status: ph.status,
+      doubled: true,
+      bet: ph.bet,
+      chips: player.chips,
+    });
+    bjAdvanceTurn(roomKey);
+  }
+}
+
+function bjDealerPlay(roomKey) {
+  const room = getRoom(roomKey);
+  room.bjPhase = 'dealerTurn';
+
+  const allBustedOrBJ = room.players.every((p) => {
+    const s = room.bjPlayerHands[p.id].status;
+    return s === 'busted' || s === 'blackjack';
+  });
+
+  broadcastToRoom(roomKey, {
+    type: 'bjDealerTurn',
+    holeCard: room.bjDealerHand[1],
+    dealerHand: room.bjDealerHand,
+    dealerTotal: bjHandTotal(room.bjDealerHand),
+  });
+
+  if (allBustedOrBJ) {
+    bjCalculateResults(roomKey);
+    return;
+  }
+
+  bjDealerHitLoop(roomKey);
+}
+
+function bjDealerHitLoop(roomKey) {
+  const room = getRoom(roomKey);
+  const total = bjHandTotal(room.bjDealerHand);
+  if (total >= 17) {
+    bjCalculateResults(roomKey);
+    return;
+  }
+  const card = room.bjDeck.pop();
+  room.bjDealerHand.push(card);
+  const newTotal = bjHandTotal(room.bjDealerHand);
+  broadcastToRoom(roomKey, {
+    type: 'bjDealerCard',
+    card,
+    dealerTotal: newTotal,
+  });
+  if (newTotal >= 17) {
+    setTimeout(() => bjCalculateResults(roomKey), 800);
+  } else {
+    setTimeout(() => bjDealerHitLoop(roomKey), 800);
+  }
+}
+
+function bjCalculateResults(roomKey) {
+  const room = getRoom(roomKey);
+  room.bjPhase = 'results';
+  const dealerTotal = bjHandTotal(room.bjDealerHand);
+  const dealerBusted = dealerTotal > 21;
+
+  const results = room.players.map((p) => {
+    const ph = room.bjPlayerHands[p.id];
+    let status, payout = 0;
+
+    if (ph.status === 'blackjack') {
+      if (dealerTotal === 21 && room.bjDealerHand.length === 2) {
+        status = 'push';
+        payout = ph.bet;
+      } else {
+        status = 'blackjack';
+        payout = ph.bet + Math.floor(ph.bet * 1.5);
+      }
+    } else if (ph.status === 'busted') {
+      status = 'lost';
+      payout = 0;
+    } else if (dealerBusted) {
+      status = 'won';
+      payout = ph.bet * 2;
+    } else if (ph.total > dealerTotal) {
+      status = 'won';
+      payout = ph.bet * 2;
+    } else if (ph.total === dealerTotal) {
+      status = 'push';
+      payout = ph.bet;
+    } else {
+      status = 'lost';
+      payout = 0;
+    }
+
+    p.chips += payout;
+    return {
+      id: p.id,
+      nickname: p.nickname,
+      hand: ph.hand,
+      total: ph.total,
+      bet: ph.bet,
+      status,
+      payout,
+      chips: p.chips,
+    };
+  });
+
+  broadcastToRoom(roomKey, {
+    type: 'bjResults',
+    dealerTotal,
+    dealerBusted,
+    dealerHand: room.bjDealerHand,
+    players: results,
+  });
+
+  room.bjPhase = 'lobby';
+  room.phase = 'lobby';
+}
+
 wss.on('connection', (ws) => {
   ws.id = crypto.randomUUID();
 
@@ -570,7 +887,13 @@ wss.on('connection', (ws) => {
         const safeNick = String(nickname).trim().slice(0, 20) || 'Player';
 
         const room = getRoom(safeRoom);
-        if (room.phase !== 'lobby' && room.phase !== null) {
+
+        if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
+
+        const inProgress = room.gameType === 'blackjack'
+          ? room.bjPhase !== 'lobby'
+          : (room.phase !== 'lobby' && room.phase !== null);
+        if (inProgress) {
           ws.send(JSON.stringify({ type: 'error', message: 'Game in progress, wait for round to end' }));
           return;
         }
@@ -594,12 +917,13 @@ wss.on('connection', (ws) => {
           });
         }
 
-        clients.set(ws, { roomKey: safeRoom, nickname: safeNick });
+        clients.set(ws, { roomKey: safeRoom, nickname: safeNick, gameType: room.gameType });
 
         ws.send(JSON.stringify({
           type: 'joined',
           id: ws.id,
           roomKey: safeRoom,
+          gameType: room.gameType,
           players: room.players.map((p) => ({
             id: p.id,
             nickname: p.nickname,
@@ -632,8 +956,12 @@ wss.on('connection', (ws) => {
         const room = getRoom(data.roomKey);
         const idx = room.players.findIndex((p) => p.ws === ws);
         if (idx < 0) return;
-        const resetStreaks = msg.resetStreaks === true;
-        startGame(data.roomKey, resetStreaks);
+        if (msg.gameType === 'blackjack' || room.gameType === 'blackjack') {
+          bjStartGame(data.roomKey);
+        } else {
+          const resetStreaks = msg.resetStreaks === true;
+          startGame(data.roomKey, resetStreaks);
+        }
       } else if (type === 'changeRadio') {
         const data = clients.get(ws);
         if (!data) return;
@@ -867,6 +1195,14 @@ wss.on('connection', (ws) => {
           room.turnIdx = advanceTurn(room, room.turnIdx);
           checkBettingComplete(data.roomKey);
         }
+      } else if (type === 'bjBet') {
+        const data = clients.get(ws);
+        if (!data) return;
+        bjPlaceBet(data.roomKey, ws.id, msg.amount);
+      } else if (type === 'bjAction') {
+        const data = clients.get(ws);
+        if (!data) return;
+        bjPlayerAction(data.roomKey, ws.id, msg.action);
       }
     } catch (err) {
       console.error('Message error:', err);

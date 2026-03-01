@@ -299,6 +299,7 @@ let lastNetWon = 0;
 let lastDidIFold = false;
 let turnTimerInterval = null;
 let prevTurnIdx = -1;
+let currentGameType = 'holdem';
 const CHAT_DURATION_MS = 8000;
 const playerChatMessages = {};
 const playerChatTimeouts = {};
@@ -309,6 +310,15 @@ let currentRadioName = '';
 const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
+
+const gameTypeBtns = document.querySelectorAll('.game-type-btn');
+gameTypeBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    gameTypeBtns.forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentGameType = btn.dataset.game || 'holdem';
+  });
+});
 
 function doJoin() {
   const key = (roomKeyInput && roomKeyInput.value || '').trim();
@@ -333,7 +343,8 @@ function join(key, nick) {
   ws = new WebSocket(`${protocol}//${location.host}`);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', roomKey, nickname }));
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: currentGameType }));
+    if (window.bjSetWs) window.bjSetWs(ws);
   };
 
   ws.onmessage = (ev) => {
@@ -355,22 +366,40 @@ function join(key, nick) {
 }
 
 function handleMessage(msg) {
+  if (msg.type && msg.type.startsWith('bj')) {
+    if (window.blackjack) window.blackjack.handleMessage(msg);
+    return;
+  }
   switch (msg.type) {
     case 'joined':
       myId = msg.id;
       players = msg.players || [];
       gameState = msg.gameState;
       prevCommunityCount = 0;
-      if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
-      showGameScreen();
-      try {
-        renderTable();
-        updateControls();
-      } catch (err) {
-        console.error('Render error:', err);
+      currentGameType = msg.gameType || 'holdem';
+      if (currentGameType === 'blackjack') {
+        if (joinScreen) joinScreen.classList.add('hidden');
+        if (gameScreen) gameScreen.classList.add('hidden');
+        if (window.blackjack) {
+          window.blackjack.init(ws, myId, players, msg.roomKey);
+          window.blackjack.show();
+        }
+        try { startAmbience(); } catch (_) {}
+        initRadioVolume();
+      } else {
+        const bjScreen = document.getElementById('bj-screen');
+        if (bjScreen) bjScreen.classList.add('hidden');
+        if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
+        showGameScreen();
+        try {
+          renderTable();
+          updateControls();
+        } catch (err) {
+          console.error('Render error:', err);
+        }
+        if (msg.radio) playRadio(msg.radio);
+        initRadioVolume();
       }
-      if (msg.radio) playRadio(msg.radio);
-      initRadioVolume();
       break;
 
     case 'radioChanged':
@@ -391,11 +420,17 @@ function handleMessage(msg) {
         winStreak: msg.winStreak ?? 0,
         maxWinStreak: msg.maxWinStreak ?? 0,
       });
+      if (currentGameType === 'blackjack' && window.blackjack) {
+        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 1000 });
+      }
       renderTable();
       break;
 
     case 'userLeft':
       players = players.filter((p) => p.id !== msg.id);
+      if (currentGameType === 'blackjack' && window.blackjack) {
+        window.blackjack.handleMessage({ type: 'bjUserLeft', id: msg.id });
+      }
       renderTable();
       break;
 
@@ -609,6 +644,9 @@ function handleMessage(msg) {
 function showJoinScreen() {
   if (joinScreen) joinScreen.classList.remove('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
+  const bjScreen = document.getElementById('bj-screen');
+  if (bjScreen) bjScreen.classList.add('hidden');
+  if (window.blackjack) window.blackjack.hide();
   stopAmbience();
   Object.keys(playerChatTimeouts).forEach((id) => {
     clearTimeout(playerChatTimeouts[id]);
