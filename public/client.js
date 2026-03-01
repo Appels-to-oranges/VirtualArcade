@@ -851,13 +851,29 @@ function renderTable() {
     const winStreak = p.winStreak ?? 0;
     const maxWinStreak = p.maxWinStreak ?? 0;
     if (winStreak > 0 || maxWinStreak > 0) {
-      const streakWrapper = document.createElement('span');
-      streakWrapper.className = 'seat-streak' + (winStreak >= 3 ? ' seat-streak-fire' : '');
-      const parts = [];
-      if (winStreak > 0) parts.push(`${winStreak}W`);
-      if (maxWinStreak > 0) parts.push(`Best ${maxWinStreak}`);
-      streakWrapper.textContent = parts.join(' · ');
-      seatInfo.appendChild(streakWrapper);
+      const streakWrap = document.createElement('span');
+      streakWrap.className = 'seat-streak';
+      if (winStreak > 0) {
+        const currentWrap = document.createElement('span');
+        currentWrap.className = 'seat-streak-current-wrap' + (winStreak >= 3 ? ' seat-streak-current-fire' : '');
+        if (winStreak >= 3) {
+          const streakFire = document.createElement('span');
+          streakFire.className = 'seat-streak-fire';
+          currentWrap.appendChild(streakFire);
+        }
+        const streakCurrent = document.createElement('span');
+        streakCurrent.className = 'seat-streak-current';
+        streakCurrent.textContent = `${winStreak}W`;
+        currentWrap.appendChild(streakCurrent);
+        streakWrap.appendChild(currentWrap);
+      }
+      if (maxWinStreak > 0) {
+        const streakBest = document.createElement('span');
+        streakBest.className = 'seat-streak-best';
+        streakBest.textContent = (winStreak > 0 ? ' · ' : '') + `Best ${maxWinStreak}`;
+        streakWrap.appendChild(streakBest);
+      }
+      seatInfo.appendChild(streakWrap);
     }
     if (p.folded) {
       const foldedSpan = document.createElement('span');

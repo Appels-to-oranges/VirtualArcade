@@ -840,27 +840,51 @@ body {
 }
 
 .seat-info .seat-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.55rem;
   color: #9a8b6e;
   margin-top: 0.15rem;
 }
 
-.seat-info .seat-streak-fire {
-  position: relative;
-  display: inline-block;
-  padding: 0.2rem 0.35rem;
-  z-index: 1;
-  color: #ffd700;
-  text-shadow: 0 0 0.2rem #000, 0 0 0.4rem #000;
+.seat-info .seat-streak-current {
+  color: inherit;
 }
 
-.seat-info .seat-streak-fire::before {
-  content: '';
+.seat-info .seat-streak-best {
+  color: #9a8b6e;
+}
+
+.seat-info .seat-streak-current-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-info .seat-streak-current-wrap.seat-streak-current-fire {
+  position: relative;
+  padding: 0.2rem 0.35rem;
+  min-width: 1.8rem;
+}
+
+.seat-info .seat-streak-current-wrap .seat-streak-fire {
   position: absolute;
-  inset: -0.3rem -0.5rem;
+  inset: 0;
   background: url('/feuer-fire.gif') center / 2.5rem no-repeat;
-  z-index: -1;
   opacity: 0.85;
+  pointer-events: none;
+}
+
+.seat-info .seat-streak-current-wrap .seat-streak-current {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+}
+
+.seat-info .seat-streak-current-wrap.seat-streak-current-fire .seat-streak-current {
+  color: #ffd700;
+  text-shadow: 0 0 0.2rem #000, 0 0 0.4rem #000;
 }
 
 .seat-info .seat-folded {
