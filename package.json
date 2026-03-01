@@ -1,0 +1,15 @@
+{
+  "name": "poker",
+  "version": "1.0.0",
+  "description": "WebSocket Texas Hold'em poker with rooms and nicknames",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pokersolver": "^2.0.6",
+    "ws": "^8.14.2"
+  }
+}
