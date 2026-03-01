@@ -289,20 +289,20 @@ const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 
 function doJoin() {
-  const key = roomKeyInput.value.trim();
-  const nick = nicknameInput.value.trim();
-  if (!key || !nick) return;
+  const key = (roomKeyInput && roomKeyInput.value || '').trim();
+  const nick = (nicknameInput && nicknameInput.value || '').trim();
+  if (!key || !nick) {
+    if (messageToast) { messageToast.textContent = 'Enter room key and nickname'; messageToast.classList.add('show'); setTimeout(() => messageToast.classList.remove('show'), 3000); }
+    return;
+  }
   join(key, nick);
 }
 
 const joinBtn = document.getElementById('join-btn');
-if (joinBtn) joinBtn.addEventListener('click', doJoin);
+if (joinBtn) joinBtn.addEventListener('click', (e) => { e.preventDefault(); doJoin(); });
 
-[roomKeyInput, nicknameInput].forEach((input) => {
-  if (input) input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); doJoin(); }
-  });
-});
+if (roomKeyInput) roomKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
+if (nicknameInput) nicknameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
 
 function join(key, nick) {
   roomKey = key;
@@ -339,10 +339,14 @@ function handleMessage(msg) {
       players = msg.players || [];
       gameState = msg.gameState;
       prevCommunityCount = 0;
-      roomLabel.textContent = `Room: ${msg.roomKey}`;
+      if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
       showGameScreen();
-      renderTable();
-      updateControls();
+      try {
+        renderTable();
+        updateControls();
+      } catch (err) {
+        console.error('Render error:', err);
+      }
       if (msg.radio) playRadio(msg.radio);
       initRadioVolume();
       break;
@@ -550,8 +554,8 @@ function handleMessage(msg) {
 }
 
 function showJoinScreen() {
-  joinScreen.classList.remove('hidden');
-  gameScreen.classList.add('hidden');
+  if (joinScreen) joinScreen.classList.remove('hidden');
+  if (gameScreen) gameScreen.classList.add('hidden');
   stopAmbience();
   Object.keys(playerChatTimeouts).forEach((id) => {
     clearTimeout(playerChatTimeouts[id]);
@@ -563,15 +567,16 @@ function showJoinScreen() {
 }
 
 function showGameScreen() {
-  joinScreen.classList.add('hidden');
-  gameScreen.classList.remove('hidden');
-  startAmbience();
+  if (joinScreen) joinScreen.classList.add('hidden');
+  if (gameScreen) gameScreen.classList.remove('hidden');
+  try { startAmbience(); } catch (_) {}
 }
 
 function showToast(text) {
+  if (!messageToast) return;
   messageToast.textContent = text;
   messageToast.classList.add('show');
-  setTimeout(() => messageToast.classList.remove('show'), 4000);
+  setTimeout(() => { if (messageToast) messageToast.classList.remove('show'); }, 4000);
 }
 
 function showShowdown(msg) {
