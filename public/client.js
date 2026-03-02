@@ -279,6 +279,10 @@ const ambienceVolumeSlider = document.getElementById('ambience-volume');
 const ambienceVolumeValue = document.getElementById('ambience-volume-value');
 const nowPlayingRadio = document.getElementById('now-playing-radio');
 const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
+const bjRadioBtn = document.getElementById('bj-radio-btn');
+const bjNowPlayingRadio = document.getElementById('bj-now-playing-radio');
+const bjNowPlayingRadioLabel = document.getElementById('bj-now-playing-radio-label');
+const bjRadioStopBtn = document.getElementById('bj-radio-stop');
 
 let ws = null;
 let myId = null;
@@ -1190,8 +1194,11 @@ function playRadio(station) {
   radioAudio.src = station.url;
   radioAudio.play().catch(() => {});
   currentRadioName = station.name || 'Radio';
+  const label = '\u{1F4FB} ' + currentRadioName;
   if (nowPlayingRadio) nowPlayingRadio.classList.remove('hidden');
-  if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = '\u{1F4FB} ' + currentRadioName;
+  if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = label;
+  if (bjNowPlayingRadio) bjNowPlayingRadio.classList.remove('hidden');
+  if (bjNowPlayingRadioLabel) bjNowPlayingRadioLabel.textContent = label;
 }
 
 function stopRadio() {
@@ -1199,6 +1206,7 @@ function stopRadio() {
   radioAudio.src = '';
   currentRadioName = '';
   if (nowPlayingRadio) nowPlayingRadio.classList.add('hidden');
+  if (bjNowPlayingRadio) bjNowPlayingRadio.classList.add('hidden');
 }
 
 function initRadioVolume() {
@@ -1303,6 +1311,18 @@ if (radioStopBtn) radioStopBtn.addEventListener('click', () => {
   }
 });
 
+if (bjRadioBtn) bjRadioBtn.addEventListener('click', () => {
+  initRadioVolume();
+  radioOverlay?.classList.remove('hidden');
+  radioSearchInput?.focus();
+});
+
+if (bjRadioStopBtn) bjRadioStopBtn.addEventListener('click', () => {
+  if (currentRadioName && ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'stopRadio' }));
+  }
+});
+
 if (radioVolumeSlider) radioVolumeSlider.addEventListener('input', () => {
   const v = parseInt(radioVolumeSlider.value, 10);
   radioAudio.volume = v / 100;
@@ -1343,6 +1363,27 @@ if (chatInput) {
   });
 }
 if (chatSend) chatSend.addEventListener('click', sendChat);
+
+function sendBjChat() {
+  const input = document.getElementById('bj-chat-input');
+  const text = input?.value?.trim();
+  if (!text || !ws || ws.readyState !== 1) return;
+  try {
+    ws.send(JSON.stringify({ type: 'chat', text }));
+    input.value = '';
+  } catch (e) {
+    showToast('Failed to send message');
+  }
+}
+
+const bjChatInput = document.getElementById('bj-chat-input');
+const bjChatSend = document.getElementById('bj-chat-send');
+if (bjChatInput) {
+  bjChatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendBjChat(); }
+  });
+}
+if (bjChatSend) bjChatSend.addEventListener('click', sendBjChat);
 
 const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');

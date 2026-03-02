@@ -322,6 +322,7 @@
           p.total = 0;
           p.status = 'playing';
         });
+        if (typeof playShuffle === 'function') playShuffle();
         setStatus('Place your bets!');
         renderAll();
         break;
@@ -332,6 +333,7 @@
           bp.bet = msg.bet;
           bp.chips = msg.chips;
         }
+        if (typeof playBetting === 'function') playBetting();
         renderAll();
         break;
       }
@@ -365,6 +367,11 @@
         }
         bjDealerHand = msg.dealerHand || [];
         bjDealerTotal = bjHandTotal(bjDealerHand.filter(c => !c.hidden));
+        if (typeof playCardPutDown === 'function') {
+          playCardPutDown(0);
+          playCardPutDown(200);
+          playCardPutDown(400);
+        }
         setStatus('Cards dealt!');
         renderAll();
         break;
@@ -373,6 +380,7 @@
         bjCurrentTurnId = msg.playerId || bjMyId;
         bjGameState = 'playing';
         if (bjCurrentTurnId === bjMyId) {
+          if (typeof playYourTurn === 'function') playYourTurn();
           setStatus('Your turn - Hit, Stand, or Double?');
         } else {
           const turnPlayer = bjPlayers.find(p => p.id === bjCurrentTurnId);
@@ -389,6 +397,7 @@
             target.hand = target.hand || [];
             target.hand.push(msg.card);
             target.total = bjHandTotal(target.hand);
+            if (typeof playCardPutDown === 'function') playCardPutDown();
           }
           if (msg.total !== undefined) target.total = msg.total;
           if (msg.status) target.status = msg.status;
@@ -398,7 +407,9 @@
         if (msg.status === 'busted' && target) {
           const name = msg.playerId === bjMyId ? 'You' : (target.nickname || 'Player');
           setStatus(msg.playerId === bjMyId ? 'You busted!' : `${name} busted!`);
+          if (msg.playerId === bjMyId && typeof playYouLose === 'function') playYouLose();
         }
+        if (msg.doubled && typeof playAllIn === 'function') playAllIn();
         renderAll();
         break;
       }
@@ -436,6 +447,7 @@
           bjDealerHand = msg.dealerHand;
           bjDealerTotal = bjHandTotal(bjDealerHand);
         }
+        if (typeof playCardPutDown === 'function') playCardPutDown();
         setStatus("Dealer's turn...");
         renderAll();
         break;
@@ -449,6 +461,7 @@
           bjDealerHand = msg.dealerHand;
           bjDealerTotal = bjHandTotal(bjDealerHand);
         }
+        if (typeof playCardPutDown === 'function') playCardPutDown();
         renderAll();
         break;
 
@@ -474,6 +487,16 @@
         }
         buildResultsSummary();
         renderAll();
+        {
+          const myResult = me();
+          if (myResult) {
+            if (myResult.status === 'won' || myResult.status === 'blackjack') {
+              if (typeof playWinner === 'function') playWinner();
+            } else if (myResult.status === 'lost' || myResult.status === 'busted') {
+              if (typeof playYouLose === 'function') playYouLose();
+            }
+          }
+        }
         break;
 
       case 'bjRoundOver':

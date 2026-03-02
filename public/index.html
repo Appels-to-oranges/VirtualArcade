@@ -88,36 +88,6 @@
       <button type="button" class="now-playing-stop" id="radio-stop" title="Stop radio">&#x25A0;</button>
     </div>
     </div>
-    <div id="radio-overlay" class="radio-overlay hidden">
-      <div class="radio-panel">
-        <div class="radio-header">
-          <h2>Radio</h2>
-          <button type="button" class="radio-close" id="radio-close" aria-label="Close">&#xD7;</button>
-        </div>
-        <div class="radio-search-wrap">
-          <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
-          <button type="button" id="radio-search-btn">Search</button>
-        </div>
-        <div class="sound-controls">
-          <div class="radio-volume-wrap">
-            <label>Radio</label>
-            <input type="range" id="radio-volume" min="0" max="100" value="80">
-            <span id="radio-volume-value">80%</span>
-          </div>
-          <div class="radio-volume-wrap">
-            <label>Card FX & sounds</label>
-            <input type="range" id="card-fx-volume" min="0" max="100" value="80">
-            <span id="card-fx-volume-value">80%</span>
-          </div>
-          <div class="radio-volume-wrap">
-            <label>Ambience</label>
-            <input type="range" id="ambience-volume" min="0" max="100" value="25">
-            <span id="ambience-volume-value">25%</span>
-          </div>
-        </div>
-        <div class="radio-results" id="radio-results"></div>
-      </div>
-    </div>
     <div id="showdown-overlay" class="showdown-overlay hidden">
       <div class="showdown-modal">
         <div class="showdown-winner-banner" id="showdown-winner-banner"></div>
@@ -149,6 +119,7 @@
         <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat..." maxlength="100" autocomplete="off">
         <button type="button" id="bj-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
       </div>
+      <button type="button" id="bj-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
     </div>
     <div class="table-container">
       <div class="poker-table bj-table">
@@ -172,6 +143,41 @@
       <button type="button" id="btn-bj-stand" class="btn btn-fold">Stand</button>
       <button type="button" id="btn-bj-double" class="btn btn-allin">Double</button>
     </div>
+    <div class="now-playing-radio hidden" id="bj-now-playing-radio">
+      <span class="now-playing-label" id="bj-now-playing-radio-label"></span>
+      <button type="button" class="now-playing-stop" id="bj-radio-stop" title="Stop radio">&#x25A0;</button>
+    </div>
+    </div>
+  </div>
+
+  <div id="radio-overlay" class="radio-overlay hidden">
+    <div class="radio-panel">
+      <div class="radio-header">
+        <h2>Radio</h2>
+        <button type="button" class="radio-close" id="radio-close" aria-label="Close">&#xD7;</button>
+      </div>
+      <div class="radio-search-wrap">
+        <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
+        <button type="button" id="radio-search-btn">Search</button>
+      </div>
+      <div class="sound-controls">
+        <div class="radio-volume-wrap">
+          <label>Radio</label>
+          <input type="range" id="radio-volume" min="0" max="100" value="80">
+          <span id="radio-volume-value">80%</span>
+        </div>
+        <div class="radio-volume-wrap">
+          <label>Card FX & sounds</label>
+          <input type="range" id="card-fx-volume" min="0" max="100" value="80">
+          <span id="card-fx-volume-value">80%</span>
+        </div>
+        <div class="radio-volume-wrap">
+          <label>Ambience</label>
+          <input type="range" id="ambience-volume" min="0" max="100" value="25">
+          <span id="ambience-volume-value">25%</span>
+        </div>
+      </div>
+      <div class="radio-results" id="radio-results"></div>
     </div>
   </div>
 
