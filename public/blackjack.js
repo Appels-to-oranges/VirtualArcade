@@ -142,7 +142,20 @@
     if (!area) return;
     area.innerHTML = '';
 
+    const chatMessages = (typeof window !== 'undefined' && window.playerChatMessages) ? window.playerChatMessages : {};
+
     for (const p of bjPlayers) {
+      const wrap = document.createElement('div');
+      wrap.className = 'bj-player-wrap';
+
+      const chatData = chatMessages[p.id];
+      if (chatData && chatData.expiresAt > Date.now()) {
+        const chatBubble = document.createElement('div');
+        chatBubble.className = 'bj-chat-bubble';
+        chatBubble.textContent = chatData.text;
+        wrap.appendChild(chatBubble);
+      }
+
       const row = document.createElement('div');
       row.className = 'bj-player-row';
       if (p.id === bjCurrentTurnId) row.classList.add('bj-active-turn');
@@ -194,7 +207,8 @@
       }
 
       row.appendChild(infoEl);
-      area.appendChild(row);
+      wrap.appendChild(row);
+      area.appendChild(wrap);
     }
   }
 
@@ -651,5 +665,5 @@
     bjWs = ws;
   };
 
-  window.blackjack = { init, handleMessage, show, hide };
+  window.blackjack = { init, handleMessage, show, hide, renderAll };
 })();

@@ -1385,6 +1385,29 @@ body {
   padding: 0.5rem;
 }
 
+.bj-player-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.bj-chat-bubble {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.45rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.9);
+  border: 0.125rem solid #555;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  z-index: 10;
+  animation: chatFadeIn 0.2s ease-out;
+}
+
 .bj-player-row {
   display: flex;
   align-items: center;
@@ -1394,6 +1417,7 @@ body {
   border: 0.125rem solid #30363d;
   border-radius: 0.5rem;
   transition: border-color 0.3s, box-shadow 0.3s;
+  width: 100%;
 }
 
 .bj-player-row.bj-active-turn {

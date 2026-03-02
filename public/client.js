@@ -307,6 +307,7 @@ let currentGameType = 'holdem';
 const CHAT_DURATION_MS = 8000;
 const playerChatMessages = {};
 const playerChatTimeouts = {};
+if (typeof window !== 'undefined') window.playerChatMessages = playerChatMessages;
 
 const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
 const radioAudio = new Audio();
@@ -635,8 +636,10 @@ function handleMessage(msg) {
         delete playerChatMessages[msg.playerId];
         delete playerChatTimeouts[msg.playerId];
         renderTable();
+        if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
       }, CHAT_DURATION_MS);
       renderTable();
+      if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
       break;
 
     case 'error':
