@@ -167,18 +167,18 @@
       '#ck-board{' +
         '--ck-size:min(calc(100vh - 9rem),calc(100vw - 2rem),42rem);' +
         'display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);' +
-        'width:var(--ck-size);height:var(--ck-size);' +
-        "background-image:url('" + BOARD_BG + "');" +
-        'background-size:100% 100%;image-rendering:pixelated;' +
+        'width:var(--ck-size);height:var(--ck-size);gap:0;aspect-ratio:1;flex-shrink:0;' +
         'border:.3rem solid #8b6914;' +
         'box-shadow:0 .25rem 1rem rgba(0,0,0,.6),0 0 0 .15rem #000}' +
 
       '.ck-cell{position:relative;display:flex;align-items:center;' +
-        'justify-content:center;cursor:default;user-select:none}' +
+        'justify-content:center;cursor:default;user-select:none;aspect-ratio:1;overflow:hidden;box-sizing:border-box}' +
+      '.ck-cell.ck-dark{background:#5a4a3a}' +
+      '.ck-cell.ck-light{background:#c9b896}' +
 
       ".ck-cell.ck-clickable{cursor:url('" + CURSOR_IMG + "') 8 8,pointer}" +
 
-      '.ck-piece{width:78%;height:78%;' +
+      '.ck-piece{width:78%;height:78%;max-width:78%;max-height:78%;aspect-ratio:1;flex-shrink:0;' +
         "background-image:url('" + SPRITE_SHEET + "');" +
         'background-size:400% 100%;background-repeat:no-repeat;' +
         'image-rendering:pixelated;pointer-events:none;' +
@@ -187,11 +187,13 @@
       '.ck-piece.ck-selected{transform:scale(1.18);' +
         'filter:drop-shadow(0 0 .25rem #ffd700) drop-shadow(0 0 .5rem rgba(255,215,0,.5))}' +
 
-      '.ck-valid-move::after{content:"";position:absolute;width:26%;height:26%;' +
+      '.ck-valid-move::after{content:"";position:absolute;inset:0;margin:auto;' +
+        'width:26%;height:26%;max-width:26%;max-height:26%;aspect-ratio:1;' +
         'background:rgba(255,215,0,.6);border-radius:50%;pointer-events:none;z-index:2;' +
         'animation:ckPulse 1.4s ease-in-out infinite}' +
 
-      '.ck-valid-capture::after{content:"";position:absolute;width:60%;height:60%;' +
+      '.ck-valid-capture::after{content:"";position:absolute;inset:0;margin:auto;' +
+        'width:60%;height:60%;max-width:60%;max-height:60%;aspect-ratio:1;' +
         'border:.15rem solid rgba(255,80,80,.8);border-radius:50%;' +
         'pointer-events:none;z-index:2;animation:ckPulse 1.4s ease-in-out infinite}' +
 
