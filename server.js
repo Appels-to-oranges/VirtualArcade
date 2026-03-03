@@ -83,10 +83,13 @@ function shuffle(deck) {
 
 const TURN_TIMEOUT_MS = 60 * 1000;
 
+const LOBBY_CHAT_MAX = 100;
+
 function getRoom(roomKey) {
   if (!rooms.has(roomKey)) {
     rooms.set(roomKey, {
       players: [],
+      chatHistory: [],
       gameState: null,
       deck: null,
       communityCards: [],
@@ -1085,8 +1088,9 @@ wss.on('connection', (ws) => {
 
         const room = getRoom(safeRoom);
 
-        if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
-        if (msg.gameType === 'checkers') room.gameType = 'checkers';
+        if (msg.gameType === 'lobby') room.gameType = 'lobby';
+        else if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
+        else if (msg.gameType === 'checkers') room.gameType = 'checkers';
 
         const inProgress = room.gameType === 'blackjack'
           ? room.bjPhase !== 'lobby'
@@ -1140,6 +1144,7 @@ wss.on('connection', (ws) => {
             dealerIdx: room.dealerIdx,
           },
           radio: room.radio,
+          chatHistory: (room.chatHistory || []).slice(-LOBBY_CHAT_MAX),
         }));
 
         broadcastToRoom(safeRoom, {
@@ -1150,6 +1155,37 @@ wss.on('connection', (ws) => {
           winStreak: 0,
           maxWinStreak: 0,
         }, ws);
+      } else if (type === 'switchGame') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        if (room.players.findIndex((p) => p.ws === ws) < 0) return;
+        const newType = msg.gameType || 'holdem';
+        if (newType !== 'holdem' && newType !== 'blackjack' && newType !== 'checkers') return;
+        room.gameType = newType;
+        clients.set(ws, { ...data, gameType: newType });
+        ws.send(JSON.stringify({
+          type: 'gameSwitched',
+          id: ws.id,
+          roomKey: data.roomKey,
+          gameType: newType,
+          players: room.players.map((p) => ({
+            id: p.id,
+            nickname: p.nickname,
+            chips: p.chips,
+            winStreak: p.winStreak ?? 0,
+            maxWinStreak: p.maxWinStreak ?? 0,
+          })),
+          gameState: room.phase === 'lobby' ? null : {
+            phase: room.phase,
+            communityCards: room.communityCards,
+            pot: room.pot,
+            currentBet: room.currentBet,
+            turnIdx: room.turnIdx,
+            dealerIdx: room.dealerIdx,
+          },
+          radio: room.radio,
+        }));
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;
@@ -1226,11 +1262,13 @@ wss.on('connection', (ws) => {
         if (room.players.findIndex((p) => p.ws === ws) < 0) return;
         const text = String(msg.text || '').trim().slice(0, 100);
         if (!text) return;
+        const chatMsg = { playerId: ws.id, nickname: data.nickname, text };
+        if (!room.chatHistory) room.chatHistory = [];
+        room.chatHistory.push(chatMsg);
+        if (room.chatHistory.length > LOBBY_CHAT_MAX) room.chatHistory.shift();
         broadcastToRoom(data.roomKey, {
           type: 'chat',
-          playerId: ws.id,
-          nickname: data.nickname,
-          text,
+          ...chatMsg,
         });
       } else if (type === 'rebuy') {
         const data = clients.get(ws);

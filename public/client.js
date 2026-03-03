@@ -319,6 +319,14 @@ const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 const gameSelectScreen = document.getElementById('game-select-screen');
 const gameSelectRoom = document.getElementById('game-select-room');
 const gameSelectBack = document.getElementById('game-select-back');
+const participantsList = document.getElementById('participants-list');
+const lobbyChatMessages = document.getElementById('lobby-chat-messages');
+const lobbyChatInput = document.getElementById('lobby-chat-input');
+const lobbyChatSend = document.getElementById('lobby-chat-send');
+const chatToggleBtn = document.getElementById('chat-toggle-btn');
+const gameSelectChat = document.getElementById('game-select-chat');
+
+let lobbyPlayers = [];
 
 function doJoin() {
   const key = (roomKeyInput && roomKeyInput.value || '').trim();
@@ -329,10 +337,43 @@ function doJoin() {
   }
   roomKey = key;
   nickname = nick;
-  showGameSelectScreen();
+  connectLobby();
 }
 
-function showGameSelectScreen() {
+function connectLobby() {
+  if (joinScreen) joinScreen.classList.add('hidden');
+  if (gameScreen) gameScreen.classList.add('hidden');
+  const bjScreen = document.getElementById('bj-screen');
+  if (bjScreen) bjScreen.classList.add('hidden');
+  if (window.checkers) window.checkers.hide();
+  if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
+  if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 Connecting...`;
+  if (participantsList) participantsList.innerHTML = '';
+  lobbyPlayers = [];
+  if (lobbyChatMessages) lobbyChatMessages.innerHTML = '';
+  if (ws) { ws.close(); ws = null; }
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}`);
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: 'lobby' }));
+  };
+  ws.onmessage = (ev) => {
+    try {
+      handleMessage(JSON.parse(ev.data));
+    } catch (err) {
+      console.error('Parse error:', err);
+    }
+  };
+  ws.onclose = () => {
+    showJoinScreen();
+    showToast('Disconnected from server');
+  };
+  ws.onerror = () => {
+    showToast('Connection failed - is the server running?');
+  };
+}
+
+function showGameSelectScreen(players, chatHistory) {
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -340,6 +381,37 @@ function showGameSelectScreen() {
   if (window.checkers) window.checkers.hide();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
+  lobbyPlayers = players || lobbyPlayers;
+  renderParticipants();
+  if (chatHistory && lobbyChatMessages) {
+    lobbyChatMessages.innerHTML = '';
+    chatHistory.forEach((m) => appendLobbyChat(m.playerId, m.nickname, m.text));
+    lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
+  }
+}
+
+function renderParticipants() {
+  if (!participantsList) return;
+  participantsList.innerHTML = '';
+  lobbyPlayers.forEach((p) => {
+    const chip = document.createElement('span');
+    chip.className = 'participant-chip' + (p.id === myId ? ' you' : '');
+    chip.textContent = p.nickname || 'Player';
+    participantsList.appendChild(chip);
+  });
+}
+
+function appendLobbyChat(playerId, nick, text) {
+  if (!lobbyChatMessages) return;
+  const el = document.createElement('div');
+  el.className = 'chat-message';
+  const nickSpan = document.createElement('span');
+  nickSpan.className = 'nick' + (playerId === myId ? ' you' : '');
+  nickSpan.textContent = (nick || 'Player') + ':';
+  el.appendChild(nickSpan);
+  el.appendChild(document.createTextNode(' ' + text));
+  lobbyChatMessages.appendChild(el);
+  lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
 }
 
 const joinBtn = document.getElementById('join-btn');
@@ -356,7 +428,12 @@ if (gameSelectBack) gameSelectBack.addEventListener('click', () => {
 document.querySelectorAll('.game-option-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     currentGameType = btn.dataset.game || 'holdem';
-    joinWithGameType(currentGameType);
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'switchGame', gameType: currentGameType }));
+      if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
+    } else {
+      joinWithGameType(currentGameType);
+    }
   });
 });
 
@@ -416,6 +493,11 @@ function handleMessage(msg) {
       currentGameType = msg.gameType || 'holdem';
       if (joinScreen) joinScreen.classList.add('hidden');
       hideAllGameScreens();
+      if (currentGameType === 'lobby') {
+        lobbyPlayers = players;
+        showGameSelectScreen(players, msg.chatHistory);
+        return;
+      }
       if (currentGameType === 'blackjack') {
         if (window.blackjack) {
           window.blackjack.init(ws, myId, players, msg.roomKey);
@@ -454,6 +536,41 @@ function handleMessage(msg) {
       showToast(`${msg.nickname} stopped the radio`);
       break;
 
+    case 'gameSwitched':
+      myId = msg.id;
+      players = msg.players || [];
+      gameState = msg.gameState;
+      prevCommunityCount = 0;
+      currentGameType = msg.gameType || 'holdem';
+      hideAllGameScreens();
+      if (currentGameType === 'blackjack') {
+        if (window.blackjack) {
+          window.blackjack.init(ws, myId, players, msg.roomKey);
+          window.blackjack.show();
+        }
+        try { startAmbience(); } catch (_) {}
+        initRadioVolume();
+      } else if (currentGameType === 'checkers') {
+        if (window.checkers) {
+          window.checkers.init(ws, myId, players, msg.roomKey);
+          window.checkers.show();
+        }
+        try { startAmbience(); } catch (_) {}
+        initRadioVolume();
+      } else {
+        if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
+        showGameScreen();
+        try {
+          renderTable();
+          updateControls();
+        } catch (err) {
+          console.error('Render error:', err);
+        }
+        if (msg.radio) playRadio(msg.radio);
+        initRadioVolume();
+      }
+      break;
+
     case 'userJoined':
       players.push({
         id: msg.id,
@@ -462,6 +579,11 @@ function handleMessage(msg) {
         winStreak: msg.winStreak ?? 0,
         maxWinStreak: msg.maxWinStreak ?? 0,
       });
+      if (currentGameType === 'lobby') {
+        lobbyPlayers = players;
+        renderParticipants();
+        return;
+      }
       if (currentGameType === 'blackjack' && window.blackjack) {
         window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 1000 });
       }
@@ -470,6 +592,11 @@ function handleMessage(msg) {
 
     case 'userLeft':
       players = players.filter((p) => p.id !== msg.id);
+      if (currentGameType === 'lobby') {
+        lobbyPlayers = players;
+        renderParticipants();
+        return;
+      }
       if (currentGameType === 'blackjack' && window.blackjack) {
         window.blackjack.handleMessage({ type: 'bjUserLeft', id: msg.id });
       }
@@ -667,6 +794,10 @@ function handleMessage(msg) {
       break;
 
     case 'chat':
+      if (currentGameType === 'lobby' && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
+        appendLobbyChat(msg.playerId, msg.nickname, msg.text);
+        return;
+      }
       playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + CHAT_DURATION_MS };
       if (playerChatTimeouts[msg.playerId]) clearTimeout(playerChatTimeouts[msg.playerId]);
       playerChatTimeouts[msg.playerId] = setTimeout(() => {
@@ -680,6 +811,10 @@ function handleMessage(msg) {
       break;
 
     case 'error':
+      if (msg.message && msg.message.includes('Game in progress') && ws) {
+        ws.close();
+        ws = null;
+      }
       showToast(msg.message || 'Error');
       break;
   }
@@ -1413,6 +1548,32 @@ function sendBjChat() {
   } catch (e) {
     showToast('Failed to send message');
   }
+}
+
+function sendLobbyChat() {
+  const text = lobbyChatInput?.value?.trim();
+  if (!text || !ws || ws.readyState !== 1) return;
+  try {
+    ws.send(JSON.stringify({ type: 'chat', text }));
+    if (lobbyChatInput) lobbyChatInput.value = '';
+  } catch (e) {
+    showToast('Failed to send message');
+  }
+}
+
+if (lobbyChatInput) {
+  lobbyChatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); }
+  });
+}
+if (lobbyChatSend) lobbyChatSend.addEventListener('click', sendLobbyChat);
+
+if (chatToggleBtn && gameSelectChat) {
+  chatToggleBtn.addEventListener('click', () => {
+    const collapsed = gameSelectChat.classList.toggle('collapsed');
+    chatToggleBtn.setAttribute('aria-label', collapsed ? 'Expand chat' : 'Collapse chat');
+    chatToggleBtn.textContent = collapsed ? '\u25C0' : '\u25B6';
+  });
 }
 
 const bjChatInput = document.getElementById('bj-chat-input');

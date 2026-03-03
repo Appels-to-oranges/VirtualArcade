@@ -28,10 +28,15 @@
   </div>
 
   <div id="game-select-screen" class="hidden">
-    <div class="game-select-card">
-      <h1>Choose a Game</h1>
-      <p class="game-select-room" id="game-select-room"></p>
-      <div class="game-select-category">
+    <div class="game-select-layout">
+      <div class="game-select-card">
+        <h1>Choose a Game</h1>
+        <p class="game-select-room" id="game-select-room"></p>
+        <div class="game-select-participants" id="game-select-participants">
+          <h3 class="participants-label">In Room</h3>
+          <div class="participants-list" id="participants-list"></div>
+        </div>
+        <div class="game-select-category">
         <h2 class="game-category-label">Casino</h2>
         <div class="game-select-options">
           <button type="button" class="game-option-btn" data-game="holdem">
@@ -54,6 +59,18 @@
         </div>
       </div>
       <button type="button" id="game-select-back" class="btn-back">&#x2190; Leave Room</button>
+    </div>
+    <aside class="game-select-chat" id="game-select-chat">
+      <div class="chat-panel-header">
+        <span>Chat</span>
+        <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Collapse chat">&#x25B6;</button>
+      </div>
+      <div class="chat-messages" id="lobby-chat-messages"></div>
+      <div class="chat-input-panel">
+        <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Send a message..." maxlength="100" autocomplete="off">
+        <button type="button" id="lobby-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
+      </div>
+    </aside>
     </div>
   </div>
 
