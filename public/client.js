@@ -381,8 +381,9 @@ function showGameSelectScreen(players, chatHistory) {
   if (window.checkers) window.checkers.hide();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
-  lobbyPlayers = players || lobbyPlayers;
+  lobbyPlayers = (players || lobbyPlayers).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
   renderParticipants();
+  updateGameCounts();
   if (chatHistory && lobbyChatMessages) {
     lobbyChatMessages.innerHTML = '';
     chatHistory.forEach((m) => appendLobbyChat(m.playerId, m.nickname, m.text));
@@ -390,15 +391,33 @@ function showGameSelectScreen(players, chatHistory) {
   }
 }
 
+const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', lobby: 'Lobby' };
+
 function renderParticipants() {
   if (!participantsList) return;
   participantsList.innerHTML = '';
   lobbyPlayers.forEach((p) => {
     const chip = document.createElement('span');
     chip.className = 'participant-chip' + (p.id === myId ? ' you' : '');
-    chip.textContent = p.nickname || 'Player';
+    const view = p.currentView || 'lobby';
+    const name = p.nickname || 'Player';
+    chip.textContent = view !== 'lobby' ? `${name} (${GAME_NAMES[view] || view})` : name;
     participantsList.appendChild(chip);
   });
+}
+
+function updateGameCounts() {
+  const counts = { holdem: 0, blackjack: 0, checkers: 0 };
+  lobbyPlayers.forEach((p) => {
+    const v = p.currentView || 'lobby';
+    if (v in counts) counts[v]++;
+  });
+  const holdemEl = document.getElementById('holdem-count');
+  const blackjackEl = document.getElementById('blackjack-count');
+  const checkersEl = document.getElementById('checkers-count');
+  if (holdemEl) holdemEl.textContent = `${counts.holdem}/6`;
+  if (blackjackEl) blackjackEl.textContent = `${counts.blackjack}/6`;
+  if (checkersEl) checkersEl.textContent = `${counts.checkers}/2`;
 }
 
 function appendLobbyChat(playerId, nick, text) {
@@ -424,6 +443,16 @@ if (gameSelectBack) gameSelectBack.addEventListener('click', () => {
   if (ws) { ws.close(); ws = null; }
   showJoinScreen();
 });
+
+function goBackToLobby() {
+  if (!ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ type: 'backToLobby' }));
+}
+
+const holdemBackBtn = document.getElementById('holdem-back-btn');
+const bjBackBtn = document.getElementById('bj-back-btn');
+if (holdemBackBtn) holdemBackBtn.addEventListener('click', goBackToLobby);
+if (bjBackBtn) bjBackBtn.addEventListener('click', goBackToLobby);
 
 document.querySelectorAll('.game-option-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -494,7 +523,7 @@ function handleMessage(msg) {
       if (joinScreen) joinScreen.classList.add('hidden');
       hideAllGameScreens();
       if (currentGameType === 'lobby') {
-        lobbyPlayers = players;
+        lobbyPlayers = (players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         showGameSelectScreen(players, msg.chatHistory);
         return;
       }
@@ -578,10 +607,12 @@ function handleMessage(msg) {
         chips: msg.chips ?? 1000,
         winStreak: msg.winStreak ?? 0,
         maxWinStreak: msg.maxWinStreak ?? 0,
+        currentView: msg.currentView ?? 'lobby',
       });
       if (currentGameType === 'lobby') {
-        lobbyPlayers = players;
+        lobbyPlayers = players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         renderParticipants();
+        updateGameCounts();
         return;
       }
       if (currentGameType === 'blackjack' && window.blackjack) {
@@ -593,8 +624,9 @@ function handleMessage(msg) {
     case 'userLeft':
       players = players.filter((p) => p.id !== msg.id);
       if (currentGameType === 'lobby') {
-        lobbyPlayers = players;
+        lobbyPlayers = players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         renderParticipants();
+        updateGameCounts();
         return;
       }
       if (currentGameType === 'blackjack' && window.blackjack) {
@@ -791,6 +823,23 @@ function handleMessage(msg) {
       }
       renderTable();
       updateControls();
+      break;
+
+    case 'playerViewChanged':
+      if (currentGameType === 'lobby' && msg.players) {
+        lobbyPlayers = msg.players.map((up) => {
+          const ex = lobbyPlayers.find((p) => p.id === up.id);
+          return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: ex?.chips ?? 1000 };
+        });
+        renderParticipants();
+        updateGameCounts();
+      }
+      break;
+
+    case 'backToLobby':
+      currentGameType = 'lobby';
+      lobbyPlayers = (msg.players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
+      showGameSelectScreen(msg.players, msg.chatHistory);
       break;
 
     case 'chat':

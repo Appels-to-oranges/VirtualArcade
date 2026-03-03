@@ -39,23 +39,32 @@
         <div class="game-select-category">
         <h2 class="game-category-label">Casino</h2>
         <div class="game-select-options">
-          <button type="button" class="game-option-btn" data-game="holdem">
-            <span class="game-option-icon">&#x1F0CF;</span>
-            <span class="game-option-name">Texas Hold'em</span>
-          </button>
-          <button type="button" class="game-option-btn" data-game="blackjack">
-            <span class="game-option-icon">&#x1F0A1;</span>
-            <span class="game-option-name">Blackjack</span>
-          </button>
+          <div class="game-option-wrap">
+            <span class="game-count-badge" id="holdem-count">0/6</span>
+            <button type="button" class="game-option-btn" data-game="holdem">
+              <span class="game-option-icon">&#x1F0CF;</span>
+              <span class="game-option-name">Texas Hold'em</span>
+            </button>
+          </div>
+          <div class="game-option-wrap">
+            <span class="game-count-badge" id="blackjack-count">0/6</span>
+            <button type="button" class="game-option-btn" data-game="blackjack">
+              <span class="game-option-icon">&#x1F0A1;</span>
+              <span class="game-option-name">Blackjack</span>
+            </button>
+          </div>
         </div>
       </div>
       <div class="game-select-category">
         <h2 class="game-category-label">Board Games</h2>
         <div class="game-select-options">
-          <button type="button" class="game-option-btn" data-game="checkers">
-            <span class="game-option-icon">&#x26C0;</span>
-            <span class="game-option-name">Checkers</span>
-          </button>
+          <div class="game-option-wrap">
+            <span class="game-count-badge" id="checkers-count">0/2</span>
+            <button type="button" class="game-option-btn" data-game="checkers">
+              <span class="game-option-icon">&#x26C0;</span>
+              <span class="game-option-name">Checkers</span>
+            </button>
+          </div>
         </div>
       </div>
       <button type="button" id="game-select-back" class="btn-back">&#x2190; Leave Room</button>
@@ -65,10 +74,12 @@
         <span>Chat</span>
         <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Collapse chat">&#x25B6;</button>
       </div>
-      <div class="chat-messages" id="lobby-chat-messages"></div>
-      <div class="chat-input-panel">
-        <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Send a message..." maxlength="100" autocomplete="off">
-        <button type="button" id="lobby-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
+      <div class="chat-messages-wrap">
+        <div class="chat-messages" id="lobby-chat-messages"></div>
+        <div class="chat-input-panel">
+          <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Send a message..." maxlength="100" autocomplete="off">
+          <button type="button" id="lobby-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
+        </div>
       </div>
     </aside>
     </div>
@@ -77,6 +88,7 @@
   <div id="game-screen" class="hidden">
     <div class="game-scale-wrapper">
     <div class="room-bar">
+      <button type="button" id="holdem-back-btn" class="btn-back-inline" title="Back to game selection">&#x2190; Back</button>
       <span id="room-label"></span>
       <span id="waiting-for-players" class="waiting-msg hidden"></span>
       <button id="start-btn" class="btn-start">Start Game</button>
@@ -152,6 +164,7 @@
   <div id="bj-screen" class="hidden">
     <div class="game-scale-wrapper">
     <div class="room-bar">
+      <button type="button" id="bj-back-btn" class="btn-back-inline" title="Back to game selection">&#x2190; Back</button>
       <span id="bj-room-label"></span>
       <button id="bj-start-btn" class="btn-start">Start Game</button>
       <button id="bj-next-btn" class="btn-restart hidden">Next Hand</button>

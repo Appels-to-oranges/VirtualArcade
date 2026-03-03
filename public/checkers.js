@@ -217,7 +217,9 @@
     screenEl.id = 'ck-screen';
     screenEl.className = 'hidden';
     screenEl.innerHTML =
-      '<div class="ck-room-bar"><span id="ck-room-label"></span>' +
+      '<div class="ck-room-bar">' +
+        '<button type="button" id="ck-back-btn" class="btn-back-inline" title="Back to game selection">&#x2190; Back</button>' +
+        '<span id="ck-room-label"></span>' +
         '<button id="ck-start-btn" class="btn-start">Start Game</button>' +
         '<button id="ck-rematch-btn" class="btn-restart hidden">Rematch</button>' +
       '</div>' +
@@ -227,6 +229,10 @@
 
     document.body.appendChild(screenEl);
 
+    var backBtn = document.getElementById('ck-back-btn');
+    if (backBtn) backBtn.addEventListener('click', function () {
+      send({ type: 'backToLobby' });
+    });
     var startBtn = document.getElementById('ck-start-btn');
     if (startBtn) startBtn.addEventListener('click', function () {
       send({ type: 'startGame', gameType: 'checkers' });
