@@ -871,6 +871,203 @@ function bjCalculateResults(roomKey) {
   room.phase = 'lobby';
 }
 
+// ── Checkers logic ───────────────────────────────────────────────────
+
+function ckCreateBoard() {
+  const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 1) {
+        if (r < 3) board[r][c] = { color: 'white', king: false };
+        else if (r > 4) board[r][c] = { color: 'red', king: false };
+      }
+    }
+  }
+  return board;
+}
+
+function ckGetValidMoves(board, row, col, color) {
+  const piece = board[row][col];
+  if (!piece || piece.color !== color) return [];
+
+  const dirs = piece.king
+    ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
+    : color === 'red' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
+
+  const captures = [];
+  const moves = [];
+
+  for (const [dr, dc] of dirs) {
+    const mr = row + dr, mc = col + dc;
+    const jr = row + 2 * dr, jc = col + 2 * dc;
+
+    if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 &&
+        board[mr]?.[mc] && board[mr][mc].color !== color && !board[jr][jc]) {
+      captures.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
+    }
+
+    if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
+      moves.push({ row: mr, col: mc });
+    }
+  }
+
+  return captures.length > 0 ? captures : moves;
+}
+
+function ckHasCaptures(board, color) {
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (board[r][c] && board[r][c].color === color) {
+        const moves = ckGetValidMoves(board, r, c, color);
+        if (moves.some((m) => m.captured)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function ckCheckWin(board, nextTurnColor) {
+  let hasPieces = false;
+  let hasLegalMoves = false;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (board[r][c] && board[r][c].color === nextTurnColor) {
+        hasPieces = true;
+        if (ckGetValidMoves(board, r, c, nextTurnColor).length > 0) {
+          hasLegalMoves = true;
+        }
+      }
+    }
+  }
+  if (!hasPieces || !hasLegalMoves) {
+    return nextTurnColor === 'red' ? 'white' : 'red';
+  }
+  return null;
+}
+
+function ckStartGame(roomKey) {
+  const room = getRoom(roomKey);
+  if (room.players.length !== 2) return;
+
+  room.ckBoard = ckCreateBoard();
+  room.ckTurn = 'red';
+  room.ckPhase = 'playing';
+  room.ckMustContinue = null;
+
+  room.ckPlayers = {
+    red: room.players[0].id,
+    white: room.players[1].id,
+  };
+
+  const playersInfo = room.players.map((p) => ({
+    id: p.id,
+    nickname: p.nickname,
+    color: room.ckPlayers.red === p.id ? 'red' : 'white',
+  }));
+
+  broadcastToRoom(roomKey, {
+    type: 'ckGameStarted',
+    board: room.ckBoard,
+    turn: 'red',
+    players: playersInfo,
+  });
+
+  room.players.forEach((p) => {
+    if (p.ws && p.ws.readyState === 1) {
+      const color = room.ckPlayers.red === p.id ? 'red' : 'white';
+      p.ws.send(JSON.stringify({ type: 'ckYourColor', color }));
+    }
+  });
+}
+
+function ckMakeMove(roomKey, playerId, from, to) {
+  const room = getRoom(roomKey);
+  if (room.ckPhase !== 'playing') return;
+
+  const currentColor = room.ckTurn;
+  if (room.ckPlayers[currentColor] !== playerId) return;
+
+  const board = room.ckBoard;
+  const piece = board[from.row]?.[from.col];
+  if (!piece || piece.color !== currentColor) return;
+
+  if (room.ckMustContinue) {
+    if (from.row !== room.ckMustContinue.row || from.col !== room.ckMustContinue.col) return;
+  }
+
+  const validMoves = ckGetValidMoves(board, from.row, from.col, currentColor);
+
+  const forcedCaptures = ckHasCaptures(board, currentColor);
+  let filteredMoves = validMoves;
+  if (forcedCaptures) {
+    filteredMoves = validMoves.filter((m) => m.captured);
+  }
+
+  const move = filteredMoves.find((m) => m.row === to.row && m.col === to.col);
+  if (!move) return;
+
+  board[to.row][to.col] = { ...piece };
+  board[from.row][from.col] = null;
+
+  let capturedInfo = null;
+  if (move.captured) {
+    capturedInfo = move.captured;
+    board[move.captured.row][move.captured.col] = null;
+  }
+
+  let promoted = false;
+  if (currentColor === 'red' && to.row === 0 && !board[to.row][to.col].king) {
+    board[to.row][to.col].king = true;
+    promoted = true;
+  } else if (currentColor === 'white' && to.row === 7 && !board[to.row][to.col].king) {
+    board[to.row][to.col].king = true;
+    promoted = true;
+  }
+
+  let mustContinue = null;
+  if (move.captured && !promoted) {
+    const furtherCaptures = ckGetValidMoves(board, to.row, to.col, currentColor)
+      .filter((m) => m.captured);
+    if (furtherCaptures.length > 0) {
+      mustContinue = { row: to.row, col: to.col };
+    }
+  }
+
+  if (mustContinue) {
+    room.ckMustContinue = mustContinue;
+  } else {
+    room.ckMustContinue = null;
+    room.ckTurn = currentColor === 'red' ? 'white' : 'red';
+  }
+
+  broadcastToRoom(roomKey, {
+    type: 'ckBoardUpdate',
+    board: room.ckBoard,
+    turn: room.ckTurn,
+    lastMove: { from, to, captured: capturedInfo },
+    mustContinue: room.ckMustContinue,
+    promoted,
+  });
+
+  if (!mustContinue) {
+    const winner = ckCheckWin(board, room.ckTurn);
+    if (winner) {
+      room.ckPhase = 'over';
+      const hasPieces = (() => {
+        for (let r = 0; r < 8; r++)
+          for (let c = 0; c < 8; c++)
+            if (board[r][c] && board[r][c].color === room.ckTurn) return true;
+        return false;
+      })();
+      broadcastToRoom(roomKey, {
+        type: 'ckGameOver',
+        winner,
+        reason: hasPieces ? 'noMoves' : 'capture',
+      });
+    }
+  }
+}
+
 wss.on('connection', (ws) => {
   ws.id = crypto.randomUUID();
 
@@ -889,10 +1086,13 @@ wss.on('connection', (ws) => {
         const room = getRoom(safeRoom);
 
         if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
+        if (msg.gameType === 'checkers') room.gameType = 'checkers';
 
         const inProgress = room.gameType === 'blackjack'
           ? room.bjPhase !== 'lobby'
-          : (room.phase !== 'lobby' && room.phase !== null);
+          : room.gameType === 'checkers'
+            ? room.ckPhase === 'playing'
+            : (room.phase !== 'lobby' && room.phase !== null);
         if (inProgress) {
           ws.send(JSON.stringify({ type: 'error', message: 'Game in progress, wait for round to end' }));
           return;
@@ -958,6 +1158,8 @@ wss.on('connection', (ws) => {
         if (idx < 0) return;
         if (msg.gameType === 'blackjack' || room.gameType === 'blackjack') {
           bjStartGame(data.roomKey);
+        } else if (msg.gameType === 'checkers' || room.gameType === 'checkers') {
+          ckStartGame(data.roomKey);
         } else {
           const resetStreaks = msg.resetStreaks === true;
           startGame(data.roomKey, resetStreaks);
@@ -1203,6 +1405,10 @@ wss.on('connection', (ws) => {
         const data = clients.get(ws);
         if (!data) return;
         bjPlayerAction(data.roomKey, ws.id, msg.action);
+      } else if (type === 'ckMove') {
+        const data = clients.get(ws);
+        if (!data) return;
+        ckMakeMove(data.roomKey, ws.id, msg.from, msg.to);
       }
     } catch (err) {
       console.error('Message error:', err);
@@ -1240,6 +1446,13 @@ wss.on('connection', (ws) => {
           rooms.delete(data.roomKey);
         } else {
           broadcastToRoom(data.roomKey, { type: 'userLeft', id: ws.id });
+
+          if (room.gameType === 'checkers' && room.ckPhase === 'playing') {
+            const remainingColor = room.ckPlayers.red === ws.id ? 'white' : 'red';
+            room.ckPhase = 'over';
+            broadcastToRoom(data.roomKey, { type: 'ckGameOver', winner: remainingColor, reason: 'disconnect' });
+          }
+
           const activeCount = room.players.filter((p) => !p.folded).length;
           if (wasInGame && (room.players.length < 2 || activeCount <= 1)) {
             clearTurnTimer(room);

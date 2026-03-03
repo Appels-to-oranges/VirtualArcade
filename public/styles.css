@@ -23,6 +23,120 @@ body {
 
 .hidden { display: none !important; }
 
+/* ── Game selection screen ── */
+#game-select-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
+}
+
+.game-select-card {
+  background: #161b22;
+  border: 0.0625rem solid #30363d;
+  border-radius: 0.75rem;
+  padding: 2rem 2.5rem;
+  max-width: 24rem;
+  width: 100%;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4), 0 0 0 0.0625rem rgba(255, 255, 255, 0.05);
+}
+
+.game-select-card h1 {
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+  color: #c9b896;
+  text-transform: uppercase;
+  letter-spacing: 0.125rem;
+  text-align: center;
+}
+
+.game-select-room {
+  color: #8b949e;
+  font-size: 0.4rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  letter-spacing: 0.05rem;
+}
+
+.game-select-category {
+  margin-bottom: 1.25rem;
+}
+
+.game-category-label {
+  font-size: 0.5rem;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  margin-bottom: 0.6rem;
+  border-bottom: 0.0625rem solid #30363d;
+  padding-bottom: 0.35rem;
+}
+
+.game-select-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.game-option-btn {
+  flex: 1;
+  min-width: 6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  background: #0d1117;
+  border: 0.125rem solid #30363d;
+  border-radius: 0.5rem;
+  color: #c9d1d9;
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.game-option-btn:hover {
+  border-color: #40916c;
+  background: #1b4332;
+  color: #fff;
+  transform: translateY(-0.125rem);
+  box-shadow: 0 0.25rem 0.75rem rgba(64, 145, 108, 0.25);
+}
+
+.game-option-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.game-option-name {
+  font-size: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.btn-back {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.4rem;
+  color: #8b949e;
+  background: none;
+  border: 0.0625rem solid #30363d;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  color: #c9d1d9;
+  border-color: #484f58;
+}
+
 /* ── Join screen ── */
 #join-screen {
   display: flex;

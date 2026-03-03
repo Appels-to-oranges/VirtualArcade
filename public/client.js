@@ -316,14 +316,9 @@ const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 
-const gameTypeBtns = document.querySelectorAll('.game-type-btn');
-gameTypeBtns.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    gameTypeBtns.forEach((b) => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentGameType = btn.dataset.game || 'holdem';
-  });
-});
+const gameSelectScreen = document.getElementById('game-select-screen');
+const gameSelectRoom = document.getElementById('game-select-room');
+const gameSelectBack = document.getElementById('game-select-back');
 
 function doJoin() {
   const key = (roomKeyInput && roomKeyInput.value || '').trim();
@@ -332,7 +327,19 @@ function doJoin() {
     if (messageToast) { messageToast.textContent = 'Enter room key and nickname'; messageToast.classList.add('show'); setTimeout(() => messageToast.classList.remove('show'), 3000); }
     return;
   }
-  join(key, nick);
+  roomKey = key;
+  nickname = nick;
+  showGameSelectScreen();
+}
+
+function showGameSelectScreen() {
+  if (joinScreen) joinScreen.classList.add('hidden');
+  if (gameScreen) gameScreen.classList.add('hidden');
+  const bjScreen = document.getElementById('bj-screen');
+  if (bjScreen) bjScreen.classList.add('hidden');
+  if (window.checkers) window.checkers.hide();
+  if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
+  if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
 }
 
 const joinBtn = document.getElementById('join-btn');
@@ -341,15 +348,28 @@ if (joinBtn) joinBtn.addEventListener('click', (e) => { e.preventDefault(); doJo
 if (roomKeyInput) roomKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
 if (nicknameInput) nicknameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
 
-function join(key, nick) {
-  roomKey = key;
-  nickname = nick;
+if (gameSelectBack) gameSelectBack.addEventListener('click', () => {
+  if (ws) { ws.close(); ws = null; }
+  showJoinScreen();
+});
+
+document.querySelectorAll('.game-option-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    currentGameType = btn.dataset.game || 'holdem';
+    joinWithGameType(currentGameType);
+  });
+});
+
+function joinWithGameType(gameType) {
+  if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
+  if (ws) { ws.close(); ws = null; }
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}`);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: currentGameType }));
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType }));
     if (window.bjSetWs) window.bjSetWs(ws);
+    if (window.ckSetWs) window.ckSetWs(ws);
   };
 
   ws.onmessage = (ev) => {
@@ -370,9 +390,21 @@ function join(key, nick) {
   };
 }
 
+function hideAllGameScreens() {
+  if (gameScreen) gameScreen.classList.add('hidden');
+  const bjScreen = document.getElementById('bj-screen');
+  if (bjScreen) bjScreen.classList.add('hidden');
+  if (window.checkers) window.checkers.hide();
+  if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
+}
+
 function handleMessage(msg) {
   if (msg.type && msg.type.startsWith('bj')) {
     if (window.blackjack) window.blackjack.handleMessage(msg);
+    return;
+  }
+  if (msg.type && msg.type.startsWith('ck')) {
+    if (window.checkers) window.checkers.handleMessage(msg);
     return;
   }
   switch (msg.type) {
@@ -382,18 +414,23 @@ function handleMessage(msg) {
       gameState = msg.gameState;
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
+      if (joinScreen) joinScreen.classList.add('hidden');
+      hideAllGameScreens();
       if (currentGameType === 'blackjack') {
-        if (joinScreen) joinScreen.classList.add('hidden');
-        if (gameScreen) gameScreen.classList.add('hidden');
         if (window.blackjack) {
           window.blackjack.init(ws, myId, players, msg.roomKey);
           window.blackjack.show();
         }
         try { startAmbience(); } catch (_) {}
         initRadioVolume();
+      } else if (currentGameType === 'checkers') {
+        if (window.checkers) {
+          window.checkers.init(ws, myId, players, msg.roomKey);
+          window.checkers.show();
+        }
+        try { startAmbience(); } catch (_) {}
+        initRadioVolume();
       } else {
-        const bjScreen = document.getElementById('bj-screen');
-        if (bjScreen) bjScreen.classList.add('hidden');
         if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
         showGameScreen();
         try {
@@ -650,10 +687,9 @@ function handleMessage(msg) {
 
 function showJoinScreen() {
   if (joinScreen) joinScreen.classList.remove('hidden');
-  if (gameScreen) gameScreen.classList.add('hidden');
-  const bjScreen = document.getElementById('bj-screen');
-  if (bjScreen) bjScreen.classList.add('hidden');
+  hideAllGameScreens();
   if (window.blackjack) window.blackjack.hide();
+  if (window.checkers) window.checkers.hide();
   stopAmbience();
   Object.keys(playerChatTimeouts).forEach((id) => {
     clearTimeout(playerChatTimeouts[id]);

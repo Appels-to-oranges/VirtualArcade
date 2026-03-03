@@ -10,16 +10,9 @@
   <div class="message-toast" id="message-toast"></div>
   <div id="join-screen">
     <div class="join-card">
-      <h1>CASINO GAMES</h1>
-      <p class="tagline">Try your luck!</p>
+      <h1>VIRTUAL ARCADE</h1>
+      <p class="tagline">Room-based games with friends</p>
       <div id="join-form" class="join-form">
-        <div class="form-group">
-          <label for="game-type">Game</label>
-          <div class="game-type-selector" id="game-type-selector">
-            <button type="button" class="game-type-btn active" data-game="holdem">Texas Hold'em</button>
-            <button type="button" class="game-type-btn" data-game="blackjack">Blackjack</button>
-          </div>
-        </div>
         <div class="form-group">
           <label for="room-key">Room key</label>
           <input type="text" id="room-key" class="form-control" placeholder="Enter room key" maxlength="32" autocomplete="off">
@@ -28,9 +21,39 @@
           <label for="nickname">Alias</label>
           <input type="text" id="nickname" class="form-control" placeholder="Enter alias" maxlength="20" autocomplete="off">
         </div>
-        <button type="button" id="join-btn" class="btn-join">Join</button>
+        <button type="button" id="join-btn" class="btn-join">Enter Room</button>
       </div>
       <p class="hint">Share the same room key to play together.</p>
+    </div>
+  </div>
+
+  <div id="game-select-screen" class="hidden">
+    <div class="game-select-card">
+      <h1>Choose a Game</h1>
+      <p class="game-select-room" id="game-select-room"></p>
+      <div class="game-select-category">
+        <h2 class="game-category-label">Casino</h2>
+        <div class="game-select-options">
+          <button type="button" class="game-option-btn" data-game="holdem">
+            <span class="game-option-icon">&#x1F0CF;</span>
+            <span class="game-option-name">Texas Hold'em</span>
+          </button>
+          <button type="button" class="game-option-btn" data-game="blackjack">
+            <span class="game-option-icon">&#x1F0A1;</span>
+            <span class="game-option-name">Blackjack</span>
+          </button>
+        </div>
+      </div>
+      <div class="game-select-category">
+        <h2 class="game-category-label">Board Games</h2>
+        <div class="game-select-options">
+          <button type="button" class="game-option-btn" data-game="checkers">
+            <span class="game-option-icon">&#x26C0;</span>
+            <span class="game-option-name">Checkers</span>
+          </button>
+        </div>
+      </div>
+      <button type="button" id="game-select-back" class="btn-back">&#x2190; Leave Room</button>
     </div>
   </div>
 
@@ -183,6 +206,7 @@
 
   <script src="pokersolver.js"></script>
   <script src="blackjack.js"></script>
+  <script src="checkers.js"></script>
   <script src="client.js"></script>
 </body>
 </html>
