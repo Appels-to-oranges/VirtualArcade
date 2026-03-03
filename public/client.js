@@ -1231,7 +1231,7 @@ function renderTable() {
     waitingEl.textContent = players.length === 1 ? 'Waiting for another player...' : 'Need 2 players to start';
   }
   if (addBotBtn) {
-    const showAddBot = !gameState && players.length === 1;
+    const showAddBot = !gameState && players.length < 6;
     addBotBtn.classList.toggle('hidden', !showAddBot);
     addBotBtn.disabled = !showAddBot;
   }

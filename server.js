@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const Hand = require('pokersolver').Hand;
+const { decideAction, getPosition } = require('./bot_decide');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -504,6 +505,9 @@ function canAct(player) {
   return !player.folded && !player.allIn && player.chips > 0;
 }
 
+const BOT_NAMES = ['Ace', 'Blaze', 'Cobra', 'Duke', 'Echo', 'Frost', 'Ghost', 'Hawk', 'Iron', 'Jinx'];
+let botNameIdx = 0;
+
 function scheduleBotAction(roomKey) {
   const room = getRoom(roomKey);
   const players = getHoldemPlayers(room);
@@ -512,32 +516,157 @@ function scheduleBotAction(roomKey) {
   const player = players[idx];
   if (!player?.isBot || player.folded || player.allIn) return;
 
+  const delay = 500 + Math.floor(Math.random() * 1200);
   setTimeout(() => {
     if (room.phase === 'lobby') return;
     clearTurnTimer(room);
+
+    const opponentsInHand = players.filter((p) => !p.folded && p.id !== player.id).length;
+    const toCall = Math.max(0, room.currentBet - player.betThisRound);
+    const facingRaise = room.currentBet > room.bigBlind;
+    const position = getPosition(idx, room.dealerIdx, players.length);
+
+    let decision;
+    try {
+      decision = decideAction({
+        heroHole: player.hand,
+        board: room.communityCards,
+        pot: room.pot,
+        toCall,
+        stack: player.chips,
+        opponentsInHand,
+        street: room.phase,
+        bigBlind: room.bigBlind,
+        minRaise: room.minRaise,
+        currentBet: room.currentBet,
+        position,
+        seatIdx: idx,
+        dealerIdx: room.dealerIdx,
+        numPlayers: players.length,
+        facingRaise,
+      });
+    } catch (e) {
+      decision = toCall > 0 ? { action: 'call' } : { action: 'check' };
+    }
+
+    executeBotAction(roomKey, room, players, idx, player, decision);
+  }, delay);
+}
+
+function executeBotAction(roomKey, room, players, idx, player, decision) {
+  const { action, amount } = decision;
+
+  if (action === 'fold') {
     player.folded = true;
     const activeCount = players.filter((p) => !p.folded).length;
     broadcastToRoom(roomKey, {
-      type: 'action',
-      playerId: player.id,
-      action: 'fold',
-      reason: 'bot',
+      type: 'action', playerId: player.id, action: 'fold', reason: 'bot',
       pot: room.pot,
-      players: players.map((p, i) => ({
-        id: p.id,
-        folded: p.folded,
-        chips: p.chips,
-        betThisRound: p.betThisRound,
-        isTurn: i === room.turnIdx,
-      })),
+      players: players.map((p, i) => ({ id: p.id, folded: p.folded, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
     });
-    if (activeCount <= 1) {
-      showdown(roomKey);
-      return;
+    if (activeCount <= 1) { showdown(roomKey); return; }
+    room.turnIdx = advanceTurn(room, room.turnIdx);
+    checkBettingComplete(roomKey);
+
+  } else if (action === 'check') {
+    broadcastToRoom(roomKey, { type: 'action', playerId: player.id, action: 'check', reason: 'bot' });
+    room.turnIdx = advanceTurn(room, room.turnIdx);
+    checkBettingComplete(roomKey);
+
+  } else if (action === 'call') {
+    const toCall = Math.max(0, room.currentBet - player.betThisRound);
+    const actual = Math.min(toCall, player.chips);
+    player.chips -= actual;
+    player.betThisRound += actual;
+    player.totalBet += actual;
+    room.pot += actual;
+    if (player.chips === 0) player.allIn = true;
+    broadcastToRoom(roomKey, {
+      type: 'action', playerId: player.id, action: 'call', amount: actual, reason: 'bot',
+      pot: room.pot,
+      players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
+    });
+    room.turnIdx = advanceTurn(room, room.turnIdx);
+    checkBettingComplete(roomKey);
+
+  } else if (action === 'raise' || action === 'bet') {
+    const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && players[room.lastRaiserIdx]?.allIn === true;
+    if (facingAllIn) {
+      const toCall = Math.max(0, room.currentBet - player.betThisRound);
+      const actual = Math.min(toCall, player.chips);
+      player.chips -= actual;
+      player.betThisRound += actual;
+      player.totalBet += actual;
+      room.pot += actual;
+      if (player.chips === 0) player.allIn = true;
+      broadcastToRoom(roomKey, {
+        type: 'action', playerId: player.id, action: 'call', amount: actual, reason: 'bot',
+        pot: room.pot,
+        players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
+      });
+    } else {
+      const raiseTo = Math.max(room.currentBet + room.minRaise, Math.floor(amount || room.currentBet + room.bigBlind));
+      const toAdd = raiseTo - player.betThisRound;
+      if (toAdd > player.chips || toAdd <= 0) {
+        return executeBotAction(roomKey, room, players, idx, player, { action: 'allin' });
+      }
+      const prevBet = room.currentBet;
+      player.chips -= toAdd;
+      player.betThisRound = raiseTo;
+      player.totalBet += toAdd;
+      room.pot += toAdd;
+      room.currentBet = raiseTo;
+      room.lastRaiserIdx = idx;
+      room.minRaise = Math.max(room.bigBlind, raiseTo - prevBet);
+      if (player.chips === 0) player.allIn = true;
+      broadcastToRoom(roomKey, {
+        type: 'action', playerId: player.id, action: 'raise', amount: toAdd, reason: 'bot',
+        currentBet: room.currentBet, minRaise: room.minRaise, pot: room.pot,
+        players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
+      });
     }
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
-  }, 800);
+
+  } else if (action === 'allin') {
+    const allInAmount = player.chips;
+    if (allInAmount <= 0) {
+      player.folded = true;
+      broadcastToRoom(roomKey, {
+        type: 'action', playerId: player.id, action: 'fold', reason: 'bot',
+        pot: room.pot,
+        players: players.map((p, i) => ({ id: p.id, folded: p.folded, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
+      });
+      const activeCount = players.filter((p) => !p.folded).length;
+      if (activeCount <= 1) { showdown(roomKey); return; }
+      room.turnIdx = advanceTurn(room, room.turnIdx);
+      checkBettingComplete(roomKey);
+      return;
+    }
+    player.betThisRound += allInAmount;
+    player.totalBet += allInAmount;
+    room.pot += allInAmount;
+    player.chips = 0;
+    player.allIn = true;
+    if (player.betThisRound > room.currentBet) {
+      const prevBet = room.currentBet;
+      room.currentBet = player.betThisRound;
+      room.lastRaiserIdx = idx;
+      room.minRaise = Math.max(room.bigBlind, player.betThisRound - prevBet);
+    }
+    const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && players[room.lastRaiserIdx]?.allIn === true;
+    broadcastToRoom(roomKey, {
+      type: 'action', playerId: player.id, action: 'allin', amount: allInAmount, reason: 'bot',
+      currentBet: room.currentBet, minRaise: room.minRaise, pot: room.pot, facingAllIn,
+      players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
+    });
+    room.turnIdx = advanceTurn(room, room.turnIdx);
+    checkBettingComplete(roomKey);
+
+  } else {
+    const toCall = Math.max(0, room.currentBet - player.betThisRound);
+    executeBotAction(roomKey, room, players, idx, player, toCall > 0 ? { action: 'call' } : { action: 'check' });
+  }
 }
 
 function advanceTurn(room, fromIdx) {
@@ -1277,12 +1406,15 @@ wss.on('connection', (ws) => {
         if (!data) return;
         const room = getRoom(data.roomKey);
         if (room.phase !== 'lobby') return;
-        if (room.players.length >= 2) return;
-        const botId = 'bot-' + Date.now();
+        const holdemPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'holdem');
+        if (holdemPlayers.length >= 6) return;
+        const botId = 'bot-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        const botName = BOT_NAMES[botNameIdx % BOT_NAMES.length];
+        botNameIdx++;
         room.players.push({
           id: botId,
           ws: null,
-          nickname: 'Bot',
+          nickname: botName,
           chips: 1000,
           hand: null,
           betThisRound: 0,
@@ -1297,7 +1429,7 @@ wss.on('connection', (ws) => {
         broadcastToRoom(data.roomKey, {
           type: 'userJoined',
           id: botId,
-          nickname: 'Bot',
+          nickname: botName,
           chips: 1000,
           currentView: 'holdem',
           winStreak: 0,
