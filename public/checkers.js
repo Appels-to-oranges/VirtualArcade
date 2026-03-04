@@ -26,6 +26,9 @@
   let ckWinner = null;
   let ckMustContinue = null;
   let ckRoomKey = '';
+  let ckTimerSeconds = 0;
+  let ckTurnDeadline = 0;
+  let ckTimerInterval = null;
 
   /* ── DOM refs (lazily initialised) ── */
 
@@ -63,7 +66,7 @@
 
   /* ── Move logic (client-side highlights; server is authoritative) ── */
 
-  function getValidMoves(board, row, col, color, mustCapture) {
+  function getValidMoves(board, row, col, color) {
     const piece = board[row][col];
     if (!piece || piece.color !== color) return [];
 
@@ -71,8 +74,7 @@
       ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
       : color === 'red' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
 
-    const captures = [];
-    const moves = [];
+    const results = [];
 
     for (const [dr, dc] of dirs) {
       const mr = row + dr, mc = col + dc;
@@ -80,36 +82,15 @@
 
       if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 &&
           board[mr][mc] && board[mr][mc].color !== color && !board[jr][jc]) {
-        captures.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
+        results.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
       }
 
-      if (!mustCapture && mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
-        moves.push({ row: mr, col: mc });
-      }
-    }
-
-    return captures.length > 0 ? captures : (mustCapture ? [] : moves);
-  }
-
-  function hasAnyCapture(board, color) {
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const piece = board[r][c];
-        if (!piece || piece.color !== color) continue;
-        const dirs = piece.king
-          ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
-          : color === 'red' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
-        for (const [dr, dc] of dirs) {
-          const mr = r + dr, mc = c + dc;
-          const jr = r + 2 * dr, jc = c + 2 * dc;
-          if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 &&
-              board[mr][mc] && board[mr][mc].color !== color && !board[jr][jc]) {
-            return true;
-          }
-        }
+      if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
+        results.push({ row: mr, col: mc });
       }
     }
-    return false;
+
+    return results;
   }
 
   /* ── Style injection ── */
@@ -198,7 +179,20 @@
         'pointer-events:none;z-index:2;animation:ckPulse 1.4s ease-in-out infinite}' +
 
       '@keyframes ckPulse{0%,100%{opacity:.5;transform:scale(1)}' +
-        '50%{opacity:1;transform:scale(1.08)}}';
+        '50%{opacity:1;transform:scale(1.08)}}' +
+
+      '.ck-timer-setting{display:flex;align-items:center;gap:.4rem;font-size:.45rem}' +
+      '.ck-timer-setting.hidden{display:none}' +
+      '.ck-timer-setting label{color:#888}' +
+      ".ck-timer-setting select{font-family:'Press Start 2P',monospace;" +
+        'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
+        'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
+
+      '.ck-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
+        'padding:.2rem .5rem;letter-spacing:.05rem}' +
+      '.ck-turn-timer.hidden{display:none}' +
+      '.ck-turn-timer.ck-timer-urgent{color:#ff4444;animation:ckTimerBlink .5s ease-in-out infinite}' +
+      '@keyframes ckTimerBlink{0%,100%{opacity:1}50%{opacity:.4}}';
 
     document.head.appendChild(style);
   }
@@ -222,12 +216,29 @@
       '<div class="ck-room-bar">' +
         '<button type="button" id="ck-back-btn" class="btn-back-inline" title="Back to game selection">&#x2190; Back</button>' +
         '<span id="ck-room-label"></span>' +
+        '<div class="ck-timer-setting" id="ck-timer-setting">' +
+          '<label for="ck-timer-select">Turn timer</label>' +
+          '<select id="ck-timer-select">' +
+            '<option value="0">No timer</option>' +
+            '<option value="5">5 sec</option>' +
+            '<option value="10">10 sec</option>' +
+            '<option value="15">15 sec</option>' +
+            '<option value="30">30 sec</option>' +
+            '<option value="60">60 sec</option>' +
+          '</select>' +
+        '</div>' +
         '<button id="ck-start-btn" class="btn-start">Start Game</button>' +
         '<button id="ck-rematch-btn" class="btn-restart hidden">Rematch</button>' +
+        '<button type="button" id="ck-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
       '</div>' +
+      '<div id="ck-turn-timer" class="ck-turn-timer hidden"></div>' +
       '<div id="ck-status"></div>' +
       '<div id="ck-players-area"></div>' +
-      '<div class="ck-board-wrap"><div id="ck-board"></div></div>';
+      '<div class="ck-board-wrap"><div id="ck-board"></div></div>' +
+      '<div class="now-playing-radio hidden" id="ck-now-playing-radio">' +
+        '<span class="now-playing-label" id="ck-now-playing-radio-label"></span>' +
+        '<button type="button" class="now-playing-stop" id="ck-radio-stop" title="Stop radio">&#x25A0;</button>' +
+      '</div>';
 
     document.body.appendChild(screenEl);
 
@@ -237,11 +248,28 @@
     });
     var startBtn = document.getElementById('ck-start-btn');
     if (startBtn) startBtn.addEventListener('click', function () {
-      send({ type: 'startGame', gameType: 'checkers' });
+      var sel = document.getElementById('ck-timer-select');
+      var timer = sel ? parseInt(sel.value, 10) : 0;
+      send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
     });
     var rematchBtn = document.getElementById('ck-rematch-btn');
     if (rematchBtn) rematchBtn.addEventListener('click', function () {
-      send({ type: 'startGame', gameType: 'checkers' });
+      var sel = document.getElementById('ck-timer-select');
+      var timer = sel ? parseInt(sel.value, 10) : 0;
+      send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
+    });
+    var ckRadioBtn = document.getElementById('ck-radio-btn');
+    if (ckRadioBtn) ckRadioBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('radio-overlay');
+      var searchInput = document.getElementById('radio-search');
+      if (overlay) overlay.classList.remove('hidden');
+      if (searchInput) searchInput.focus();
+    });
+    var ckRadioStop = document.getElementById('ck-radio-stop');
+    if (ckRadioStop) ckRadioStop.addEventListener('click', function () {
+      if (ckWs && ckWs.readyState === WebSocket.OPEN) {
+        ckWs.send(JSON.stringify({ type: 'stopRadio' }));
+      }
     });
     boardEl = document.getElementById('ck-board');
     statusEl = document.getElementById('ck-status');
@@ -282,9 +310,7 @@
         if (vm) {
           cell.classList.add(vm.captured ? 'ck-valid-capture' : 'ck-valid-move');
           cell.classList.add('ck-clickable');
-        } else if (myTurn && piece && piece.color === ckMyColor &&
-                   (!ckMustContinue ||
-                    (ckMustContinue.row === r && ckMustContinue.col === c))) {
+        } else if (myTurn && piece && piece.color === ckMyColor) {
           cell.classList.add('ck-clickable');
         }
 
@@ -330,8 +356,37 @@
   function updateButtons() {
     var startBtn = document.getElementById('ck-start-btn');
     var rematchBtn = document.getElementById('ck-rematch-btn');
+    var timerSetting = document.getElementById('ck-timer-setting');
     if (startBtn) startBtn.classList.toggle('hidden', ckGameState !== 'waiting');
     if (rematchBtn) rematchBtn.classList.toggle('hidden', ckGameState !== 'over');
+    if (timerSetting) timerSetting.classList.toggle('hidden', ckGameState === 'playing');
+  }
+
+  /* ── Timer display ── */
+
+  function startCkTimer(deadline) {
+    stopCkTimer();
+    ckTurnDeadline = deadline;
+    if (!deadline) return;
+    updateCkTimerDisplay();
+    ckTimerInterval = setInterval(updateCkTimerDisplay, 200);
+  }
+
+  function stopCkTimer() {
+    if (ckTimerInterval) { clearInterval(ckTimerInterval); ckTimerInterval = null; }
+    ckTurnDeadline = 0;
+    var el = document.getElementById('ck-turn-timer');
+    if (el) el.classList.add('hidden');
+  }
+
+  function updateCkTimerDisplay() {
+    var el = document.getElementById('ck-turn-timer');
+    if (!el || !ckTurnDeadline) return;
+    var remaining = Math.max(0, Math.ceil((ckTurnDeadline - Date.now()) / 1000));
+    el.textContent = remaining + 's';
+    el.classList.remove('hidden');
+    el.classList.toggle('ck-timer-urgent', remaining <= 3);
+    if (remaining <= 0) stopCkTimer();
   }
 
   /* ── Click handling ── */
@@ -354,11 +409,8 @@
 
     var piece = ckBoard[row][col];
     if (piece && piece.color === ckMyColor) {
-      if (ckMustContinue &&
-          (ckMustContinue.row !== row || ckMustContinue.col !== col)) return;
       ckSelected = { row: row, col: col };
-      var mustCap = hasAnyCapture(ckBoard, ckMyColor);
-      ckValidMoves = getValidMoves(ckBoard, row, col, ckMyColor, mustCap);
+      ckValidMoves = getValidMoves(ckBoard, row, col, ckMyColor);
       renderBoard();
       return;
     }
@@ -380,12 +432,18 @@
         ckSelected = null;
         ckValidMoves = [];
         ckMustContinue = null;
+        ckTimerSeconds = msg.timerSeconds || 0;
         if (msg.players) {
           ckPlayers = msg.players;
           var me = ckPlayers.find(function (p) { return p.id === ckMyId; });
           if (me) ckMyColor = me.color;
         }
         setStatus(ckTurn === ckMyColor ? 'Your turn!' : 'Waiting for ' + ckTurn + '...');
+        if (ckTimerSeconds > 0 && msg.turnDeadline) {
+          startCkTimer(msg.turnDeadline);
+        } else {
+          stopCkTimer();
+        }
         renderAll();
         break;
 
@@ -397,21 +455,18 @@
       case 'ckBoardUpdate':
         ckBoard = msg.board;
         ckTurn = msg.turn;
-        ckMustContinue = msg.mustContinue || null;
         ckSelected = null;
         ckValidMoves = [];
 
-        if (ckMustContinue && ckTurn === ckMyColor) {
-          ckSelected = { row: ckMustContinue.row, col: ckMustContinue.col };
-          var cap = hasAnyCapture(ckBoard, ckMyColor);
-          ckValidMoves = getValidMoves(
-            ckBoard, ckMustContinue.row, ckMustContinue.col, ckMyColor, cap
-          );
-          setStatus('Continue jumping!');
-        } else if (ckTurn === ckMyColor) {
+        if (ckTurn === ckMyColor) {
           setStatus('Your turn!');
         } else {
           setStatus('Waiting for ' + ckTurn + '...');
+        }
+        if (ckTimerSeconds > 0 && msg.turnDeadline) {
+          startCkTimer(msg.turnDeadline);
+        } else {
+          stopCkTimer();
         }
         renderAll();
         break;
@@ -422,7 +477,9 @@
         ckSelected = null;
         ckValidMoves = [];
         ckMustContinue = null;
-        var reason = msg.reason === 'capture' ? 'all pieces captured' : 'no legal moves';
+        stopCkTimer();
+        var reasonMap = { capture: 'all pieces captured', noMoves: 'no legal moves', timeout: 'time ran out' };
+        var reason = reasonMap[msg.reason] || msg.reason;
         setStatus(
           ckWinner === ckMyColor
             ? 'You win! (' + reason + ')'
@@ -434,12 +491,14 @@
 
       case 'ckWaiting':
         ckGameState = 'waiting';
+        stopCkTimer();
         setStatus('Waiting for opponent...');
         renderAll();
         break;
 
       case 'ckPlayerLeft':
         ckGameState = 'over';
+        stopCkTimer();
         setStatus('Opponent disconnected');
         renderAll();
         break;
@@ -461,6 +520,9 @@
     ckWinner = null;
     ckMustContinue = null;
     ckMyColor = null;
+    ckTimerSeconds = 0;
+    ckTurnDeadline = 0;
+    stopCkTimer();
 
     injectStyles();
     buildScreen();

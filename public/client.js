@@ -288,6 +288,10 @@ const bjRadioBtn = document.getElementById('bj-radio-btn');
 const bjNowPlayingRadio = document.getElementById('bj-now-playing-radio');
 const bjNowPlayingRadioLabel = document.getElementById('bj-now-playing-radio-label');
 const bjRadioStopBtn = document.getElementById('bj-radio-stop');
+const lobbyRadioBtn = document.getElementById('lobby-radio-btn');
+const lobbyNowPlayingRadio = document.getElementById('lobby-now-playing-radio');
+const lobbyNowPlayingRadioLabel = document.getElementById('lobby-now-playing-radio-label');
+const lobbyRadioStopBtn = document.getElementById('lobby-radio-stop');
 
 let ws = null;
 let myId = null;
@@ -397,6 +401,11 @@ function showGameSelectScreen(players, chatHistory) {
     lobbyChatMessages.innerHTML = '';
     chatHistory.forEach((m) => appendLobbyChat(m.playerId, m.nickname, m.text));
     lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
+  }
+  if (currentRadioName && lobbyNowPlayingRadio) {
+    const label = '\u{1F4FB} ' + currentRadioName;
+    lobbyNowPlayingRadio.classList.remove('hidden');
+    if (lobbyNowPlayingRadioLabel) lobbyNowPlayingRadioLabel.textContent = label;
   }
 }
 
@@ -532,6 +541,8 @@ function handleMessage(msg) {
       if (currentGameType === 'lobby') {
         lobbyPlayers = (players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         showGameSelectScreen(players, msg.chatHistory);
+        if (msg.radio) playRadio(msg.radio);
+        initRadioVolume();
         if (msg.gameFull) {
           const name = GAME_NAMES[msg.gameFull] || msg.gameFull;
           showToast(`${name} is full. You've been placed in the lobby.`);
@@ -1118,6 +1129,8 @@ function renderTable() {
   const CX = 50, CY = 46;
   const RX = 42, RY = count <= 2 ? 26 : 36;
   const BET_LERP = 0.55;
+  const BET_ZONE_TOP = 34;
+  const BET_ZONE_BOTTOM = 58;
 
   function polyPositions(n) {
     const out = [];
@@ -1126,7 +1139,9 @@ function renderTable() {
       const sx = CX + RX * Math.cos(angle);
       const sy = Math.max(18, Math.min(82, CY + RY * Math.sin(angle)));
       const bx = sx + (CX - sx) * BET_LERP;
-      const by = sy + (CY - sy) * BET_LERP;
+      let by = sy + (CY - sy) * BET_LERP;
+      if (by > BET_ZONE_TOP && by < CY) by = BET_ZONE_TOP;
+      if (by < BET_ZONE_BOTTOM && by >= CY) by = BET_ZONE_BOTTOM;
       out.push({ seat: [sx, sy], bet: [bx, by] });
     }
     return out;
@@ -1595,6 +1610,12 @@ function playRadio(station) {
   if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = label;
   if (bjNowPlayingRadio) bjNowPlayingRadio.classList.remove('hidden');
   if (bjNowPlayingRadioLabel) bjNowPlayingRadioLabel.textContent = label;
+  if (lobbyNowPlayingRadio) lobbyNowPlayingRadio.classList.remove('hidden');
+  if (lobbyNowPlayingRadioLabel) lobbyNowPlayingRadioLabel.textContent = label;
+  const ckNowPlaying = document.getElementById('ck-now-playing-radio');
+  const ckNowPlayingLabel = document.getElementById('ck-now-playing-radio-label');
+  if (ckNowPlaying) ckNowPlaying.classList.remove('hidden');
+  if (ckNowPlayingLabel) ckNowPlayingLabel.textContent = label;
 }
 
 function stopRadio() {
@@ -1603,6 +1624,9 @@ function stopRadio() {
   currentRadioName = '';
   if (nowPlayingRadio) nowPlayingRadio.classList.add('hidden');
   if (bjNowPlayingRadio) bjNowPlayingRadio.classList.add('hidden');
+  if (lobbyNowPlayingRadio) lobbyNowPlayingRadio.classList.add('hidden');
+  const ckNowPlaying = document.getElementById('ck-now-playing-radio');
+  if (ckNowPlaying) ckNowPlaying.classList.add('hidden');
 }
 
 function initRadioVolume() {
@@ -1714,6 +1738,18 @@ if (bjRadioBtn) bjRadioBtn.addEventListener('click', () => {
 });
 
 if (bjRadioStopBtn) bjRadioStopBtn.addEventListener('click', () => {
+  if (currentRadioName && ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'stopRadio' }));
+  }
+});
+
+if (lobbyRadioBtn) lobbyRadioBtn.addEventListener('click', () => {
+  initRadioVolume();
+  radioOverlay?.classList.remove('hidden');
+  radioSearchInput?.focus();
+});
+
+if (lobbyRadioStopBtn) lobbyRadioStopBtn.addEventListener('click', () => {
   if (currentRadioName && ws && ws.readyState === 1) {
     ws.send(JSON.stringify({ type: 'stopRadio' }));
   }

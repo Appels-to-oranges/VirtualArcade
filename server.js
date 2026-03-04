@@ -504,6 +504,9 @@ function showdown(roomKey) {
   room.gameState = null;
   room.holdemPlayers = null;
   clearTurnTimer(room);
+
+  removeBrokeBots(roomKey);
+
   broadcastToRoom(roomKey, {
     type: 'roundOver',
     players: room.players.map((p) => ({
@@ -518,6 +521,28 @@ function showdown(roomKey) {
 
 function canAct(player) {
   return !player.folded && !player.allIn && player.chips > 0;
+}
+
+function removeBrokeBots(roomKey) {
+  const room = getRoom(roomKey);
+  const brokeBots = room.players.filter((p) => p.isBot && p.chips <= 0);
+  brokeBots.forEach((bot) => {
+    room.players = room.players.filter((p) => p.id !== bot.id);
+    broadcastToRoom(roomKey, { type: 'userLeft', id: bot.id });
+  });
+}
+
+function removeAllBots(roomKey) {
+  const room = getRoom(roomKey);
+  const bots = room.players.filter((p) => p.isBot);
+  bots.forEach((bot) => {
+    room.players = room.players.filter((p) => p.id !== bot.id);
+    broadcastToRoom(roomKey, { type: 'userLeft', id: bot.id });
+  });
+}
+
+function hasHumanPlayers(room) {
+  return room.players.some((p) => !p.isBot);
 }
 
 const BOT_NAMES = ['Ace', 'Blaze', 'Cobra', 'Duke', 'Echo', 'Frost', 'Ghost', 'Hawk', 'Iron', 'Jinx'];
@@ -1072,8 +1097,7 @@ function ckGetValidMoves(board, row, col, color) {
     ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
     : color === 'red' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
 
-  const captures = [];
-  const moves = [];
+  const results = [];
 
   for (const [dr, dc] of dirs) {
     const mr = row + dr, mc = col + dc;
@@ -1081,27 +1105,15 @@ function ckGetValidMoves(board, row, col, color) {
 
     if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 &&
         board[mr]?.[mc] && board[mr][mc].color !== color && !board[jr][jc]) {
-      captures.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
+      results.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
     }
 
     if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
-      moves.push({ row: mr, col: mc });
+      results.push({ row: mr, col: mc });
     }
   }
 
-  return captures.length > 0 ? captures : moves;
-}
-
-function ckHasCaptures(board, color) {
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      if (board[r][c] && board[r][c].color === color) {
-        const moves = ckGetValidMoves(board, r, c, color);
-        if (moves.some((m) => m.captured)) return true;
-      }
-    }
-  }
-  return false;
+  return results;
 }
 
 function ckCheckWin(board, nextTurnColor) {
@@ -1123,7 +1135,34 @@ function ckCheckWin(board, nextTurnColor) {
   return null;
 }
 
-function ckStartGame(roomKey) {
+function ckClearTurnTimer(room) {
+  if (room.ckTurnTimeout) {
+    clearTimeout(room.ckTurnTimeout);
+    room.ckTurnTimeout = null;
+  }
+}
+
+function ckStartTurnTimer(roomKey) {
+  const room = getRoom(roomKey);
+  ckClearTurnTimer(room);
+  if (!room.ckTimerMs || room.ckTimerMs <= 0) return;
+  room.ckTurnDeadline = Date.now() + room.ckTimerMs;
+  room.ckTurnTimeout = setTimeout(() => {
+    room.ckTurnTimeout = null;
+    const r = getRoom(roomKey);
+    if (r.ckPhase !== 'playing') return;
+    const losingColor = r.ckTurn;
+    const winnerColor = losingColor === 'red' ? 'white' : 'red';
+    r.ckPhase = 'over';
+    broadcastToRoom(roomKey, {
+      type: 'ckGameOver',
+      winner: winnerColor,
+      reason: 'timeout',
+    });
+  }, room.ckTimerMs);
+}
+
+function ckStartGame(roomKey, timerSeconds) {
   const room = getRoom(roomKey);
   const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
   if (ckPlayers.length !== 2) return;
@@ -1133,6 +1172,8 @@ function ckStartGame(roomKey) {
   room.ckTurn = 'red';
   room.ckPhase = 'playing';
   room.ckMustContinue = null;
+  room.ckTimerMs = (timerSeconds && timerSeconds > 0) ? timerSeconds * 1000 : 0;
+  room.ckTurnDeadline = 0;
 
   room.ckPlayers = {
     red: ckPlayers[0].id,
@@ -1145,11 +1186,15 @@ function ckStartGame(roomKey) {
     color: room.ckPlayers.red === p.id ? 'red' : 'white',
   }));
 
+  ckStartTurnTimer(roomKey);
+
   broadcastToRoom(roomKey, {
     type: 'ckGameStarted',
     board: room.ckBoard,
     turn: 'red',
     players: playersInfo,
+    timerSeconds: room.ckTimerMs > 0 ? room.ckTimerMs / 1000 : 0,
+    turnDeadline: room.ckTurnDeadline || 0,
   });
 
   ckPlayers.forEach((p) => {
@@ -1171,19 +1216,8 @@ function ckMakeMove(roomKey, playerId, from, to) {
   const piece = board[from.row]?.[from.col];
   if (!piece || piece.color !== currentColor) return;
 
-  if (room.ckMustContinue) {
-    if (from.row !== room.ckMustContinue.row || from.col !== room.ckMustContinue.col) return;
-  }
-
   const validMoves = ckGetValidMoves(board, from.row, from.col, currentColor);
-
-  const forcedCaptures = ckHasCaptures(board, currentColor);
-  let filteredMoves = validMoves;
-  if (forcedCaptures) {
-    filteredMoves = validMoves.filter((m) => m.captured);
-  }
-
-  const move = filteredMoves.find((m) => m.row === to.row && m.col === to.col);
+  const move = validMoves.find((m) => m.row === to.row && m.col === to.col);
   if (!move) return;
 
   board[to.row][to.col] = { ...piece };
@@ -1204,35 +1238,25 @@ function ckMakeMove(roomKey, playerId, from, to) {
     promoted = true;
   }
 
-  let mustContinue = null;
-  if (move.captured && !promoted) {
-    const furtherCaptures = ckGetValidMoves(board, to.row, to.col, currentColor)
-      .filter((m) => m.captured);
-    if (furtherCaptures.length > 0) {
-      mustContinue = { row: to.row, col: to.col };
-    }
-  }
-
-  if (mustContinue) {
-    room.ckMustContinue = mustContinue;
-  } else {
-    room.ckMustContinue = null;
-    room.ckTurn = currentColor === 'red' ? 'white' : 'red';
-  }
+  room.ckMustContinue = null;
+  room.ckTurn = currentColor === 'red' ? 'white' : 'red';
+  ckStartTurnTimer(roomKey);
 
   broadcastToRoom(roomKey, {
     type: 'ckBoardUpdate',
     board: room.ckBoard,
     turn: room.ckTurn,
     lastMove: { from, to, captured: capturedInfo },
-    mustContinue: room.ckMustContinue,
+    mustContinue: null,
     promoted,
+    turnDeadline: room.ckTurnDeadline || 0,
   });
 
-  if (!mustContinue) {
+  {
     const winner = ckCheckWin(board, room.ckTurn);
     if (winner) {
       room.ckPhase = 'over';
+      ckClearTurnTimer(room);
       const hasPieces = (() => {
         for (let r = 0; r < 8; r++)
           for (let c = 0; c < 8; c++)
@@ -1342,6 +1366,12 @@ wss.on('connection', (ws) => {
         if (pIdx < 0) return;
         room.players[pIdx].currentView = 'lobby';
         clients.set(ws, { ...data, gameType: 'lobby' });
+
+        const humansInHoldem = room.players.some((p) => !p.isBot && (p.currentView ?? 'lobby') === 'holdem');
+        if (!humansInHoldem) {
+          removeAllBots(data.roomKey);
+        }
+
         broadcastToRoom(data.roomKey, {
           type: 'playerViewChanged',
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, currentView: p.currentView ?? 'lobby' })),
@@ -1373,8 +1403,15 @@ wss.on('connection', (ws) => {
           ws.send(JSON.stringify({ type: 'gameFull', gameType: newType }));
           return;
         }
+        const wasHoldem = currentView === 'holdem';
         room.players[pIdx].currentView = newType;
         clients.set(ws, { ...data, gameType: newType });
+
+        if (wasHoldem && newType !== 'holdem') {
+          const humansInHoldem = room.players.some((p) => !p.isBot && (p.currentView ?? 'lobby') === 'holdem');
+          if (!humansInHoldem) removeAllBots(data.roomKey);
+        }
+
         broadcastToRoom(data.roomKey, {
           type: 'playerViewChanged',
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, currentView: p.currentView ?? 'lobby' })),
@@ -1411,7 +1448,7 @@ wss.on('connection', (ws) => {
         if (gameType === 'blackjack') {
           bjStartGame(data.roomKey);
         } else if (gameType === 'checkers') {
-          ckStartGame(data.roomKey);
+          ckStartGame(data.roomKey, msg.timerSeconds);
         } else {
           const resetStreaks = msg.resetStreaks === true;
           const resetChips = msg.resetChips === true;
@@ -1710,11 +1747,16 @@ wss.on('connection', (ws) => {
         if (room.players.length === 0) {
           clearTurnTimer(room);
           rooms.delete(data.roomKey);
+        } else if (!hasHumanPlayers(room)) {
+          clearTurnTimer(room);
+          removeAllBots(data.roomKey);
+          if (room.players.length === 0) rooms.delete(data.roomKey);
         } else {
           broadcastToRoom(data.roomKey, { type: 'userLeft', id: ws.id });
 
-          if (room.gameType === 'checkers' && room.ckPhase === 'playing') {
-            const remainingColor = room.ckPlayers.red === ws.id ? 'white' : 'red';
+          if (room.ckPhase === 'playing') {
+            ckClearTurnTimer(room);
+            const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
             room.ckPhase = 'over';
             broadcastToRoom(data.roomKey, { type: 'ckGameOver', winner: remainingColor, reason: 'disconnect' });
           }
