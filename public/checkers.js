@@ -5,6 +5,7 @@
   const BOARD_BG = '/checkers/boards/board_plain_01.png';
   const CURSOR_IMG = '/checkers/cursor.png';
   const MOVE_SFX = new Audio('/checker-move.ogg');
+  const CAPTURE_SFX = new Audio('/checker-capture.ogg');
 
   /* Sprite positions (percentage-based, with background-size: 400% 100%)
      Sheet is 64x16 — four 16x16 sprites in a row. */
@@ -30,6 +31,8 @@
   let ckTimerSeconds = 0;
   let ckTurnDeadline = 0;
   let ckTimerInterval = null;
+  let ckCapturesRed = 0;
+  let ckCapturesWhite = 0;
 
   /* ── DOM refs (lazily initialised) ── */
 
@@ -142,6 +145,7 @@
       '.ck-color-white{background:#eee}' +
 
       '.ck-player-name{color:#ddd}' +
+      '.ck-captures{color:#888;font-size:.4rem;margin-left:.25rem}' +
 
       '.ck-board-wrap{flex:1;display:flex;align-items:center;justify-content:center;' +
         'min-height:0;padding:.5rem}' +
@@ -173,16 +177,12 @@
       '.ck-valid-move::after{content:"";position:absolute;inset:0;margin:auto;' +
         'width:24%;height:24%;max-width:24%;max-height:24%;aspect-ratio:1;' +
         'background:rgba(255,215,0,.75);pointer-events:none;z-index:2;' +
-        'transform:rotate(45deg);image-rendering:pixelated;' +
-        'animation:ckPulse 1s steps(2) infinite}' +
+        'transform:rotate(45deg);image-rendering:pixelated}' +
 
       '.ck-valid-capture::after{content:"";position:absolute;inset:0;margin:auto;' +
         'width:55%;height:55%;max-width:55%;max-height:55%;aspect-ratio:1;' +
         'border:.2rem solid rgba(255,70,70,.85);' +
-        'pointer-events:none;z-index:2;image-rendering:pixelated;' +
-        'animation:ckPulse 1s steps(2) infinite}' +
-
-      '@keyframes ckPulse{0%,100%{opacity:.45}50%{opacity:1}}' +
+        'pointer-events:none;z-index:2;image-rendering:pixelated}' +
 
       '.ck-timer-setting{display:flex;align-items:center;gap:.4rem;font-size:.45rem}' +
       '.ck-timer-setting.hidden{display:none}' +
@@ -345,6 +345,12 @@
       nm.className = 'ck-player-name';
       nm.textContent = (p.nickname || p.id) + (p.id === ckMyId ? ' (you)' : '');
       tag.appendChild(nm);
+      if (p.color) {
+        var cap = document.createElement('span');
+        cap.className = 'ck-captures';
+        cap.textContent = ' ' + (p.color === 'red' ? ckCapturesRed : ckCapturesWhite) + ' captured';
+        tag.appendChild(cap);
+      }
 
       playersAreaEl.appendChild(tag);
     }
@@ -429,6 +435,8 @@
     switch (msg.type) {
       case 'ckGameStarted':
         ckGameState = 'playing';
+        ckCapturesRed = 0;
+        ckCapturesWhite = 0;
         ckBoard = msg.board || emptyBoard();
         ckTurn = msg.turn || 'red';
         ckWinner = null;
@@ -460,12 +468,23 @@
         ckTurn = msg.turn;
         ckSelected = null;
         ckValidMoves = [];
-        try {
-          var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
-          MOVE_SFX.volume = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
-          MOVE_SFX.currentTime = 0;
-          MOVE_SFX.play();
-        } catch (_) {}
+        if (msg.lastMove && msg.lastMove.captured) {
+          var capturerColor = msg.turn === 'red' ? 'white' : 'red';
+          if (capturerColor === 'red') ckCapturesRed++; else ckCapturesWhite++;
+          try {
+            var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
+            CAPTURE_SFX.volume = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
+            CAPTURE_SFX.currentTime = 0;
+            CAPTURE_SFX.play();
+          } catch (_) {}
+        } else {
+          try {
+            var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
+            MOVE_SFX.volume = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
+            MOVE_SFX.currentTime = 0;
+            MOVE_SFX.play();
+          } catch (_) {}
+        }
 
         if (ckTurn === ckMyColor) {
           setStatus('Your turn!');
@@ -500,6 +519,8 @@
 
       case 'ckWaiting':
         ckGameState = 'waiting';
+        ckCapturesRed = 0;
+        ckCapturesWhite = 0;
         stopCkTimer();
         setStatus('Waiting for opponent...');
         renderAll();
@@ -522,6 +543,8 @@
     ckPlayers = players || [];
     ckRoomKey = roomKey || '';
     ckGameState = 'waiting';
+    ckCapturesRed = 0;
+    ckCapturesWhite = 0;
     ckBoard = emptyBoard();
     ckTurn = null;
     ckSelected = null;
