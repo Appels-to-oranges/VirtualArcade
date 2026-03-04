@@ -259,10 +259,15 @@ const btnFold = document.getElementById('btn-fold');
 const btnCheck = document.getElementById('btn-check');
 const btnCall = document.getElementById('btn-call');
 const betAmountInput = document.getElementById('bet-amount');
+const betSlider = document.getElementById('bet-slider');
+const sliderLabel = document.getElementById('slider-label');
+const sliderRow = document.getElementById('slider-row');
 const btnBet = document.getElementById('btn-bet');
 const btnHalfPot = document.getElementById('btn-half-pot');
 const btnFullPot = document.getElementById('btn-full-pot');
 const btnAllin = document.getElementById('btn-allin');
+const btnPresetX3 = document.getElementById('btn-preset-x3');
+const btnPresetX5 = document.getElementById('btn-preset-x5');
 
 const radioBtn = document.getElementById('radio-btn');
 const radioOverlay = document.getElementById('radio-overlay');
@@ -302,8 +307,12 @@ let lastWinnerNames = '';
 let lastNetWon = 0;
 let lastDidIFold = false;
 let turnTimerInterval = null;
+let turnStartedAt = 0;
 let prevTurnIdx = -1;
 let currentGameType = 'holdem';
+let hasPlayedGame = false;
+let nextHandInterval = null;
+const NEXT_HAND_DELAY_S = 30;
 const CHAT_DURATION_MS = 8000;
 const playerChatMessages = {};
 const playerChatTimeouts = {};
@@ -647,6 +656,8 @@ function handleMessage(msg) {
       break;
 
     case 'gameStarted':
+      stopNextHandTimer();
+      hasPlayedGame = true;
       playShuffle();
       lastWinningCards = null;
       lastWinnerNames = '';
@@ -671,6 +682,7 @@ function handleMessage(msg) {
       myHand = [];
       prevCommunityCount = 0;
       prevMyHandCount = 0;
+      turnStartedAt = Date.now();
       renderTable();
       updateControls();
       break;
@@ -691,7 +703,8 @@ function handleMessage(msg) {
       gameState.turnIdx = msg.turnIdx;
       gameState.facingAllIn = false;
       prevCommunityCount = oldCount;
-      if (msg.turnIdx === -1) stopTurnTimer();
+      if (msg.turnIdx === -1) { stopTurnTimer(); turnStartedAt = 0; }
+      else turnStartedAt = Date.now();
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -717,9 +730,9 @@ function handleMessage(msg) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
           if (pl) {
-            pl.chips = p.chips;
-            pl.betThisRound = p.betThisRound;
-            pl.folded = p.folded;
+            if (p.chips !== undefined) pl.chips = p.chips;
+            if (p.betThisRound !== undefined) pl.betThisRound = p.betThisRound;
+            if (p.folded !== undefined) pl.folded = p.folded;
             if (p.winStreak !== undefined) pl.winStreak = p.winStreak;
             if (p.maxWinStreak !== undefined) pl.maxWinStreak = p.maxWinStreak;
           }
@@ -736,12 +749,14 @@ function handleMessage(msg) {
         gameState.turnIdx = msg.turnIdx;
         gameState.facingAllIn = msg.facingAllIn === true;
       }
+      turnStartedAt = Date.now();
       renderTable();
       updateControls();
       break;
 
     case 'gameOver': {
       stopTurnTimer();
+      turnStartedAt = 0;
       if (gameState) gameState.facingAllIn = false;
       const winByFold = msg.reason === 'fold';
       lastWinningCards = winByFold ? [] : (msg.winningCards || []);
@@ -803,6 +818,7 @@ function handleMessage(msg) {
 
     case 'roundOver':
       stopTurnTimer();
+      turnStartedAt = 0;
       lastDidIFold = false;
       hideShowdown();
       gameState = null;
@@ -823,6 +839,7 @@ function handleMessage(msg) {
       }
       renderTable();
       updateControls();
+      if (players.length >= 2) startNextHandTimer();
       break;
 
     case 'playerViewChanged':
@@ -875,6 +892,8 @@ function showJoinScreen() {
   if (window.blackjack) window.blackjack.hide();
   if (window.checkers) window.checkers.hide();
   stopAmbience();
+  stopNextHandTimer();
+  hasPlayedGame = false;
   Object.keys(playerChatTimeouts).forEach((id) => {
     clearTimeout(playerChatTimeouts[id]);
   });
@@ -992,14 +1011,14 @@ function renderTable() {
     if (pot > 0) {
       const potChips = document.createElement('span');
       potChips.className = 'pot-chips';
-      potChips.appendChild(renderChipStack(pot, 4));
+      potChips.appendChild(renderChipStack(pot, 2));
       potInControls.appendChild(potChips);
     }
   }
   if (tablePotAmountEl) tablePotAmountEl.textContent = `$${pot}`;
   if (tablePotChipsEl) {
     tablePotChipsEl.innerHTML = '';
-    if (pot > 0) tablePotChipsEl.appendChild(renderChipStack(pot, 5));
+    if (pot > 0) tablePotChipsEl.appendChild(renderChipStack(pot, 3));
   }
   phaseLabel.textContent = gameState?.phase ? gameState.phase.toUpperCase() : '';
 
@@ -1037,19 +1056,17 @@ function renderTable() {
     }
   }
 
-  /* Winning hand row: only show to players who didn't fold */
   if (winningHandRowEl && winningHandCardsEl) {
-    const labelEl = winningHandRowEl.querySelector('.winning-hand-label');
-    const holeSet = new Set(lastWinningHoleIndices || []);
     if (showWinningHand) {
       winningHandRowEl.classList.remove('hidden');
-      if (labelEl) labelEl.textContent = lastHandName ? `Winning hand: ${lastHandName}` : 'Winning hand';
+      const labelEl = winningHandRowEl.querySelector('.winning-hand-label');
+      if (labelEl) labelEl.style.display = 'none';
       winningHandCardsEl.innerHTML = '';
+      const holeSet = new Set(lastWinningHoleIndices || []);
       lastWinningCards.forEach((card, idx) => {
         const div = document.createElement('div');
         div.className = 'card winning-card' + (holeSet.has(idx) ? ' from-hole' : '');
         div.style.backgroundImage = `url(${cardImagePath(card)})`;
-        div.title = holeSet.has(idx) ? 'From player\'s hand' : 'From board';
         winningHandCardsEl.appendChild(div);
       });
     } else {
@@ -1063,20 +1080,35 @@ function renderTable() {
   const count = players.length;
   if (count === 0) return;
 
-  const cx = 50;
-  const cy = 50;
-  const rx = 38;
-  const ry = 30;
+  const CX = 50, CY = 46;
+  const RX = 42, RY = count <= 2 ? 26 : 36;
+  const BET_LERP = 0.55;
+
+  function polyPositions(n) {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2 + Math.PI / 2;
+      const sx = CX + RX * Math.cos(angle);
+      const sy = Math.max(18, Math.min(82, CY + RY * Math.sin(angle)));
+      const bx = sx + (CX - sx) * BET_LERP;
+      const by = sy + (CY - sy) * BET_LERP;
+      out.push({ seat: [sx, sy], bet: [bx, by] });
+    }
+    return out;
+  }
+
+  const positions = polyPositions(count);
   const myPosIdx = players.findIndex((p) => p.id === myId);
-  const offset = myPosIdx >= 0 ? Math.PI / 2 - (myPosIdx / count) * Math.PI * 2 : 0;
+  const rotateBy = myPosIdx > 0 ? myPosIdx : 0;
 
   players.forEach((p, i) => {
-    const angle = (i / count) * Math.PI * 2 - Math.PI / 2 + offset;
-    const x = cx + rx * Math.cos(angle);
-    const y = cy + ry * Math.sin(angle);
+    const seatSlot = (i - rotateBy + count) % count;
+    const pos = positions[seatSlot];
+    const [x, y] = pos.seat;
+    const [betPosX, betPosY] = pos.bet;
 
     const seat = document.createElement('div');
-    seat.className = 'player-seat';
+    seat.className = 'player-seat seats-' + count;
     seat.style.left = `${x}%`;
     seat.style.top = `${y}%`;
     seat.style.transform = 'translate(-50%, -50%)';
@@ -1094,6 +1126,7 @@ function renderTable() {
 
     if (isTurn) seat.classList.add('is-turn');
     if (isDealer) seat.classList.add('is-dealer');
+    if (isMe) seat.classList.add('is-me');
 
     const chatData = playerChatMessages[p.id];
     if (chatData && chatData.expiresAt > Date.now()) {
@@ -1103,56 +1136,7 @@ function renderTable() {
       seat.appendChild(chatBubble);
     }
 
-    const seatInfo = document.createElement('div');
-    seatInfo.className = 'seat-info';
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'seat-name';
-    nameSpan.textContent = `${p.nickname || 'Player'}${badge}`;
-    seatInfo.appendChild(nameSpan);
-    const chipsSpan = document.createElement('span');
-    chipsSpan.className = 'seat-chips';
-    chipsSpan.textContent = `$${p.chips ?? 0}`;
-    seatInfo.appendChild(chipsSpan);
-    const winStreak = p.winStreak ?? 0;
-    const maxWinStreak = p.maxWinStreak ?? 0;
-    if (winStreak > 0 || maxWinStreak > 0) {
-      const streakWrap = document.createElement('span');
-      streakWrap.className = 'seat-streak';
-      if (winStreak > 0) {
-        const currentWrap = document.createElement('span');
-        currentWrap.className = 'seat-streak-current-wrap' + (winStreak >= 3 ? ' seat-streak-current-fire' : '');
-        if (winStreak >= 3) {
-          const streakFire = document.createElement('span');
-          streakFire.className = 'seat-streak-fire';
-          currentWrap.appendChild(streakFire);
-        }
-        const streakCurrent = document.createElement('span');
-        streakCurrent.className = 'seat-streak-current';
-        streakCurrent.textContent = `${winStreak}W`;
-        currentWrap.appendChild(streakCurrent);
-        streakWrap.appendChild(currentWrap);
-      }
-      if (maxWinStreak > 0) {
-        const streakBest = document.createElement('span');
-        streakBest.className = 'seat-streak-best';
-        streakBest.textContent = (winStreak > 0 ? ' · ' : '') + `Best ${maxWinStreak}`;
-        streakWrap.appendChild(streakBest);
-      }
-      seatInfo.appendChild(streakWrap);
-    }
-    if (p.folded) {
-      const foldedSpan = document.createElement('span');
-      foldedSpan.className = 'seat-folded';
-      foldedSpan.textContent = 'Folded';
-      seatInfo.appendChild(foldedSpan);
-    }
-    seat.appendChild(seatInfo);
-
-    const chipStackDiv = document.createElement('div');
-    chipStackDiv.className = 'seat-chip-stack';
-    chipStackDiv.appendChild(renderChipIcons(p.chips ?? 0, 6));
-    seat.appendChild(chipStackDiv);
-
+    // Cards first (above name)
     const cardsDiv = document.createElement('div');
     cardsDiv.className = 'player-cards';
 
@@ -1199,29 +1183,106 @@ function renderTable() {
 
     seat.appendChild(cardsDiv);
 
+    if (isMe && myHand.length > 0 && !p.folded) {
+      const handRank = evaluateHand(myHand, gameState?.communityCards);
+      if (handRank) {
+        const rankEl = document.createElement('div');
+        rankEl.className = 'hand-rank-label';
+        rankEl.textContent = handRank.descr || handRank.name;
+        seat.appendChild(rankEl);
+      }
+    }
+
+    // Name, chips, streak below cards
+    const seatInfo = document.createElement('div');
+    seatInfo.className = 'seat-info';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'seat-name';
+    nameSpan.textContent = `${p.nickname || 'Player'}${badge}`;
+    seatInfo.appendChild(nameSpan);
+    const chipsSpan = document.createElement('span');
+    chipsSpan.className = 'seat-chips';
+    chipsSpan.textContent = `$${p.chips ?? 0}`;
+    seatInfo.appendChild(chipsSpan);
+    const winStreak = p.winStreak ?? 0;
+    const maxWinStreak = p.maxWinStreak ?? 0;
+    if (winStreak > 0 || maxWinStreak > 0) {
+      const streakWrap = document.createElement('span');
+      streakWrap.className = 'seat-streak';
+      if (winStreak > 0) {
+        const currentWrap = document.createElement('span');
+        currentWrap.className = 'seat-streak-current-wrap' + (winStreak >= 3 ? ' seat-streak-current-fire' : '');
+        if (winStreak >= 3) {
+          const streakFire = document.createElement('span');
+          streakFire.className = 'seat-streak-fire';
+          currentWrap.appendChild(streakFire);
+        }
+        const streakCurrent = document.createElement('span');
+        streakCurrent.className = 'seat-streak-current';
+        streakCurrent.textContent = `${winStreak}W`;
+        currentWrap.appendChild(streakCurrent);
+        streakWrap.appendChild(currentWrap);
+      }
+      if (maxWinStreak > 0) {
+        const streakBest = document.createElement('span');
+        streakBest.className = 'seat-streak-best';
+        streakBest.textContent = (winStreak > 0 ? ' · ' : '') + `Best ${maxWinStreak}`;
+        streakWrap.appendChild(streakBest);
+      }
+      seatInfo.appendChild(streakWrap);
+    }
+    if (p.folded) {
+      const foldedSpan = document.createElement('span');
+      foldedSpan.className = 'seat-folded';
+      foldedSpan.textContent = 'Folded';
+      seatInfo.appendChild(foldedSpan);
+    }
+    seat.appendChild(seatInfo);
+
+    if (isTurn && turnStartedAt > 0) {
+      const timerTrack = document.createElement('div');
+      timerTrack.className = 'seat-timer-track';
+      const timerBar = document.createElement('div');
+      timerBar.className = 'seat-timer-bar';
+      const elapsed = Date.now() - turnStartedAt;
+      timerBar.style.animationDuration = `${TURN_TIMEOUT_MS}ms`;
+      timerBar.style.animationDelay = `-${elapsed}ms`;
+      timerTrack.appendChild(timerBar);
+      seat.appendChild(timerTrack);
+    }
+
+    const chipStackDiv = document.createElement('div');
+    chipStackDiv.className = 'seat-chip-stack';
+    chipStackDiv.appendChild(renderChipIcons(p.chips ?? 0, 4));
+    seat.appendChild(chipStackDiv);
+
+    playersContainer.appendChild(seat);
+
     if (p.betThisRound && p.betThisRound > 0) {
       const betChipsDiv = document.createElement('div');
       betChipsDiv.className = 'seat-bet';
+      betChipsDiv.style.left = `${betPosX}%`;
+      betChipsDiv.style.top = `${betPosY}%`;
+      betChipsDiv.style.transform = 'translate(-50%, -50%)';
       const betAmount = document.createElement('span');
       betAmount.className = 'seat-bet-amount';
       betAmount.textContent = `$${p.betThisRound}`;
       betChipsDiv.appendChild(betAmount);
       const chipsSpan = document.createElement('span');
       chipsSpan.className = 'seat-bet-chips';
-      chipsSpan.appendChild(renderChipStack(p.betThisRound, 3));
+      chipsSpan.appendChild(renderChipStack(p.betThisRound, 1));
       betChipsDiv.appendChild(chipsSpan);
-      seat.appendChild(betChipsDiv);
+      playersContainer.appendChild(betChipsDiv);
     }
-
-    playersContainer.appendChild(seat);
   });
 
   const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
   startBtn.disabled = !canStart;
   startBtn.title = players.length < 2 ? 'Need 2 players to start' : '';
+  startBtn.textContent = hasPlayedGame ? 'Restart' : 'Start Game';
   const restartBtn = document.getElementById('restart-btn');
   if (restartBtn) {
-    restartBtn.classList.toggle('hidden', !canStart);
+    restartBtn.classList.toggle('hidden', !canStart || !hasPlayedGame);
     restartBtn.disabled = !canStart;
   }
   const waitingEl = document.getElementById('waiting-for-players');
@@ -1236,16 +1297,11 @@ function renderTable() {
     addBotBtn.disabled = !showAddBot;
   }
 
-  const handRank = evaluateHand(myHand, gameState?.communityCards);
-  if (handRankLabel) {
-    const text = handRank ? (handRank.descr || handRank.name) : '';
-    handRankLabel.textContent = text;
-    handRankLabel.style.display = text ? 'block' : 'none';
-  }
 }
 
 function startTurnTimer() {
   stopTurnTimer();
+  turnStartedAt = Date.now();
   let remaining = TURN_TIMEOUT_MS / 1000;
   if (turnTimerEl) {
     turnTimerEl.classList.remove('hidden');
@@ -1264,6 +1320,35 @@ function stopTurnTimer() {
     turnTimerInterval = null;
   }
   if (turnTimerEl) turnTimerEl.classList.add('hidden');
+}
+
+function startNextHandTimer() {
+  stopNextHandTimer();
+  const timerEl = document.getElementById('next-hand-timer');
+  let remaining = NEXT_HAND_DELAY_S;
+  if (timerEl) {
+    timerEl.classList.remove('hidden');
+    timerEl.textContent = `(${remaining}s)`;
+  }
+  nextHandInterval = setInterval(() => {
+    remaining--;
+    if (timerEl) timerEl.textContent = `(${remaining}s)`;
+    if (remaining <= 0) {
+      stopNextHandTimer();
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'startGame', resetStreaks: false }));
+      }
+    }
+  }, 1000);
+}
+
+function stopNextHandTimer() {
+  if (nextHandInterval) {
+    clearInterval(nextHandInterval);
+    nextHandInterval = null;
+  }
+  const timerEl = document.getElementById('next-hand-timer');
+  if (timerEl) timerEl.classList.add('hidden');
 }
 
 function updateControls() {
@@ -1289,10 +1374,14 @@ function updateControls() {
   const toCall = currentBet - myBet;
   const pot = gameState?.pot ?? 0;
   const facingAllIn = gameState?.facingAllIn === true;
-  const canCheck = toCall <= 0 && !facingAllIn;
+  const anyOpponentAllIn = !!gameState && players.some(p =>
+    p.id !== myId && !p.folded && (p.chips ?? 0) === 0 && (p.betThisRound || 0) > 0
+  );
+  const canCheck = toCall <= 0 && !facingAllIn && !anyOpponentAllIn;
 
   if (!gameState) {
     stopTurnTimer();
+    turnStartedAt = 0;
     prevTurnIdx = -1;
   }
 
@@ -1312,6 +1401,8 @@ function updateControls() {
   btnAllin.disabled = !isMyTurn || folded || myChips <= 0;
   if (btnHalfPot) btnHalfPot.disabled = !canRaise;
   if (btnFullPot) btnFullPot.disabled = !canRaise;
+  if (btnPresetX3) btnPresetX3.disabled = !canRaise;
+  if (btnPresetX5) btnPresetX5.disabled = !canRaise;
 
   if (toCall > 0) {
     btnCall.textContent = `Call $${toCall}`;
@@ -1327,12 +1418,26 @@ function updateControls() {
 
   btnAllin.textContent = `All In $${myChips}`;
 
-  betAmountInput.placeholder = `$${minRaise}`;
+  if (sliderRow) {
+    sliderRow.classList.toggle('hidden', !canRaise);
+  }
+  if (betSlider) {
+    const sliderMin = Math.min(minBetTo, myChips);
+    betSlider.min = sliderMin;
+    betSlider.max = myChips;
+    const curVal = parseInt(betAmountInput.value, 10) || 0;
+    if (curVal < sliderMin) {
+      betSlider.value = sliderMin;
+      betAmountInput.value = sliderMin;
+      if (sliderLabel) sliderLabel.textContent = `$${sliderMin}`;
+    }
+  }
+
   betAmountInput.min = minRaise;
 }
 
 startBtn.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: true }));
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: true, resetChips: true }));
 });
 
 const restartBtnEl = document.getElementById('restart-btn');
@@ -1377,6 +1482,21 @@ btnBet.addEventListener('click', () => {
   }
 });
 
+function setSliderValue(amt) {
+  const clampedAmt = Math.max(parseInt(betSlider?.min || 0, 10), Math.min(parseInt(betSlider?.max || 1000, 10), amt));
+  if (betSlider) betSlider.value = clampedAmt;
+  if (betAmountInput) betAmountInput.value = clampedAmt;
+  if (sliderLabel) sliderLabel.textContent = `$${clampedAmt}`;
+}
+
+if (betSlider) {
+  betSlider.addEventListener('input', () => {
+    const val = parseInt(betSlider.value, 10);
+    if (betAmountInput) betAmountInput.value = val;
+    if (sliderLabel) sliderLabel.textContent = `$${val}`;
+  });
+}
+
 if (btnHalfPot) {
   btnHalfPot.addEventListener('click', () => {
     const pot = gameState?.pot ?? 0;
@@ -1385,8 +1505,7 @@ if (btnHalfPot) {
     const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
     const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
     const halfPot = Math.floor(pot / 2);
-    const amt = Math.min(myChips, Math.max(minBetTo, halfPot));
-    betAmountInput.value = amt;
+    setSliderValue(Math.min(myChips, Math.max(minBetTo, halfPot)));
   });
 }
 if (btnFullPot) {
@@ -1396,8 +1515,27 @@ if (btnFullPot) {
     const minRaise = gameState?.minRaise || 20;
     const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
     const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
-    const amt = Math.min(myChips, Math.max(minBetTo, pot));
-    betAmountInput.value = amt;
+    setSliderValue(Math.min(myChips, Math.max(minBetTo, pot)));
+  });
+}
+if (btnPresetX3) {
+  btnPresetX3.addEventListener('click', () => {
+    const currentBet = gameState?.currentBet || 0;
+    const minRaise = gameState?.minRaise || 20;
+    const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
+    const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
+    const target = currentBet > 0 ? currentBet * 3 : minBetTo * 3;
+    setSliderValue(Math.min(myChips, Math.max(minBetTo, target)));
+  });
+}
+if (btnPresetX5) {
+  btnPresetX5.addEventListener('click', () => {
+    const currentBet = gameState?.currentBet || 0;
+    const minRaise = gameState?.minRaise || 20;
+    const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
+    const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
+    const target = currentBet > 0 ? currentBet * 5 : minBetTo * 5;
+    setSliderValue(Math.min(myChips, Math.max(minBetTo, target)));
   });
 }
 

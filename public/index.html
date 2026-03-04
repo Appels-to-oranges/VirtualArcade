@@ -94,6 +94,7 @@
       <button id="start-btn" class="btn-start">Start Game</button>
       <button id="add-bot-btn" class="btn-add-bot hidden">Add Bot</button>
       <button id="restart-btn" class="btn-restart hidden">Next Hand</button>
+      <span id="next-hand-timer" class="next-hand-timer hidden"></span>
       <div class="chat-input-wrap">
         <input type="text" id="chat-input" class="chat-input" placeholder="Chat..." maxlength="100" autocomplete="off">
         <button type="button" id="chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
@@ -102,9 +103,8 @@
     </div>
     <div class="table-container">
       <div class="poker-table">
-        <div class="phase-label" id="phase-label"></div>
-        <div class="hand-rank-label" id="hand-rank-label"></div>
         <div class="community-area" id="community-area">
+          <div class="phase-label" id="phase-label"></div>
           <div class="table-pot" id="table-pot">
             <span class="table-pot-label">Pot</span>
             <span class="table-pot-amount" id="table-pot-amount">$0</span>
@@ -122,18 +122,24 @@
     </div>
     <div class="controls" id="controls">
       <div class="turn-timer hidden" id="turn-timer"></div>
-      <div class="pot-in-controls" id="pot-in-controls">Pot: $0</div>
-      <button id="btn-fold" class="btn btn-fold">Fold</button>
-      <button id="btn-check" class="btn btn-check">Check</button>
-      <button id="btn-call" class="btn btn-call">Call</button>
-      <div class="bet-row">
-        <input type="number" id="bet-amount" placeholder="$20" min="0" value="40">
-        <button type="button" id="btn-half-pot" class="btn btn-bet btn-pot" title="Half pot">½</button>
-        <button type="button" id="btn-full-pot" class="btn btn-bet btn-pot" title="Full pot">Pot</button>
+      <div class="controls-main">
+        <div class="pot-in-controls" id="pot-in-controls">Pot: $0</div>
+        <button id="btn-fold" class="btn btn-fold">Fold</button>
+        <button id="btn-check" class="btn btn-check">Check</button>
+        <button id="btn-call" class="btn btn-call">Call</button>
         <button id="btn-bet" class="btn btn-bet">Bet</button>
+        <button id="btn-rebuy" class="btn btn-rebuy hidden">Rebuy $1000</button>
       </div>
-      <button id="btn-allin" class="btn btn-allin">All In</button>
-      <button id="btn-rebuy" class="btn btn-rebuy hidden">Rebuy $1000</button>
+      <div class="controls-slider-row" id="slider-row">
+        <span class="slider-label" id="slider-label">$40</span>
+        <input type="range" id="bet-slider" class="bet-slider" min="0" max="1000" value="40">
+        <input type="hidden" id="bet-amount" value="40">
+        <button type="button" id="btn-preset-x3" class="btn btn-preset">x3</button>
+        <button type="button" id="btn-preset-x5" class="btn btn-preset">x5</button>
+        <button type="button" id="btn-half-pot" class="btn btn-preset">½ Pot</button>
+        <button type="button" id="btn-full-pot" class="btn btn-preset">Pot</button>
+        <button id="btn-allin" class="btn btn-allin">All In</button>
+      </div>
     </div>
     <div class="now-playing-radio hidden" id="now-playing-radio">
       <span class="now-playing-label" id="now-playing-radio-label"></span>

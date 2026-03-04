@@ -211,12 +211,15 @@ function broadcastToRoom(roomKey, message, excludeWs = null) {
   });
 }
 
-function startGame(roomKey, resetStreaks = false) {
+function startGame(roomKey, resetStreaks = false, resetChips = false) {
   const room = getRoom(roomKey);
   const holdemPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'holdem');
   if (holdemPlayers.length < 2 || holdemPlayers.length > 6) return;
   room.holdemPlayers = holdemPlayers;
 
+  if (resetChips) {
+    holdemPlayers.forEach((p) => { p.chips = 1000; });
+  }
   if (resetStreaks) {
     holdemPlayers.forEach((p) => {
       p.winStreak = 0;
@@ -564,7 +567,10 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
       pot: room.pot,
       players: players.map((p, i) => ({ id: p.id, folded: p.folded, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
     });
-    if (activeCount <= 1) { showdown(roomKey); return; }
+    if (activeCount <= 1) {
+      setTimeout(() => { if (room.phase !== 'lobby') showdown(roomKey); }, 1200);
+      return;
+    }
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
 
@@ -685,15 +691,22 @@ function checkBettingComplete(roomKey) {
   const room = getRoom(roomKey);
   const players = getHoldemPlayers(room);
   const active = players.filter((p) => canAct(p));
-  if (active.length <= 1) {
+  if (active.length === 0) {
     nextPhase(roomKey);
     return;
   }
-  const allMatched = active.every((p) => p.betThisRound >= room.currentBet);
-  const raiserGone = room.lastRaiserIdx < 0 || !canAct(players[room.lastRaiserIdx]);
-  if (allMatched && (room.turnIdx === room.lastRaiserIdx || raiserGone)) {
-    nextPhase(roomKey);
-    return;
+  if (active.length === 1) {
+    if (active[0].betThisRound >= room.currentBet) {
+      nextPhase(roomKey);
+      return;
+    }
+  } else {
+    const allMatched = active.every((p) => p.betThisRound >= room.currentBet);
+    const raiserGone = room.lastRaiserIdx < 0 || !canAct(players[room.lastRaiserIdx]);
+    if (allMatched && (room.turnIdx === room.lastRaiserIdx || raiserGone)) {
+      nextPhase(roomKey);
+      return;
+    }
   }
   const turnPlayer = players[room.turnIdx];
   const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && players[room.lastRaiserIdx]?.allIn === true;
@@ -1376,7 +1389,8 @@ wss.on('connection', (ws) => {
           ckStartGame(data.roomKey);
         } else {
           const resetStreaks = msg.resetStreaks === true;
-          startGame(data.roomKey, resetStreaks);
+          const resetChips = msg.resetChips === true;
+          startGame(data.roomKey, resetStreaks, resetChips);
         }
       } else if (type === 'changeRadio') {
         const data = clients.get(ws);
@@ -1507,9 +1521,12 @@ wss.on('connection', (ws) => {
           room.turnIdx = advanceTurn(room, room.turnIdx);
           checkBettingComplete(data.roomKey);
         } else if (action === 'check') {
-          clearTurnTimer(room);
           const anyAllIn = players.some((p) => !p.folded && p.allIn && p.betThisRound > 0);
-          if (player.betThisRound < room.currentBet || anyAllIn) return;
+          if (player.betThisRound < room.currentBet || anyAllIn) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Cannot check — you must call or fold' }));
+            return;
+          }
+          clearTurnTimer(room);
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,
@@ -1544,7 +1561,6 @@ wss.on('connection', (ws) => {
           room.turnIdx = advanceTurn(room, room.turnIdx);
           checkBettingComplete(data.roomKey);
         } else if (action === 'bet' || action === 'raise') {
-          clearTurnTimer(room);
           const facingAllIn = room.currentBet > 0 && room.lastRaiserIdx >= 0 && players[room.lastRaiserIdx]?.allIn === true;
           if (facingAllIn) return;
           const raiseTo = Math.max(0, Math.floor(Number(amount) || 0));
@@ -1552,6 +1568,7 @@ wss.on('connection', (ws) => {
           if (raiseTo < minRaiseTo) return;
           const toAdd = raiseTo - player.betThisRound;
           if (toAdd > player.chips || toAdd < 0) return;
+          clearTurnTimer(room);
 
           const prevBet = room.currentBet;
           player.chips -= toAdd;
@@ -1563,6 +1580,7 @@ wss.on('connection', (ws) => {
           room.minRaise = Math.max(room.bigBlind, raiseTo - prevBet);
           if (player.chips === 0) player.allIn = true;
 
+          const facingAllInNow = room.currentBet > 0 && room.lastRaiserIdx >= 0 && players[room.lastRaiserIdx]?.allIn === true;
           broadcastToRoom(data.roomKey, {
             type: 'action',
             playerId: ws.id,
@@ -1571,6 +1589,7 @@ wss.on('connection', (ws) => {
             currentBet: room.currentBet,
             minRaise: room.minRaise,
             pot: room.pot,
+            facingAllIn: facingAllInNow,
             players: players.map((p, i) => ({
               id: p.id,
               chips: p.chips,
