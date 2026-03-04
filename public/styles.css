@@ -137,6 +137,19 @@ body {
   border-color: #484f58;
 }
 
+.btn-back-icon {
+  width: 0.7rem;
+  height: 0.7rem;
+  vertical-align: middle;
+  margin-right: 0.15rem;
+  filter: invert(0.6);
+  transition: filter 0.2s;
+}
+
+.btn-back-inline:hover .btn-back-icon {
+  filter: invert(0.85);
+}
+
 .lobby-radio-panel {
   display: flex;
   align-items: center;

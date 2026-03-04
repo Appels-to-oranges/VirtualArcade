@@ -214,7 +214,7 @@
     screenEl.className = 'hidden';
     screenEl.innerHTML =
       '<div class="ck-room-bar">' +
-        '<button type="button" id="ck-back-btn" class="btn-back-inline" title="Back to game selection">&#x2190; Back</button>' +
+        '<button type="button" id="ck-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>' +
         '<span id="ck-room-label"></span>' +
         '<div class="ck-timer-setting" id="ck-timer-setting">' +
           '<label for="ck-timer-select">Turn timer</label>' +
