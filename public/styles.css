@@ -244,6 +244,18 @@ body {
   transition: background 0.15s, opacity 0.15s;
 }
 
+.lobby-header-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  object-fit: contain;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.lobby-header-btn:hover .lobby-header-icon {
+  opacity: 1;
+}
+
 .lobby-header-btn:hover {
   background: var(--lobby-border);
   opacity: 1;

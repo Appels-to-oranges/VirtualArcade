@@ -4,6 +4,7 @@
   const SPRITE_SHEET = '/checkers/pieces.png';
   const BOARD_BG = '/checkers/boards/board_plain_01.png';
   const CURSOR_IMG = '/checkers/cursor.png';
+  const MOVE_SFX = new Audio('/checker-move.ogg');
 
   /* Sprite positions (percentage-based, with background-size: 400% 100%)
      Sheet is 64x16 — four 16x16 sprites in a row. */
@@ -457,6 +458,12 @@
         ckTurn = msg.turn;
         ckSelected = null;
         ckValidMoves = [];
+        try {
+          var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
+          MOVE_SFX.volume = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
+          MOVE_SFX.currentTime = 0;
+          MOVE_SFX.play();
+        } catch (_) {}
 
         if (ckTurn === ckMyColor) {
           setStatus('Your turn!');
