@@ -244,6 +244,18 @@ body {
   transition: background 0.15s, opacity 0.15s;
 }
 
+.lobby-header-icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  filter: invert(1) brightness(0.9);
+  transition: filter 0.15s;
+}
+
+.lobby-header-btn:hover .lobby-header-icon {
+  filter: invert(1) brightness(1.15);
+}
+
 .lobby-header-btn:hover {
   background: var(--lobby-border);
   opacity: 1;
@@ -648,6 +660,9 @@ body {
 
 /* ── Join screen ── */
 #join-screen {
+  --join-accent: #c9b896;
+  --join-btn-bg: #238636;
+  --join-btn-hover: #2ea043;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -658,6 +673,32 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
+}
+
+#join-screen.splash-waterfront {
+  --join-accent: #d4a55c;
+  --join-btn-bg: #8a6a30;
+  --join-btn-hover: #a07838;
+}
+#join-screen.splash-buildings {
+  --join-accent: #7a8a9e;
+  --join-btn-bg: #3e4e62;
+  --join-btn-hover: #4e5e72;
+}
+#join-screen.splash-apartments {
+  --join-accent: #d4a060;
+  --join-btn-bg: #8a6828;
+  --join-btn-hover: #a07830;
+}
+#join-screen.splash-fireflies {
+  --join-accent: #5ca882;
+  --join-btn-bg: #2e6e4e;
+  --join-btn-hover: #3e7e5e;
+}
+#join-screen.splash-snowy-lot {
+  --join-accent: #8a92b8;
+  --join-btn-bg: #4a4e6a;
+  --join-btn-hover: #5a5e7a;
 }
 
 #join-screen::before {
@@ -687,7 +728,7 @@ body {
 .join-card h1 {
   font-size: 1.1rem;
   margin-bottom: 0.35rem;
-  color: #c9b896;
+  color: var(--join-accent, #c9b896);
   text-transform: uppercase;
   letter-spacing: 0.125rem;
   text-align: center;
@@ -749,8 +790,8 @@ body {
 
 .join-form .form-control:focus {
   outline: none;
-  border-color: #40916c;
-  box-shadow: 0 0 0 0.1875rem rgba(64, 145, 108, 0.25);
+  border-color: var(--join-accent, #40916c);
+  box-shadow: 0 0 0 0.1875rem rgba(255, 255, 255, 0.08);
 }
 
 .join-form .btn-join {
@@ -759,8 +800,8 @@ body {
   font-size: 0.6rem;
   font-family: 'Press Start 2P', monospace;
   font-weight: 600;
-  color: #c7ba9b;
-  background: #238636;
+  color: #fff;
+  background: var(--join-btn-bg, #238636);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -770,7 +811,7 @@ body {
 }
 
 .join-form .btn-join:hover {
-  background: #2ea043;
+  background: var(--join-btn-hover, #2ea043);
 }
 
 .join-form .btn-join:active {
