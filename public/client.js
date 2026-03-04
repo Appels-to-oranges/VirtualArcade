@@ -317,7 +317,7 @@ let currentGameType = 'holdem';
 let hasPlayedGame = false;
 let nextHandInterval = null;
 const NEXT_HAND_DELAY_S = 30;
-const CHAT_DURATION_MS = 8000;
+const CHAT_DURATION_MS = 5000;
 const playerChatMessages = {};
 const playerChatTimeouts = {};
 if (typeof window !== 'undefined') window.playerChatMessages = playerChatMessages;
