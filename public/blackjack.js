@@ -237,11 +237,19 @@
     const actionControls = el('bj-controls');
     const startBtn = el('bj-start-btn');
     const nextBtn = el('bj-next-btn');
+    const chipsDisplay = el('bj-my-chips');
 
     if (betControls) betControls.classList.add('hidden');
     if (actionControls) actionControls.classList.add('hidden');
     if (startBtn) startBtn.classList.add('hidden');
     if (nextBtn) nextBtn.classList.add('hidden');
+
+    const player = me();
+    if (chipsDisplay && player) {
+      chipsDisplay.textContent = `$${player.chips}`;
+    } else if (chipsDisplay) {
+      chipsDisplay.textContent = '';
+    }
 
     if (bjGameState === 'lobby') {
       if (startBtn) startBtn.classList.remove('hidden');
@@ -252,7 +260,6 @@
     }
 
     if (bjGameState === 'betting') {
-      const player = me();
       if (player && !player.bet) {
         if (betControls) betControls.classList.remove('hidden');
         const input = el('bj-bet-amount');
@@ -268,7 +275,6 @@
 
     if (bjGameState === 'playing' && bjCurrentTurnId === bjMyId) {
       if (actionControls) actionControls.classList.remove('hidden');
-      const player = me();
       const doubleBtn = el('btn-bj-double');
       if (doubleBtn && player) {
         const canDouble = player.hand && player.hand.length === 2 && player.chips >= player.bet;
@@ -665,5 +671,9 @@
     bjWs = ws;
   };
 
-  window.blackjack = { init, handleMessage, show, hide, renderAll };
+  function getPlayerIds() {
+    return bjPlayers.map(p => p.id);
+  }
+
+  window.blackjack = { init, handleMessage, show, hide, renderAll, getPlayerIds };
 })();

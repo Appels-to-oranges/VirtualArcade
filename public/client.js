@@ -858,13 +858,33 @@ function handleMessage(msg) {
       break;
 
     case 'playerViewChanged':
-      if (currentGameType === 'lobby' && msg.players) {
-        lobbyPlayers = msg.players.map((up) => {
-          const ex = lobbyPlayers.find((p) => p.id === up.id);
-          return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: ex?.chips ?? 1000 };
+      if (msg.players) {
+        msg.players.forEach((up) => {
+          const ex = players.find((p) => p.id === up.id);
+          if (ex) ex.currentView = up.currentView ?? 'lobby';
         });
-        renderParticipants();
-        updateGameCounts();
+        if (currentGameType === 'lobby') {
+          lobbyPlayers = msg.players.map((up) => {
+            const ex = lobbyPlayers.find((p) => p.id === up.id);
+            return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: ex?.chips ?? 1000 };
+          });
+          renderParticipants();
+          updateGameCounts();
+        } else if (currentGameType === 'blackjack' && window.blackjack) {
+          const bjNow = msg.players.filter((p) => (p.currentView ?? 'lobby') === 'blackjack');
+          const bjIds = new Set(bjNow.map((p) => p.id));
+          const existingIds = new Set(window.blackjack.getPlayerIds());
+          bjNow.forEach((p) => {
+            if (!existingIds.has(p.id)) {
+              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 1000 });
+            }
+          });
+          existingIds.forEach((id) => {
+            if (!bjIds.has(id)) {
+              window.blackjack.handleMessage({ type: 'bjUserLeft', id });
+            }
+          });
+        }
       }
       break;
 

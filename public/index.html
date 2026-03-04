@@ -42,7 +42,7 @@
           <div class="game-option-wrap">
             <span class="game-count-badge" data-game="holdem" data-max="6">0/6</span>
             <button type="button" class="game-option-btn" data-game="holdem">
-              <span class="game-option-icon">&#x1F0CF;</span>
+              <span class="game-option-icon game-icon-holdem">&#x1F0CF;</span>
               <span class="game-option-name">Texas Hold'em</span>
             </button>
           </div>
@@ -172,8 +172,6 @@
     <div class="room-bar">
       <button type="button" id="bj-back-btn" class="btn-back-inline" title="Back to game selection">&#x2190; Back</button>
       <span id="bj-room-label"></span>
-      <button id="bj-start-btn" class="btn-start">Start Game</button>
-      <button id="bj-next-btn" class="btn-restart hidden">Next Hand</button>
       <div class="chat-input-wrap">
         <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat..." maxlength="100" autocomplete="off">
         <button type="button" id="bj-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
@@ -191,16 +189,21 @@
         <div class="bj-players-area" id="bj-players-area"></div>
       </div>
     </div>
-    <div class="controls hidden" id="bj-bet-controls">
-      <div class="bet-row">
-        <input type="number" id="bj-bet-amount" placeholder="$10" min="10" value="20">
-        <button type="button" id="btn-bj-place-bet" class="btn btn-bet">Place Bet</button>
+    <div class="controls" id="bj-control-panel">
+      <div class="controls-main">
+        <button id="bj-start-btn" class="btn btn-start">Start Game</button>
+        <button id="bj-next-btn" class="btn btn-restart hidden">Next Hand</button>
+        <div class="bj-bet-row hidden" id="bj-bet-controls">
+          <input type="number" id="bj-bet-amount" placeholder="$10" min="10" value="20">
+          <button type="button" id="btn-bj-place-bet" class="btn btn-bet">Place Bet</button>
+        </div>
+        <div class="bj-action-row hidden" id="bj-controls">
+          <button type="button" id="btn-bj-hit" class="btn btn-call">Hit</button>
+          <button type="button" id="btn-bj-stand" class="btn btn-fold">Stand</button>
+          <button type="button" id="btn-bj-double" class="btn btn-allin">Double</button>
+        </div>
+        <span class="bj-chips-display" id="bj-my-chips"></span>
       </div>
-    </div>
-    <div class="controls hidden" id="bj-controls">
-      <button type="button" id="btn-bj-hit" class="btn btn-call">Hit</button>
-      <button type="button" id="btn-bj-stand" class="btn btn-fold">Stand</button>
-      <button type="button" id="btn-bj-double" class="btn btn-allin">Double</button>
     </div>
     <div class="now-playing-radio hidden" id="bj-now-playing-radio">
       <span class="now-playing-label" id="bj-now-playing-radio-label"></span>

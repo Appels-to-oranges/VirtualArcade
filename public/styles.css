@@ -318,6 +318,10 @@ body {
   line-height: 1;
 }
 
+.game-icon-holdem {
+  filter: grayscale(1) brightness(1.2);
+}
+
 .game-option-name {
   font-size: 0.4rem;
   text-transform: uppercase;
@@ -1937,11 +1941,36 @@ body {
 .bj-status-lost { background: #3d1010; color: #e06666; }
 .bj-status-push { background: #2d2d2d; color: #aaa; }
 
-#bj-bet-controls .bet-row {
+#bj-control-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: #111;
+  border: 0.1rem solid #1a1a1a;
+  flex-shrink: 0;
 }
 
-#bj-controls {
+#bj-control-panel .controls-main {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.bj-bet-row,
+.bj-action-row {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.bj-chips-display {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  color: #ffd700;
+  margin-left: 0.3rem;
 }
