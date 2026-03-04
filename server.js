@@ -1759,11 +1759,42 @@ wss.on('connection', (ws) => {
       } else if (type === 'backToLobby') {
         const data = clients.get(ws);
         if (!data) return;
+        const prevGameType = data.gameType;
         const room = getRoom(data.roomKey);
         const pIdx = room.players.findIndex((p) => p.ws === ws);
         if (pIdx < 0) return;
         room.players[pIdx].currentView = 'lobby';
         clients.set(ws, { ...data, gameType: 'lobby' });
+
+        if (prevGameType === 'holdem' && room.phase !== 'lobby' && room.holdemPlayers) {
+          const hpIdx = room.holdemPlayers.findIndex(p => p.ws === ws);
+          if (hpIdx >= 0 && !room.holdemPlayers[hpIdx].folded) {
+            room.holdemPlayers[hpIdx].folded = true;
+            const activeCount = room.holdemPlayers.filter(p => !p.folded).length;
+            if (activeCount <= 1) {
+              clearTurnTimer(room);
+              showdown(data.roomKey);
+            } else if (room.turnIdx === hpIdx) {
+              clearTurnTimer(room);
+              room.turnIdx = advanceTurn(room, hpIdx);
+              checkBettingComplete(data.roomKey);
+            }
+          }
+        }
+
+        if (prevGameType === 'checkers' && room.ckPhase === 'playing') {
+          ckClearTurnTimer(room);
+          const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
+          room.ckPhase = 'over';
+          broadcastToRoom(data.roomKey, { type: 'ckGameOver', winner: remainingColor, reason: 'disconnect' });
+        }
+
+        if (prevGameType === 'chess' && room.chPhase === 'playing') {
+          chClearTurnTimer(room);
+          const chRemainingColor = room.chPlayers?.white === ws.id ? 'black' : 'white';
+          room.chPhase = 'over';
+          broadcastToRoom(data.roomKey, { type: 'chGameOver', winner: chRemainingColor, reason: 'disconnect' });
+        }
 
         const humansInHoldem = room.players.some((p) => !p.isBot && (p.currentView ?? 'lobby') === 'holdem');
         if (!humansInHoldem) {

@@ -77,12 +77,15 @@ function ensureAudioBuffer(audio) {
 function bitCrushBuffer(buffer, bitDepth) {
   const ctx = getAudioCtx();
   const crushed = ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
-  const halfLevels = Math.pow(2, bitDepth - 1);
+  const levels = Math.pow(2, bitDepth - 1);
+  const hold = bitDepth <= 8 ? 6 : bitDepth <= 12 ? 3 : 1;
   for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
     const input = buffer.getChannelData(ch);
     const output = crushed.getChannelData(ch);
+    let held = 0;
     for (let i = 0; i < input.length; i++) {
-      output[i] = Math.round(input[i] * halfLevels) / halfLevels;
+      if (i % hold === 0) held = Math.round(input[i] * levels) / levels;
+      output[i] = held;
     }
   }
   return crushed;
@@ -144,7 +147,7 @@ function playSound(audio, volumeKey) {
   }
   vol = Math.max(0, Math.min(1, vol));
   const bitDepth = getSfxBitDepth();
-  if (bitDepth > 0 && volumeKey === CARD_FX_VOLUME_KEY) {
+  if (bitDepth > 0 && volumeKey !== AMBIENCE_VOLUME_KEY && volumeKey !== RADIO_VOLUME_KEY) {
     playSoundBitCrushed(audio, vol, bitDepth);
     return;
   }
@@ -494,6 +497,7 @@ function showGameSelectScreen(players, chatHistory) {
   if (bjScreen) bjScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
   if (window.chess) window.chess.hide();
+  stopAmbience();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
   lobbyPlayers = (players || lobbyPlayers).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
@@ -625,6 +629,13 @@ function hideAllGameScreens() {
 }
 
 function handleMessage(msg) {
+  if (currentGameType === 'lobby') {
+    const t = msg.type;
+    if (t && t.startsWith('bj')) return;
+    if (t && t.startsWith('ck')) return;
+    if (t && t.startsWith('ch') && t[2] >= 'A' && t[2] <= 'Z') return;
+    if (['action', 'turn', 'gameStarted', 'phaseChange', 'gameOver', 'roundOver'].includes(t)) return;
+  }
   if (msg.type && msg.type.startsWith('bj')) {
     if (window.blackjack) window.blackjack.handleMessage(msg);
     return;
@@ -1025,6 +1036,10 @@ function handleMessage(msg) {
 
     case 'backToLobby':
       currentGameType = 'lobby';
+      stopTurnTimer();
+      stopNextHandTimer();
+      turnStartedAt = 0;
+      gameState = null;
       lobbyPlayers = (msg.players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
       showGameSelectScreen(msg.players, msg.chatHistory);
       if (msg.theme) applyTheme(msg.theme);

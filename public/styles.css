@@ -467,6 +467,7 @@ body {
   object-fit: contain;
   filter: invert(1) brightness(0.85);
   transition: filter 0.2s;
+  image-rendering: pixelated;
 }
 
 .game-option-btn:hover .game-option-img {
