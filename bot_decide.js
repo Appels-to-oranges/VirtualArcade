@@ -5,10 +5,10 @@ const { estimateEquity } = require('./bot_equity');
 // ── Tuning knobs ──────────────────────────────────────────────────────
 
 const EQUITY_ITERS = 3000;
-const FOLD_MARGIN = -0.05;
-const RAISE_MARGIN = 0.12;
-const BLUFF_FREQ = { preflop: 0.0, flop: 0.12, turn: 0.08, river: 0.05 };
-const CHECK_RAISE_FREQ = 0.15;
+const FOLD_MARGIN = -0.20;
+const RAISE_MARGIN = 0.08;
+const BLUFF_FREQ = { preflop: 0.05, flop: 0.20, turn: 0.15, river: 0.10 };
+const CHECK_RAISE_FREQ = 0.20;
 
 // ── Preflop hand ranges by position ───────────────────────────────────
 // Tiers: 1=premium, 2=strong, 3=playable, 4=marginal, 5=speculative
@@ -41,11 +41,11 @@ function initTiers() {
 initTiers();
 
 // Position -> max tier allowed for open-raising
-const OPEN_TIER = { UTG: 2, MP: 3, CO: 4, BTN: 5, SB: 4, BB: 5 };
+const OPEN_TIER = { UTG: 3, MP: 4, CO: 5, BTN: 6, SB: 5, BB: 6 };
 // Position -> max tier for calling a raise
-const CALL_TIER = { UTG: 2, MP: 2, CO: 3, BTN: 4, SB: 3, BB: 4 };
+const CALL_TIER = { UTG: 3, MP: 3, CO: 4, BTN: 5, SB: 4, BB: 5 };
 // Position -> max tier for 3-betting
-const THREEBET_TIER = { UTG: 1, MP: 1, CO: 2, BTN: 2, SB: 2, BB: 2 };
+const THREEBET_TIER = { UTG: 2, MP: 2, CO: 3, BTN: 3, SB: 3, BB: 3 };
 
 function normalizeRank(rank) {
   if (rank === '10') return 'T';
@@ -125,12 +125,17 @@ function preflopDecision({ tier, position, toCall, pot, stack, bigBlind, minRais
   if (tier <= callMax) {
     // Call with decent hands
     const potOdds = potOddsThreshold(pot, toCall);
-    if (potOdds > 0.35 && tier > 3) return { action: 'fold' };
+    if (potOdds > 0.45 && tier > 4) return { action: 'fold' };
     return { action: 'call' };
   }
 
-  // Occasionally defend BB with wider range
-  if (position === 'BB' && tier <= 5 && toCall <= bigBlind * 2.5 && Math.random() < 0.4) {
+  // Defend BB with wider range
+  if (position === 'BB' && tier <= 6 && toCall <= bigBlind * 3 && Math.random() < 0.65) {
+    return { action: 'call' };
+  }
+
+  // Other positions: occasionally call with speculative hands
+  if (tier <= 6 && toCall <= bigBlind * 2 && Math.random() < 0.3) {
     return { action: 'call' };
   }
 
@@ -246,9 +251,9 @@ function decideAction(ctx) {
     return sanitize({ action: 'bet', amount: betAmount }, 0, stack, minRaise, currentBet, bigBlind);
   }
 
-  if (equity > 0.42) {
-    // Medium: bet sometimes for value/protection
-    if (Math.random() < 0.45) {
+  if (equity > 0.35) {
+    // Medium: bet more often for value/protection
+    if (Math.random() < 0.55) {
       const betSize = chooseBetSize(equity, pot, stack, street);
       if (betSize >= stack) return { action: 'allin' };
       return sanitize({ action: 'bet', amount: currentBet + betSize }, 0, stack, minRaise, currentBet, bigBlind);

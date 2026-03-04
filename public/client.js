@@ -628,10 +628,10 @@ function handleMessage(msg) {
       players.push({
         id: msg.id,
         nickname: msg.nickname,
-        chips: msg.chips ?? 1000,
-        winStreak: msg.winStreak ?? 0,
-        maxWinStreak: msg.maxWinStreak ?? 0,
-        currentView: msg.currentView ?? 'lobby',
+        chips: msg.chips ?? 100,
+      winStreak: msg.winStreak ?? 0,
+      maxWinStreak: msg.maxWinStreak ?? 0,
+      currentView: msg.currentView ?? 'lobby',
       });
       if (currentGameType === 'lobby') {
         lobbyPlayers = players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
@@ -640,7 +640,7 @@ function handleMessage(msg) {
         return;
       }
       if (currentGameType === 'blackjack' && window.blackjack && (msg.currentView ?? 'lobby') === 'blackjack') {
-        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 1000 });
+        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 100 });
       }
       renderTable();
       break;
@@ -688,7 +688,7 @@ function handleMessage(msg) {
         communityCards: [],
         pot: msg.pot,
         currentBet: msg.currentBet,
-        minRaise: msg.minRaise ?? 20,
+        minRaise: msg.minRaise ?? 10,
         turnIdx: msg.turnIdx,
         dealerIdx: msg.dealerIdx,
       };
@@ -866,7 +866,7 @@ function handleMessage(msg) {
         if (currentGameType === 'lobby') {
           lobbyPlayers = msg.players.map((up) => {
             const ex = lobbyPlayers.find((p) => p.id === up.id);
-            return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: ex?.chips ?? 1000 };
+            return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: ex?.chips ?? 100 };
           });
           renderParticipants();
           updateGameCounts();
@@ -876,7 +876,7 @@ function handleMessage(msg) {
           const existingIds = new Set(window.blackjack.getPlayerIds());
           bjNow.forEach((p) => {
             if (!existingIds.has(p.id)) {
-              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 1000 });
+              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 100 });
             }
           });
           existingIds.forEach((id) => {
@@ -1429,7 +1429,7 @@ function updateControls() {
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
-  const minRaise = gameState?.minRaise || 20;
+  const minRaise = gameState?.minRaise || 10;
   const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
   const canRaise = isMyTurn && !folded && myChips > 0 && !facingAllIn;
   btnBet.disabled = !canRaise;
@@ -1518,7 +1518,7 @@ btnBet.addEventListener('click', () => {
 });
 
 function setSliderValue(amt) {
-  const clampedAmt = Math.max(parseInt(betSlider?.min || 0, 10), Math.min(parseInt(betSlider?.max || 1000, 10), amt));
+  const clampedAmt = Math.max(parseInt(betSlider?.min || 0, 10), Math.min(parseInt(betSlider?.max || 100, 10), amt));
   if (betSlider) betSlider.value = clampedAmt;
   if (betAmountInput) betAmountInput.value = clampedAmt;
   if (sliderLabel) sliderLabel.textContent = `$${clampedAmt}`;
@@ -1536,7 +1536,7 @@ if (btnHalfPot) {
   btnHalfPot.addEventListener('click', () => {
     const pot = gameState?.pot ?? 0;
     const currentBet = gameState?.currentBet || 0;
-    const minRaise = gameState?.minRaise || 20;
+    const minRaise = gameState?.minRaise || 10;
     const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
     const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
     const halfPot = Math.floor(pot / 2);
@@ -1547,7 +1547,7 @@ if (btnFullPot) {
   btnFullPot.addEventListener('click', () => {
     const pot = gameState?.pot ?? 0;
     const currentBet = gameState?.currentBet || 0;
-    const minRaise = gameState?.minRaise || 20;
+    const minRaise = gameState?.minRaise || 10;
     const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
     const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
     setSliderValue(Math.min(myChips, Math.max(minBetTo, pot)));
@@ -1556,7 +1556,7 @@ if (btnFullPot) {
 if (btnPresetX3) {
   btnPresetX3.addEventListener('click', () => {
     const currentBet = gameState?.currentBet || 0;
-    const minRaise = gameState?.minRaise || 20;
+    const minRaise = gameState?.minRaise || 10;
     const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
     const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
     const target = currentBet > 0 ? currentBet * 3 : minBetTo * 3;
@@ -1566,7 +1566,7 @@ if (btnPresetX3) {
 if (btnPresetX5) {
   btnPresetX5.addEventListener('click', () => {
     const currentBet = gameState?.currentBet || 0;
-    const minRaise = gameState?.minRaise || 20;
+    const minRaise = gameState?.minRaise || 10;
     const minBetTo = currentBet > 0 ? currentBet + minRaise : minRaise;
     const myChips = players.find((p) => p.id === myId)?.chips ?? 0;
     const target = currentBet > 0 ? currentBet * 5 : minBetTo * 5;

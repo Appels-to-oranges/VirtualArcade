@@ -109,12 +109,12 @@ function getRoom(roomKey) {
       pot: 0,
       currentBet: 0,
       dealerIdx: -1,
-      smallBlind: 10,
-      bigBlind: 20,
+      smallBlind: 5,
+      bigBlind: 10,
       phase: 'lobby',
       turnIdx: 0,
       lastRaiserIdx: -1,
-      minRaise: 20,
+      minRaise: 10,
       sidePots: [],
       turnTimeout: null,
       radio: null,
@@ -230,7 +230,7 @@ function startGame(roomKey, resetStreaks = false, resetChips = false) {
   room.holdemPlayers = holdemPlayers;
 
   if (resetChips) {
-    holdemPlayers.forEach((p) => { p.chips = 1000; });
+    holdemPlayers.forEach((p) => { p.chips = 100; });
   }
   if (resetStreaks) {
     holdemPlayers.forEach((p) => {
@@ -267,7 +267,7 @@ function startGame(roomKey, resetStreaks = false, resetChips = false) {
     p.totalBet = 0;
     p.folded = false;
     p.allIn = false;
-    p.chips = p.chips ?? 1000;
+    p.chips = p.chips ?? 100;
   });
 
   const sbPay = Math.min(room.smallBlind, Math.max(0, holdemPlayers[sbIdx].chips));
@@ -1284,7 +1284,7 @@ wss.on('connection', (ws) => {
             id: ws.id,
             ws,
             nickname: safeNick,
-            chips: 1000,
+            chips: 100,
             hand: null,
             betThisRound: 0,
             totalBet: 0,
@@ -1329,7 +1329,7 @@ wss.on('connection', (ws) => {
           type: 'userJoined',
           id: ws.id,
           nickname: safeNick,
-          chips: 1000,
+          chips: 100,
           winStreak: 0,
           maxWinStreak: 0,
           currentView: targetGameType,
@@ -1454,7 +1454,7 @@ wss.on('connection', (ws) => {
           id: botId,
           ws: null,
           nickname: botName,
-          chips: 1000,
+          chips: 100,
           hand: null,
           betThisRound: 0,
           totalBet: 0,
@@ -1469,7 +1469,7 @@ wss.on('connection', (ws) => {
           type: 'userJoined',
           id: botId,
           nickname: botName,
-          chips: 1000,
+          chips: 100,
           currentView: 'holdem',
           winStreak: 0,
           maxWinStreak: 0,
@@ -1501,13 +1501,13 @@ wss.on('connection', (ws) => {
         const player = room.players[idx];
         if (player.chips > 0) return;
         if (room.phase !== 'lobby') return;
-        player.chips = 1000;
-        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 1000 }));
+        player.chips = 100;
+        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 100 }));
         broadcastToRoom(data.roomKey, {
           type: 'userRebuy',
           id: ws.id,
           nickname: player.nickname,
-          chips: 1000,
+          chips: 100,
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
         });
       } else if (type === 'action') {
