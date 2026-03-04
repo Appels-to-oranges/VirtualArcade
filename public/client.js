@@ -1274,21 +1274,17 @@ function renderTable() {
   if (count === 0) return;
 
   const CX = 50, CY = 46;
-  const RX = 42, RY = count <= 2 ? 26 : 36;
-  const BET_LERP = 0.55;
-  const COMMUNITY_TOP = 28;
-  const COMMUNITY_BOTTOM = 64;
+  const RX = 42, RY = 36;
+  const BET_LERP = 0.65;
 
   function polyPositions(n) {
     const out = [];
     for (let i = 0; i < n; i++) {
       const angle = (i / n) * Math.PI * 2 + Math.PI / 2;
       const sx = CX + RX * Math.cos(angle);
-      const sy = Math.max(14, Math.min(82, CY + RY * Math.sin(angle)));
+      const sy = Math.max(10, Math.min(84, CY + RY * Math.sin(angle)));
       const bx = sx + (CX - sx) * BET_LERP;
-      let by = sy + (CY - sy) * BET_LERP;
-      if (by > COMMUNITY_TOP && by < CY) by = COMMUNITY_TOP;
-      if (by < COMMUNITY_BOTTOM && by >= CY) by = COMMUNITY_BOTTOM;
+      const by = sy + (CY - sy) * BET_LERP;
       out.push({ seat: [sx, sy], bet: [bx, by] });
     }
     return out;
