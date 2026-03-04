@@ -518,7 +518,7 @@ function showdown(roomKey) {
   room.holdemPlayers = null;
   clearTurnTimer(room);
 
-  removeBrokeBots(roomKey);
+  const hasBrokeBots = room.players.some((p) => p.isBot && p.chips <= 0);
 
   broadcastToRoom(roomKey, {
     type: 'roundOver',
@@ -530,6 +530,12 @@ function showdown(roomKey) {
       maxWinStreak: p.maxWinStreak ?? 0,
     })),
   });
+
+  if (hasBrokeBots) {
+    setTimeout(() => removeBrokeBots(roomKey), 4000);
+  } else {
+    removeBrokeBots(roomKey);
+  }
 }
 
 function canAct(player) {
@@ -586,7 +592,7 @@ const BOT_PHRASES = {
 };
 
 function maybeBotChat(roomKey, botId, botNickname, phrases, delayMs = 0) {
-  if (Math.random() > 0.25) return;
+  if (Math.random() > 0.33) return;
   const text = phrases[Math.floor(Math.random() * phrases.length)];
   const send = () => broadcastToRoom(roomKey, { type: 'chat', playerId: botId, nickname: botNickname, text });
   if (delayMs > 0) setTimeout(send, delayMs);

@@ -765,20 +765,26 @@ body {
 }
 
 .seat-chat-bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.25rem;
   padding: 0.35rem 0.6rem;
   font-size: 0.45rem;
   color: #fff;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.92);
   border: 0.125rem solid #555;
-  border-radius: 0.25rem;
-  white-space: nowrap;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  border-radius: 0.4rem;
+  white-space: normal;
+  word-break: break-word;
+  width: max-content;
+  max-width: 14rem;
+  text-align: center;
   pointer-events: none;
-  z-index: 10;
+  z-index: 20;
   animation: chatFadeIn 0.2s ease-out;
-  flex-shrink: 0;
+  box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.5);
 }
 
 @keyframes chatFadeIn {
