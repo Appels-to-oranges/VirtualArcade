@@ -765,11 +765,7 @@ body {
 }
 
 .seat-chat-bubble {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 0.25rem;
+  position: fixed;
   padding: 0.35rem 0.6rem;
   font-size: 0.45rem;
   color: #fff;
@@ -782,9 +778,10 @@ body {
   max-width: 14rem;
   text-align: center;
   pointer-events: none;
-  z-index: 20;
+  z-index: 9999;
   animation: chatFadeIn 0.2s ease-out;
   box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.5);
+  transform: translateX(-50%);
 }
 
 @keyframes chatFadeIn {

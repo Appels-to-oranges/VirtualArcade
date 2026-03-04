@@ -1048,6 +1048,7 @@ function hideShowdown() {
 }
 
 function renderTable() {
+  document.querySelectorAll('.seat-chat-bubble').forEach((el) => el.remove());
   const pot = gameState?.pot ?? lastPot ?? 0;
   if (potInControls) {
     potInControls.innerHTML = '';
@@ -1183,7 +1184,14 @@ function renderTable() {
       const chatBubble = document.createElement('div');
       chatBubble.className = 'seat-chat-bubble';
       chatBubble.textContent = chatData.text;
-      seat.appendChild(chatBubble);
+      chatBubble.dataset.chatFor = p.id;
+      document.body.appendChild(chatBubble);
+      requestAnimationFrame(() => {
+        const seatRect = seat.getBoundingClientRect();
+        const bubbleRect = chatBubble.getBoundingClientRect();
+        chatBubble.style.left = `${seatRect.left + seatRect.width / 2}px`;
+        chatBubble.style.top = `${Math.max(0, seatRect.top - bubbleRect.height - 4)}px`;
+      });
     }
 
     // Cards first (above name)
