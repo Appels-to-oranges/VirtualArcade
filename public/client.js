@@ -336,8 +336,31 @@ const participantsList = document.getElementById('participants-list');
 const lobbyChatMessages = document.getElementById('lobby-chat-messages');
 const lobbyChatInput = document.getElementById('lobby-chat-input');
 const lobbyChatSend = document.getElementById('lobby-chat-send');
-const chatToggleBtn = document.getElementById('chat-toggle-btn');
-const gameSelectChat = document.getElementById('game-select-chat');
+
+const IMAGE_THEMES = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot'];
+const ALL_THEMES = ['default', 'amber', 'slate', 'gray', 'blue', ...IMAGE_THEMES];
+const THEME_STORAGE_KEY = 'arcade_theme';
+let currentTheme = 'default';
+
+function applyTheme(theme) {
+  if (!gameSelectScreen) return;
+  ALL_THEMES.forEach((t) => gameSelectScreen.classList.remove('theme-' + t));
+  if (theme && theme !== 'default') gameSelectScreen.classList.add('theme-' + theme);
+  currentTheme = theme || 'default';
+  const msgEl = lobbyChatMessages;
+  if (msgEl) {
+    if (IMAGE_THEMES.includes(theme)) {
+      const url = '/images/themes/' + theme + '.gif';
+      msgEl.style.backgroundImage = 'url(' + url + ')';
+    } else {
+      msgEl.style.backgroundImage = '';
+    }
+  }
+  document.querySelectorAll('.theme-opt').forEach((el) => {
+    el.classList.toggle('active', el.dataset.theme === currentTheme);
+  });
+  localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+}
 
 let lobbyPlayers = [];
 
@@ -543,6 +566,8 @@ function handleMessage(msg) {
         showGameSelectScreen(players, msg.chatHistory);
         if (msg.radio) playRadio(msg.radio);
         initRadioVolume();
+        if (msg.theme) applyTheme(msg.theme);
+        else applyTheme(localStorage.getItem(THEME_STORAGE_KEY) || 'default');
         if (msg.gameFull) {
           const name = GAME_NAMES[msg.gameFull] || msg.gameFull;
           showToast(`${name} is full. You've been placed in the lobby.`);
@@ -903,6 +928,12 @@ function handleMessage(msg) {
       currentGameType = 'lobby';
       lobbyPlayers = (msg.players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
       showGameSelectScreen(msg.players, msg.chatHistory);
+      if (msg.theme) applyTheme(msg.theme);
+      else applyTheme(currentTheme);
+      break;
+
+    case 'themeChanged':
+      applyTheme(msg.theme);
       break;
 
     case 'chat':
@@ -1834,11 +1865,54 @@ if (lobbyChatInput) {
 }
 if (lobbyChatSend) lobbyChatSend.addEventListener('click', sendLobbyChat);
 
-if (chatToggleBtn && gameSelectChat) {
-  chatToggleBtn.addEventListener('click', () => {
-    const collapsed = gameSelectChat.classList.toggle('collapsed');
-    chatToggleBtn.setAttribute('aria-label', collapsed ? 'Expand chat' : 'Collapse chat');
-    chatToggleBtn.textContent = collapsed ? '\u25BC' : '\u25B2';
+// ── Lobby overlays & buttons ──
+const themesOverlay = document.getElementById('themes-overlay');
+const settingsOverlay = document.getElementById('settings-overlay');
+const themesBtn = document.getElementById('lobby-themes-btn');
+const settingsBtn = document.getElementById('lobby-settings-btn');
+const themesClose = document.getElementById('themes-close');
+const settingsClose = document.getElementById('settings-close');
+const inviteBtn = document.getElementById('lobby-invite-btn');
+
+function toggleOverlay(overlay) {
+  if (!overlay) return;
+  overlay.classList.toggle('hidden');
+}
+
+if (themesBtn) themesBtn.addEventListener('click', () => toggleOverlay(themesOverlay));
+if (themesClose) themesClose.addEventListener('click', () => themesOverlay.classList.add('hidden'));
+if (settingsBtn) settingsBtn.addEventListener('click', () => toggleOverlay(settingsOverlay));
+if (settingsClose) settingsClose.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
+
+if (themesOverlay) {
+  themesOverlay.addEventListener('click', (e) => {
+    if (e.target === themesOverlay) themesOverlay.classList.add('hidden');
+  });
+}
+if (settingsOverlay) {
+  settingsOverlay.addEventListener('click', (e) => {
+    if (e.target === settingsOverlay) settingsOverlay.classList.add('hidden');
+  });
+}
+
+document.querySelectorAll('.theme-opt').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const theme = btn.dataset.theme;
+    applyTheme(theme);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'changeTheme', theme }));
+    }
+  });
+});
+
+if (inviteBtn) {
+  inviteBtn.addEventListener('click', () => {
+    const url = window.location.origin + '?room=' + encodeURIComponent(roomKey);
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Invite link copied!');
+    }).catch(() => {
+      showToast('Could not copy link');
+    });
   });
 }
 

@@ -124,6 +124,7 @@ function getRoom(roomKey) {
       bjPlayerHands: {},
       bjTurnIdx: 0,
       bjPhase: 'lobby',
+      theme: null,
     });
   }
   return rooms.get(roomKey);
@@ -1403,6 +1404,7 @@ wss.on('connection', (ws) => {
           },
           radio: room.radio,
           chatHistory: (room.chatHistory || []).slice(-LOBBY_CHAT_MAX),
+          theme: room.theme || null,
         }));
 
         broadcastToRoom(safeRoom, {
@@ -1445,6 +1447,7 @@ wss.on('connection', (ws) => {
             currentView: p.currentView ?? 'lobby',
           })),
           chatHistory: (room.chatHistory || []).slice(-LOBBY_CHAT_MAX),
+          theme: room.theme || null,
         }));
       } else if (type === 'switchGame') {
         const data = clients.get(ws);
@@ -1585,6 +1588,13 @@ wss.on('connection', (ws) => {
           type: 'chat',
           ...chatMsg,
         });
+      } else if (type === 'changeTheme') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const theme = String(msg.theme || 'default').slice(0, 30);
+        room.theme = theme === 'default' ? null : theme;
+        broadcastToRoom(data.roomKey, { type: 'themeChanged', theme });
       } else if (type === 'rebuy') {
         const data = clients.get(ws);
         if (!data) return;
