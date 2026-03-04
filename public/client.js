@@ -1838,7 +1838,7 @@ if (chatToggleBtn && gameSelectChat) {
   chatToggleBtn.addEventListener('click', () => {
     const collapsed = gameSelectChat.classList.toggle('collapsed');
     chatToggleBtn.setAttribute('aria-label', collapsed ? 'Expand chat' : 'Collapse chat');
-    chatToggleBtn.textContent = collapsed ? '\u25C0' : '\u25B6';
+    chatToggleBtn.textContent = collapsed ? '\u25BC' : '\u25B2';
   });
 }
 

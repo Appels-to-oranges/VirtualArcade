@@ -32,65 +32,69 @@
       <div class="game-select-card">
         <h1>Choose a Game</h1>
         <p class="game-select-room" id="game-select-room"></p>
+
+        <div class="lobby-radio-panel">
+          <button type="button" id="lobby-radio-btn" class="lobby-radio-open-btn" title="Pick a station">&#x1F4FB; Radio</button>
+          <div class="lobby-now-playing hidden" id="lobby-now-playing-radio">
+            <span class="lobby-now-playing-label" id="lobby-now-playing-radio-label"></span>
+            <button type="button" class="lobby-now-playing-stop" id="lobby-radio-stop" title="Stop radio">&#x25A0;</button>
+          </div>
+        </div>
+
         <div class="game-select-participants" id="game-select-participants">
           <h3 class="participants-label">In Room</h3>
           <div class="participants-list" id="participants-list"></div>
         </div>
+
         <div class="game-select-category">
-        <h2 class="game-category-label">Casino</h2>
-        <div class="game-select-options">
-          <div class="game-option-wrap">
-            <span class="game-count-badge" data-game="holdem" data-max="6">0/6</span>
-            <button type="button" class="game-option-btn" data-game="holdem">
-              <span class="game-option-icon game-icon-holdem">&#x1F0CF;</span>
-              <span class="game-option-name">Texas Hold'em</span>
-            </button>
-          </div>
-          <div class="game-option-wrap">
-            <span class="game-count-badge" data-game="blackjack" data-max="6">0/6</span>
-            <button type="button" class="game-option-btn" data-game="blackjack">
-              <span class="game-option-icon">&#x1F0A1;</span>
-              <span class="game-option-name">Blackjack</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="game-select-category">
-        <h2 class="game-category-label">Board Games</h2>
-        <div class="game-select-options">
-          <div class="game-option-wrap">
-            <span class="game-count-badge" data-game="checkers" data-max="2">0/2</span>
-            <button type="button" class="game-option-btn" data-game="checkers">
-              <span class="game-option-icon">&#x26C0;</span>
-              <span class="game-option-name">Checkers</span>
-            </button>
+          <h2 class="game-category-label">Casino</h2>
+          <div class="game-select-options">
+            <div class="game-option-wrap">
+              <span class="game-count-badge" data-game="holdem" data-max="6">0/6</span>
+              <button type="button" class="game-option-btn" data-game="holdem">
+                <img src="icon-poker.png" alt="Poker" class="game-option-img">
+                <span class="game-option-name">Texas Hold'em</span>
+              </button>
+            </div>
+            <div class="game-option-wrap">
+              <span class="game-count-badge" data-game="blackjack" data-max="6">0/6</span>
+              <button type="button" class="game-option-btn" data-game="blackjack">
+                <img src="icon-blackjack.png" alt="Blackjack" class="game-option-img">
+                <span class="game-option-name">Blackjack</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      <button type="button" id="game-select-back" class="btn-back">&#x2190; Leave Room</button>
-    </div>
-    <div class="lobby-right-col">
-      <div class="lobby-radio-panel">
-        <button type="button" id="lobby-radio-btn" class="lobby-radio-open-btn" title="Pick a station">&#x1F4FB; Radio</button>
-        <div class="lobby-now-playing hidden" id="lobby-now-playing-radio">
-          <span class="lobby-now-playing-label" id="lobby-now-playing-radio-label"></span>
-          <button type="button" class="lobby-now-playing-stop" id="lobby-radio-stop" title="Stop radio">&#x25A0;</button>
+
+        <div class="game-select-category">
+          <h2 class="game-category-label">Board Games</h2>
+          <div class="game-select-options">
+            <div class="game-option-wrap">
+              <span class="game-count-badge" data-game="checkers" data-max="2">0/2</span>
+              <button type="button" class="game-option-btn" data-game="checkers">
+                <span class="game-option-icon">&#x26C0;</span>
+                <span class="game-option-name">Checkers</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-    <aside class="game-select-chat" id="game-select-chat">
-      <div class="chat-panel-header">
-        <span>Chat</span>
-        <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Collapse chat">&#x25B6;</button>
-      </div>
-      <div class="chat-messages-wrap">
-        <div class="chat-messages" id="lobby-chat-messages"></div>
-        <div class="chat-input-panel">
-          <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Send a message..." maxlength="100" autocomplete="off">
-          <button type="button" id="lobby-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
+
+        <div class="game-select-chat" id="game-select-chat">
+          <div class="chat-panel-header">
+            <span>Chat</span>
+            <button type="button" class="chat-toggle-btn" id="chat-toggle-btn" aria-label="Collapse chat">&#x25B2;</button>
+          </div>
+          <div class="chat-messages-wrap">
+            <div class="chat-messages" id="lobby-chat-messages"></div>
+            <div class="chat-input-panel">
+              <input type="text" id="lobby-chat-input" class="chat-input" placeholder="Send a message..." maxlength="100" autocomplete="off">
+              <button type="button" id="lobby-chat-send" class="chat-send" aria-label="Send">&#x27A1;</button>
+            </div>
+          </div>
         </div>
+
+        <button type="button" id="game-select-back" class="btn-back">&#x2190; Leave Room</button>
       </div>
-    </aside>
-    </div>
     </div>
   </div>
 

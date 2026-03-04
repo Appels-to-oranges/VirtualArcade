@@ -37,20 +37,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
   max-width: 56rem;
   width: 100%;
-  min-height: 32rem;
 }
 
 .game-select-card {
   background: #161b22;
   border: 0.0625rem solid #30363d;
   border-radius: 0.75rem;
-  padding: 2rem 2.5rem;
-  max-width: 24rem;
+  padding: 1.5rem 2rem;
+  max-width: 26rem;
   width: 100%;
-  flex-shrink: 0;
   box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4), 0 0 0 0.0625rem rgba(255, 255, 255, 0.05);
 }
 
@@ -140,24 +137,15 @@ body {
   border-color: #484f58;
 }
 
-.lobby-right-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 12rem;
-  max-width: 20rem;
-  width: 14rem;
-}
-
 .lobby-radio-panel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #161b22;
+  background: #0d1117;
   border: 0.0625rem solid #30363d;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
+  margin-bottom: 1rem;
 }
 
 .lobby-radio-open-btn {
@@ -226,44 +214,35 @@ body {
   margin-top: 0.25rem;
 }
 
-/* YouTube-style chat sidebar */
+/* Inline lobby chat */
 .game-select-chat {
   display: flex;
   flex-direction: column;
   width: 100%;
-  flex: 1;
-  min-height: 0;
-  background: #161b22;
+  background: #0d1117;
   border: 0.0625rem solid #30363d;
-  border-radius: 0.75rem;
-  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
+  border-radius: 0.5rem;
   overflow: hidden;
-  transition: width 0.2s, min-width 0.2s;
+  margin-bottom: 0.75rem;
+  transition: height 0.2s ease;
 }
 
-.game-select-chat.collapsed {
-  flex: 0 0 auto;
-  height: 2.5rem;
-}
-
-.game-select-chat.collapsed .chat-panel-header span,
 .game-select-chat.collapsed .chat-messages-wrap {
   display: none;
 }
 
 .game-select-chat.collapsed .chat-toggle-btn {
-  transform: rotate(-90deg);
+  transform: rotate(180deg);
 }
 
 .chat-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 0.75rem;
-  background: #0d1117;
+  padding: 0.45rem 0.75rem;
   border-bottom: 0.0625rem solid #30363d;
-  font-size: 0.5rem;
-  color: #c9b896;
+  font-size: 0.4rem;
+  color: #8b949e;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
 }
@@ -294,7 +273,8 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
-  min-height: 6rem;
+  height: 6rem;
+  max-height: 6rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -403,8 +383,16 @@ body {
   line-height: 1;
 }
 
-.game-icon-holdem {
-  filter: grayscale(1) brightness(1.2);
+.game-option-img {
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+  filter: invert(1) brightness(0.85);
+  transition: filter 0.2s;
+}
+
+.game-option-btn:hover .game-option-img {
+  filter: invert(1) brightness(1.1);
 }
 
 .game-option-name {
@@ -416,7 +404,7 @@ body {
 .btn-back {
   display: block;
   width: 100%;
-  margin-top: 0.75rem;
+  margin-top: 0;
   padding: 0.6rem 1rem;
   font-family: 'Press Start 2P', monospace;
   font-size: 0.4rem;
