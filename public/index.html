@@ -193,8 +193,10 @@
       <div class="controls-main">
         <button id="bj-start-btn" class="btn btn-start">Start Game</button>
         <button id="bj-next-btn" class="btn btn-restart hidden">Next Hand</button>
-        <div class="bj-bet-row hidden" id="bj-bet-controls">
-          <input type="number" id="bj-bet-amount" placeholder="$10" min="10" value="20">
+        <div class="bj-bet-row controls-slider-row hidden" id="bj-bet-controls">
+          <span class="slider-label" id="bj-bet-label">$20</span>
+          <input type="range" id="bj-bet-slider" class="bet-slider" min="10" max="1000" value="20" step="5">
+          <input type="hidden" id="bj-bet-amount" value="20">
           <button type="button" id="btn-bj-place-bet" class="btn btn-bet">Place Bet</button>
         </div>
         <div class="bj-action-row hidden" id="bj-controls">

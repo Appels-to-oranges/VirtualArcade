@@ -142,6 +142,9 @@
     if (!area) return;
     area.innerHTML = '';
 
+    const count = Math.min(6, Math.max(1, bjPlayers.length));
+    area.className = 'bj-players-area bj-players-' + count;
+
     const chatMessages = (typeof window !== 'undefined' && window.playerChatMessages) ? window.playerChatMessages : {};
 
     for (const p of bjPlayers) {
@@ -225,6 +228,12 @@
   }
 
   function renderAll() {
+    const table = document.querySelector('.bj-table');
+    if (table) {
+      const count = Math.min(6, Math.max(1, bjPlayers.length));
+      table.classList.remove('bj-players-1', 'bj-players-2', 'bj-players-3', 'bj-players-4', 'bj-players-5', 'bj-players-6');
+      table.classList.add('bj-players-' + count);
+    }
     renderDealer();
     renderPlayers();
     updateControls();
@@ -262,13 +271,18 @@
     if (bjGameState === 'betting') {
       if (player && !player.bet) {
         if (betControls) betControls.classList.remove('hidden');
-        const input = el('bj-bet-amount');
-        if (input) {
-          input.min = MIN_BET;
-          input.max = player.chips;
-          if (!input.value || parseInt(input.value, 10) < MIN_BET) {
-            input.value = MIN_BET;
-          }
+        const slider = el('bj-bet-slider');
+        const amountInput = el('bj-bet-amount');
+        const label = el('bj-bet-label');
+        if (slider && amountInput && label && player) {
+          slider.min = MIN_BET;
+          slider.max = player.chips;
+          let val = parseInt(amountInput.value, 10) || MIN_BET;
+          if (val < MIN_BET) val = MIN_BET;
+          if (val > player.chips) val = player.chips;
+          slider.value = val;
+          amountInput.value = val;
+          label.textContent = '$' + val;
         }
       }
     }
@@ -284,17 +298,18 @@
   }
 
   function placeBet() {
-    const input = el('bj-bet-amount');
-    if (!input) return;
+    const amountInput = el('bj-bet-amount');
+    const slider = el('bj-bet-slider');
     const player = me();
     if (!player) return;
-    let amount = parseInt(input.value, 10);
+    const amount = parseInt(slider ? slider.value : (amountInput && amountInput.value), 10);
     if (isNaN(amount) || amount < MIN_BET) {
       setStatus(`Minimum bet is $${MIN_BET}`);
       return;
     }
     if (amount > player.chips) {
-      amount = player.chips;
+      setStatus('Insufficient chips');
+      return;
     }
     send({ type: 'bjBet', amount });
   }
@@ -639,10 +654,14 @@
     const doubleBtn = el('btn-bj-double');
     if (doubleBtn) doubleBtn.addEventListener('click', doDouble);
 
-    const betInput = el('bj-bet-amount');
-    if (betInput) {
-      betInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); placeBet(); }
+    const betSlider = el('bj-bet-slider');
+    const betAmountInput = el('bj-bet-amount');
+    const betLabel = el('bj-bet-label');
+    if (betSlider && betAmountInput && betLabel) {
+      betSlider.addEventListener('input', function () {
+        const val = parseInt(betSlider.value, 10);
+        betAmountInput.value = val;
+        betLabel.textContent = '$' + val;
       });
     }
 
