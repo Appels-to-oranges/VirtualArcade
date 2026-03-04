@@ -486,11 +486,13 @@ body.theme-snowy-lot { --lobby-accent: #8a92b8; }
   filter: invert(1) brightness(1.1);
 }
 
-/* Checker icon: white piece on black – keep as-is (cancel global invert) */
-.game-option-btn[data-game="checkers"] .game-option-img {
+/* Checker/chess icons: white piece on black – keep as-is (cancel global invert) */
+.game-option-btn[data-game="checkers"] .game-option-img,
+.game-option-btn[data-game="chess"] .game-option-img {
   filter: invert(0) brightness(1);
 }
-.game-option-btn[data-game="checkers"]:hover .game-option-img {
+.game-option-btn[data-game="checkers"]:hover .game-option-img,
+.game-option-btn[data-game="chess"]:hover .game-option-img {
   filter: invert(0) brightness(1.1);
 }
 
