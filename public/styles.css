@@ -244,18 +244,6 @@ body {
   transition: background 0.15s, opacity 0.15s;
 }
 
-.lobby-header-icon {
-  width: 1rem;
-  height: 1rem;
-  object-fit: contain;
-  filter: invert(1) brightness(0.9);
-  transition: filter 0.15s;
-}
-
-.lobby-header-btn:hover .lobby-header-icon {
-  filter: invert(1) brightness(1.15);
-}
-
 .lobby-header-btn:hover {
   background: var(--lobby-border);
   opacity: 1;
