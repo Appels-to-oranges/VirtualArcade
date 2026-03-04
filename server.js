@@ -357,7 +357,8 @@ function nextPhase(roomKey) {
   players.forEach((p) => (p.betThisRound = 0));
   room.minRaise = room.bigBlind;
 
-  if (allAllIn) {
+  const onlyOneCanAct = players.filter((p) => canAct(p)).length <= 1;
+  if (allAllIn || onlyOneCanAct) {
     broadcastToRoom(roomKey, {
       type: 'phaseChange',
       phase: room.phase,
