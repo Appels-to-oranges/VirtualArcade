@@ -416,17 +416,16 @@ function renderParticipants() {
 }
 
 function updateGameCounts() {
-  const counts = { holdem: 0, blackjack: 0, checkers: 0 };
+  const counts = {};
   lobbyPlayers.forEach((p) => {
     const v = p.currentView || 'lobby';
-    if (v in counts) counts[v]++;
+    if (v !== 'lobby') counts[v] = (counts[v] || 0) + 1;
   });
-  const holdemEl = document.getElementById('holdem-count');
-  const blackjackEl = document.getElementById('blackjack-count');
-  const checkersEl = document.getElementById('checkers-count');
-  if (holdemEl) holdemEl.textContent = `${counts.holdem}/6`;
-  if (blackjackEl) blackjackEl.textContent = `${counts.blackjack}/6`;
-  if (checkersEl) checkersEl.textContent = `${counts.checkers}/2`;
+  document.querySelectorAll('.game-count-badge[data-game]').forEach((badge) => {
+    const game = badge.dataset.game;
+    const max = badge.dataset.max || '?';
+    badge.textContent = `${counts[game] || 0}/${max}`;
+  });
 }
 
 function appendLobbyChat(playerId, nick, text) {
@@ -468,7 +467,6 @@ document.querySelectorAll('.game-option-btn').forEach((btn) => {
     currentGameType = btn.dataset.game || 'holdem';
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: 'switchGame', gameType: currentGameType }));
-      if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
     } else {
       joinWithGameType(currentGameType);
     }
@@ -540,37 +538,41 @@ function handleMessage(msg) {
         }
         return;
       }
-      if (currentGameType === 'blackjack') {
-        if (window.blackjack) {
-          window.blackjack.init(ws, myId, players, msg.roomKey);
-          window.blackjack.show();
+      {
+        const gamePlayers = players.filter((p) => (p.currentView ?? 'lobby') === currentGameType);
+        if (currentGameType === 'blackjack') {
+          if (window.blackjack) {
+            window.blackjack.init(ws, myId, gamePlayers, msg.roomKey);
+            window.blackjack.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else if (currentGameType === 'checkers') {
+          if (window.checkers) {
+            window.checkers.init(ws, myId, gamePlayers, msg.roomKey);
+            window.checkers.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else {
+          if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
+          showGameScreen();
+          try {
+            renderTable();
+            updateControls();
+          } catch (err) {
+            console.error('Render error:', err);
+          }
+          if (msg.radio) playRadio(msg.radio);
+          initRadioVolume();
         }
-        try { startAmbience(); } catch (_) {}
-        initRadioVolume();
-      } else if (currentGameType === 'checkers') {
-        if (window.checkers) {
-          window.checkers.init(ws, myId, players, msg.roomKey);
-          window.checkers.show();
-        }
-        try { startAmbience(); } catch (_) {}
-        initRadioVolume();
-      } else {
-        if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
-        showGameScreen();
-        try {
-          renderTable();
-          updateControls();
-        } catch (err) {
-          console.error('Render error:', err);
-        }
-        if (msg.radio) playRadio(msg.radio);
-        initRadioVolume();
       }
       break;
 
     case 'gameFull': {
       const name = GAME_NAMES[msg.gameType] || msg.gameType;
       showToast(`${name} is full (max players reached).`);
+      if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
       break;
     }
 
@@ -591,31 +593,34 @@ function handleMessage(msg) {
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
       hideAllGameScreens();
-      if (currentGameType === 'blackjack') {
-        if (window.blackjack) {
-          window.blackjack.init(ws, myId, players, msg.roomKey);
-          window.blackjack.show();
+      {
+        const gamePlayers = players.filter((p) => (p.currentView ?? 'lobby') === currentGameType);
+        if (currentGameType === 'blackjack') {
+          if (window.blackjack) {
+            window.blackjack.init(ws, myId, gamePlayers, msg.roomKey);
+            window.blackjack.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else if (currentGameType === 'checkers') {
+          if (window.checkers) {
+            window.checkers.init(ws, myId, gamePlayers, msg.roomKey);
+            window.checkers.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else {
+          if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
+          showGameScreen();
+          try {
+            renderTable();
+            updateControls();
+          } catch (err) {
+            console.error('Render error:', err);
+          }
+          if (msg.radio) playRadio(msg.radio);
+          initRadioVolume();
         }
-        try { startAmbience(); } catch (_) {}
-        initRadioVolume();
-      } else if (currentGameType === 'checkers') {
-        if (window.checkers) {
-          window.checkers.init(ws, myId, players, msg.roomKey);
-          window.checkers.show();
-        }
-        try { startAmbience(); } catch (_) {}
-        initRadioVolume();
-      } else {
-        if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
-        showGameScreen();
-        try {
-          renderTable();
-          updateControls();
-        } catch (err) {
-          console.error('Render error:', err);
-        }
-        if (msg.radio) playRadio(msg.radio);
-        initRadioVolume();
       }
       break;
 
@@ -634,7 +639,7 @@ function handleMessage(msg) {
         updateGameCounts();
         return;
       }
-      if (currentGameType === 'blackjack' && window.blackjack) {
+      if (currentGameType === 'blackjack' && window.blackjack && (msg.currentView ?? 'lobby') === 'blackjack') {
         window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 1000 });
       }
       renderTable();
@@ -1429,7 +1434,7 @@ function updateControls() {
   btnAllin.textContent = `All In $${myChips}`;
 
   if (sliderRow) {
-    sliderRow.classList.toggle('hidden', !canRaise);
+    sliderRow.classList.toggle('slider-inactive', !canRaise);
   }
   if (betSlider) {
     const sliderMin = Math.min(minBetTo, myChips);

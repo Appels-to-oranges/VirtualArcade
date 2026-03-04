@@ -100,6 +100,9 @@ body {
 
 .game-option-wrap {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   flex: 1;
   min-width: 6rem;
 }
@@ -286,7 +289,7 @@ body {
 }
 
 .game-option-btn {
-  flex: 1;
+  width: 100%;
   min-width: 6rem;
   display: flex;
   flex-direction: column;
@@ -438,7 +441,7 @@ body {
   font-size: 0.6rem;
   font-family: 'Press Start 2P', monospace;
   font-weight: 600;
-  color: red;
+  color: #c7ba9b;
   background: #238636;
   border: none;
   border-radius: 0.5rem;
@@ -1357,7 +1360,8 @@ body {
   width: 100%;
 }
 
-.controls-slider-row.hidden {
+/* Use visibility (not display:none) so space is always reserved - prevents resize on turn change */
+.controls-slider-row.slider-inactive {
   visibility: hidden;
   pointer-events: none;
 }
