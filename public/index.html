@@ -27,6 +27,16 @@
       <p class="hint">Share the same room key to play together.</p>
     </div>
   </div>
+  <script>
+    (function() {
+      var themes = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot'];
+      var pick = themes[Math.floor(Math.random() * themes.length)];
+      var el = document.getElementById('join-screen');
+      var img = new Image();
+      img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + '.gif)'; };
+      img.src = '/images/themes/' + pick + '.gif';
+    })();
+  </script>
 
   <div id="game-select-screen" class="hidden">
     <div class="game-select-layout">

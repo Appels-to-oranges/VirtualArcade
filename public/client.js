@@ -347,14 +347,13 @@ function applyTheme(theme) {
   ALL_THEMES.forEach((t) => gameSelectScreen.classList.remove('theme-' + t));
   if (theme && theme !== 'default') gameSelectScreen.classList.add('theme-' + theme);
   currentTheme = theme || 'default';
-  const msgEl = lobbyChatMessages;
-  if (msgEl) {
-    if (IMAGE_THEMES.includes(theme)) {
-      const url = '/images/themes/' + theme + '.gif';
-      msgEl.style.backgroundImage = 'url(' + url + ')';
-    } else {
-      msgEl.style.backgroundImage = '';
-    }
+  if (IMAGE_THEMES.includes(theme)) {
+    const url = '/images/themes/' + theme + '.gif';
+    gameSelectScreen.style.backgroundImage = 'url(' + url + ')';
+    gameSelectScreen.classList.add('has-bg-image');
+  } else {
+    gameSelectScreen.style.backgroundImage = '';
+    gameSelectScreen.classList.remove('has-bg-image');
   }
   document.querySelectorAll('.theme-opt').forEach((el) => {
     el.classList.toggle('active', el.dataset.theme === currentTheme);

@@ -38,7 +38,24 @@ body {
   min-height: 100vh;
   padding: 1.5rem;
   background: var(--lobby-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: var(--lobby-text);
+  position: relative;
+}
+
+#game-select-screen.has-bg-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+#game-select-screen > .game-select-layout {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Theme overrides ── */
@@ -291,10 +308,6 @@ body {
   flex-direction: column;
   gap: 0.4rem;
   min-height: 8rem;
-  position: relative;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
 }
 
 .lobby-chat-input-panel {
@@ -641,6 +654,23 @@ body {
   min-height: 100vh;
   padding: 1.5rem;
   background: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+#join-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
+}
+
+#join-screen > * {
+  position: relative;
+  z-index: 1;
 }
 
 .join-card {
