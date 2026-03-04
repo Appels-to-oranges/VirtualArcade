@@ -425,8 +425,14 @@ let currentTheme = 'default';
 
 function applyTheme(theme) {
   if (!gameSelectScreen) return;
-  ALL_THEMES.forEach((t) => gameSelectScreen.classList.remove('theme-' + t));
-  if (theme && theme !== 'default') gameSelectScreen.classList.add('theme-' + theme);
+  ALL_THEMES.forEach((t) => {
+    gameSelectScreen.classList.remove('theme-' + t);
+    document.body.classList.remove('theme-' + t);
+  });
+  if (theme && theme !== 'default') {
+    gameSelectScreen.classList.add('theme-' + theme);
+    document.body.classList.add('theme-' + theme);
+  }
   currentTheme = theme || 'default';
   if (IMAGE_THEMES.includes(theme)) {
     const url = '/images/themes/' + theme + '.gif';

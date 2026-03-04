@@ -309,7 +309,7 @@
       '.ch-player-tag.ch-turn{border-color:#ffd700;' +
         'box-shadow:0 0 .5rem rgba(255,215,0,.3)}' +
 
-      '.ch-player-tag.ch-is-me{background:rgba(27,67,50,.3)}' +
+      '.ch-player-tag.ch-is-me{background:color-mix(in srgb, var(--lobby-accent) 30%, transparent)}' +
 
       '.ch-player-swatch{width:.7rem;height:.7rem;border:.0625rem solid #555;flex-shrink:0}' +
 

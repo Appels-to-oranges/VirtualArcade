@@ -138,7 +138,7 @@
       '.ck-player-tag.ck-turn{border-color:#ffd700;' +
         'box-shadow:0 0 .5rem rgba(255,215,0,.3)}' +
 
-      '.ck-player-tag.ck-is-me{background:rgba(27,67,50,.3)}' +
+      '.ck-player-tag.ck-is-me{background:color-mix(in srgb, var(--lobby-accent) 30%, transparent)}' +
 
       '.ck-player-swatch{width:.7rem;height:.7rem;border:.0625rem solid #555;flex-shrink:0}' +
 

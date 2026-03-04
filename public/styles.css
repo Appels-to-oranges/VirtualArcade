@@ -141,6 +141,18 @@ body {
   --lobby-input-bg: #100e16;
 }
 
+/* Body theme accent for game screens (blackjack, checkers, chess) */
+body { --lobby-accent: #c9b896; }
+body.theme-amber { --lobby-accent: #d4a574; }
+body.theme-slate { --lobby-accent: #58a6ff; }
+body.theme-gray { --lobby-accent: #9ca3af; }
+body.theme-blue { --lobby-accent: #0ea5e9; }
+body.theme-waterfront { --lobby-accent: #d4a55c; }
+body.theme-buildings { --lobby-accent: #7a8a9e; }
+body.theme-apartments { --lobby-accent: #d4a060; }
+body.theme-fireflies { --lobby-accent: #5ca882; }
+body.theme-snowy-lot { --lobby-accent: #8a92b8; }
+
 .game-select-layout {
   display: flex;
   flex-direction: column;
@@ -378,9 +390,9 @@ body {
 }
 
 .participant-chip.you {
-  border-color: #40916c;
-  background: rgba(64, 145, 108, 0.15);
-  color: #57cc99;
+  border-color: var(--lobby-accent);
+  background: color-mix(in srgb, var(--lobby-accent) 15%, transparent);
+  color: var(--lobby-accent);
 }
 
 .participant-chip .game-status {
@@ -551,7 +563,7 @@ body {
 }
 
 .chat-message .nick.you {
-  color: #57cc99;
+  color: var(--lobby-accent);
 }
 
 /* ── Lobby overlays (themes, settings) ── */
@@ -2307,7 +2319,7 @@ body {
 }
 
 .bj-player-row.bj-is-me {
-  background: rgba(27, 67, 50, 0.3);
+  background: color-mix(in srgb, var(--lobby-accent) 30%, transparent);
 }
 
 .bj-player-name {
