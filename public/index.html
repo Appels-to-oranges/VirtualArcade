@@ -98,6 +98,13 @@
                   <span class="game-option-name">Checkers</span>
                 </button>
               </div>
+              <div class="game-option-wrap">
+                <span class="game-count-badge" data-game="chess" data-max="2">0/2</span>
+                <button type="button" class="game-option-btn" data-game="chess">
+                  <img src="icon-chess.svg" alt="Chess" class="game-option-img">
+                  <span class="game-option-name">Chess</span>
+                </button>
+              </div>
             </div>
           </div>
           <button type="button" id="game-select-back" class="btn-back"><img src="icon-home.png" alt="" class="btn-back-icon"> Leave Room</button>
@@ -169,6 +176,17 @@
             <div class="radio-volume-wrap">
               <input type="range" id="ambience-volume" min="0" max="100" value="25">
               <span id="ambience-volume-value">25%</span>
+            </div>
+          </div>
+          <div class="theme-group">
+            <label>SFX Bit Depth</label>
+            <div class="radio-volume-wrap">
+              <select id="sfx-bitdepth" class="sfx-bitdepth-select">
+                <option value="8">8-bit</option>
+                <option value="12">12-bit</option>
+                <option value="16">16-bit</option>
+                <option value="0" selected>Max / Original</option>
+              </select>
             </div>
           </div>
         </div>
@@ -320,6 +338,7 @@
   <script src="pokersolver.js"></script>
   <script src="blackjack.js"></script>
   <script src="checkers.js"></script>
+  <script src="chess.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

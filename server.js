@@ -86,7 +86,7 @@ const TURN_TIMEOUT_MS = 60 * 1000;
 
 const LOBBY_CHAT_MAX = 100;
 
-const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2 };
+const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2 };
 
 function getPlayersInGame(room, gameType) {
   return room.players.filter((p) => (p.currentView ?? 'lobby') === gameType);
@@ -1329,6 +1329,345 @@ function ckMakeMove(roomKey, playerId, from, to) {
   }
 }
 
+// ── Chess logic ──────────────────────────────────────────────────────
+
+function chCreateBoard() {
+  const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+  const back = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
+  for (let c = 0; c < 8; c++) {
+    board[0][c] = { type: back[c], color: 'black' };
+    board[1][c] = { type: 'pawn', color: 'black' };
+    board[6][c] = { type: 'pawn', color: 'white' };
+    board[7][c] = { type: back[c], color: 'white' };
+  }
+  return board;
+}
+
+function chIsSquareAttacked(board, row, col, byColor) {
+  const pawnDir = byColor === 'white' ? -1 : 1;
+  const pr = row - pawnDir;
+  for (const dc of [-1, 1]) {
+    const pc = col + dc;
+    if (pr >= 0 && pr < 8 && pc >= 0 && pc < 8) {
+      const p = board[pr][pc];
+      if (p && p.type === 'pawn' && p.color === byColor) return true;
+    }
+  }
+  for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+    const nr = row + dr, nc = col + dc;
+    if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+      const p = board[nr][nc];
+      if (p && p.type === 'knight' && p.color === byColor) return true;
+    }
+  }
+  for (const [dr, dc] of [[-1,-1],[-1,1],[1,-1],[1,1]]) {
+    for (let i = 1; i < 8; i++) {
+      const nr = row + dr * i, nc = col + dc * i;
+      if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) break;
+      const p = board[nr][nc];
+      if (p) {
+        if (p.color === byColor && (p.type === 'bishop' || p.type === 'queen')) return true;
+        break;
+      }
+    }
+  }
+  for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+    for (let i = 1; i < 8; i++) {
+      const nr = row + dr * i, nc = col + dc * i;
+      if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) break;
+      const p = board[nr][nc];
+      if (p) {
+        if (p.color === byColor && (p.type === 'rook' || p.type === 'queen')) return true;
+        break;
+      }
+    }
+  }
+  for (const [dr, dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) {
+    const nr = row + dr, nc = col + dc;
+    if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+      const p = board[nr][nc];
+      if (p && p.type === 'king' && p.color === byColor) return true;
+    }
+  }
+  return false;
+}
+
+function chIsInCheck(board, color) {
+  const opp = color === 'white' ? 'black' : 'white';
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++)
+      if (board[r][c]?.type === 'king' && board[r][c].color === color)
+        return chIsSquareAttacked(board, r, c, opp);
+  return true;
+}
+
+function chCloneBoard(b) {
+  return b.map((row) => row.map((c) => (c ? { ...c } : null)));
+}
+
+function chGetPseudoMoves(board, row, col) {
+  const piece = board[row][col];
+  if (!piece) return [];
+  const moves = [];
+  const { color, type } = piece;
+
+  if (type === 'pawn') {
+    const dir = color === 'white' ? -1 : 1;
+    const startRow = color === 'white' ? 6 : 1;
+    const nr = row + dir;
+    if (nr >= 0 && nr < 8 && !board[nr][col]) {
+      moves.push({ row: nr, col });
+      const nr2 = row + 2 * dir;
+      if (row === startRow && nr2 >= 0 && nr2 < 8 && !board[nr2][col]) {
+        moves.push({ row: nr2, col });
+      }
+    }
+    for (const dc of [-1, 1]) {
+      const nc = col + dc;
+      if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] && board[nr][nc].color !== color) {
+        moves.push({ row: nr, col: nc, captured: true });
+      }
+    }
+  } else if (type === 'knight') {
+    for (const [dr, dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) {
+      const nr = row + dr, nc = col + dc;
+      if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && (!board[nr][nc] || board[nr][nc].color !== color)) {
+        moves.push({ row: nr, col: nc, captured: !!board[nr][nc] });
+      }
+    }
+  } else {
+    let dirs = [];
+    if (type !== 'rook') dirs = dirs.concat([[-1,-1],[-1,1],[1,-1],[1,1]]);
+    if (type !== 'bishop') dirs = dirs.concat([[-1,0],[1,0],[0,-1],[0,1]]);
+    const limit = type === 'king' ? 1 : 7;
+    for (const [dr, dc] of dirs) {
+      for (let i = 1; i <= limit; i++) {
+        const nr = row + dr * i, nc = col + dc * i;
+        if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) break;
+        if (board[nr][nc]) {
+          if (board[nr][nc].color !== color) moves.push({ row: nr, col: nc, captured: true });
+          break;
+        }
+        moves.push({ row: nr, col: nc });
+      }
+    }
+  }
+  return moves;
+}
+
+function chGetLegalMoves(board, row, col, color, castling, enPassant) {
+  const piece = board[row][col];
+  if (!piece || piece.color !== color) return [];
+  const pseudo = chGetPseudoMoves(board, row, col);
+  const opp = color === 'white' ? 'black' : 'white';
+  const kingRow = color === 'white' ? 7 : 0;
+
+  if (piece.type === 'pawn' && enPassant) {
+    const epDir = color === 'white' ? -1 : 1;
+    if (row + epDir === enPassant.row && Math.abs(col - enPassant.col) === 1) {
+      pseudo.push({ row: enPassant.row, col: enPassant.col, captured: true, enPassant: true });
+    }
+  }
+
+  if (piece.type === 'king' && castling) {
+    const rights = castling[color];
+    if (rights && row === kingRow && col === 4 && !chIsInCheck(board, color)) {
+      if (rights.kingSide && !board[kingRow][5] && !board[kingRow][6] &&
+          board[kingRow][7]?.type === 'rook' && board[kingRow][7]?.color === color &&
+          !chIsSquareAttacked(board, kingRow, 5, opp) && !chIsSquareAttacked(board, kingRow, 6, opp)) {
+        pseudo.push({ row: kingRow, col: 6, castle: 'kingside' });
+      }
+      if (rights.queenSide && !board[kingRow][3] && !board[kingRow][2] && !board[kingRow][1] &&
+          board[kingRow][0]?.type === 'rook' && board[kingRow][0]?.color === color &&
+          !chIsSquareAttacked(board, kingRow, 3, opp) && !chIsSquareAttacked(board, kingRow, 2, opp)) {
+        pseudo.push({ row: kingRow, col: 2, castle: 'queenside' });
+      }
+    }
+  }
+
+  const legal = [];
+  for (const m of pseudo) {
+    const test = chCloneBoard(board);
+    test[m.row][m.col] = { ...piece };
+    test[row][col] = null;
+    if (m.enPassant) test[row][m.col] = null;
+    if (m.castle) {
+      if (m.castle === 'kingside') { test[kingRow][5] = test[kingRow][7]; test[kingRow][7] = null; }
+      else { test[kingRow][3] = test[kingRow][0]; test[kingRow][0] = null; }
+    }
+    if (piece.type === 'pawn' && m.row === (color === 'white' ? 0 : 7)) {
+      test[m.row][m.col] = { type: 'queen', color };
+    }
+    if (!chIsInCheck(test, color)) legal.push(m);
+  }
+  return legal;
+}
+
+function chCheckGameEnd(board, color, castling, enPassant) {
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++)
+      if (board[r][c]?.color === color && chGetLegalMoves(board, r, c, color, castling, enPassant).length > 0)
+        return null;
+  return chIsInCheck(board, color) ? 'checkmate' : 'stalemate';
+}
+
+function chClearTurnTimer(room) {
+  if (room.chTurnTimeout) {
+    clearTimeout(room.chTurnTimeout);
+    room.chTurnTimeout = null;
+  }
+}
+
+function chStartTurnTimer(roomKey) {
+  const room = getRoom(roomKey);
+  chClearTurnTimer(room);
+  if (!room.chTimerMs || room.chTimerMs <= 0) return;
+  room.chTurnDeadline = Date.now() + room.chTimerMs;
+  room.chTurnTimeout = setTimeout(() => {
+    room.chTurnTimeout = null;
+    const r = getRoom(roomKey);
+    if (r.chPhase !== 'playing') return;
+    const losingColor = r.chTurn;
+    const winnerColor = losingColor === 'white' ? 'black' : 'white';
+    r.chPhase = 'over';
+    broadcastToRoom(roomKey, { type: 'chGameOver', winner: winnerColor, reason: 'timeout' });
+  }, room.chTimerMs);
+}
+
+function chStartGame(roomKey, timerSeconds) {
+  const room = getRoom(roomKey);
+  const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+  if (chPlayers.length !== 2) return;
+  room.chPlayersList = chPlayers;
+
+  room.chBoard = chCreateBoard();
+  room.chTurn = 'white';
+  room.chPhase = 'playing';
+  room.chCastling = {
+    white: { kingSide: true, queenSide: true },
+    black: { kingSide: true, queenSide: true },
+  };
+  room.chEnPassant = null;
+  room.chTimerMs = (timerSeconds && timerSeconds > 0) ? timerSeconds * 1000 : 0;
+  room.chTurnDeadline = 0;
+
+  room.chPlayers = { white: chPlayers[0].id, black: chPlayers[1].id };
+
+  const playersInfo = chPlayers.map((p) => ({
+    id: p.id, nickname: p.nickname,
+    color: room.chPlayers.white === p.id ? 'white' : 'black',
+  }));
+
+  chStartTurnTimer(roomKey);
+
+  broadcastToRoom(roomKey, {
+    type: 'chGameStarted',
+    board: room.chBoard, turn: 'white', players: playersInfo,
+    castling: room.chCastling, enPassant: null,
+    timerSeconds: room.chTimerMs > 0 ? room.chTimerMs / 1000 : 0,
+    turnDeadline: room.chTurnDeadline || 0,
+  });
+
+  chPlayers.forEach((p) => {
+    if (p.ws?.readyState === 1) {
+      const color = room.chPlayers.white === p.id ? 'white' : 'black';
+      p.ws.send(JSON.stringify({ type: 'chYourColor', color }));
+    }
+  });
+}
+
+function chMakeMove(roomKey, playerId, from, to) {
+  const room = getRoom(roomKey);
+  if (room.chPhase !== 'playing') return;
+
+  const currentColor = room.chTurn;
+  if (room.chPlayers[currentColor] !== playerId) return;
+
+  const board = room.chBoard;
+  const piece = board[from.row]?.[from.col];
+  if (!piece || piece.color !== currentColor) return;
+
+  const validMoves = chGetLegalMoves(board, from.row, from.col, currentColor, room.chCastling, room.chEnPassant);
+  const move = validMoves.find((m) => m.row === to.row && m.col === to.col);
+  if (!move) return;
+
+  const capturedPiece = board[to.row][to.col];
+  const capturedColor = capturedPiece ? capturedPiece.color : null;
+  let epCapture = false;
+
+  board[to.row][to.col] = { ...piece };
+  board[from.row][from.col] = null;
+
+  if (move.enPassant) {
+    board[from.row][to.col] = null;
+    epCapture = true;
+  }
+
+  if (move.castle) {
+    const cr = currentColor === 'white' ? 7 : 0;
+    if (move.castle === 'kingside') {
+      board[cr][5] = board[cr][7]; board[cr][7] = null;
+    } else {
+      board[cr][3] = board[cr][0]; board[cr][0] = null;
+    }
+  }
+
+  let promoted = false;
+  if (piece.type === 'pawn' && to.row === (currentColor === 'white' ? 0 : 7)) {
+    board[to.row][to.col] = { type: 'queen', color: currentColor };
+    promoted = true;
+  }
+
+  // Update castling rights
+  if (piece.type === 'king') {
+    room.chCastling[currentColor] = { kingSide: false, queenSide: false };
+  }
+  if (piece.type === 'rook') {
+    const rookRow = currentColor === 'white' ? 7 : 0;
+    if (from.row === rookRow && from.col === 0) room.chCastling[currentColor].queenSide = false;
+    if (from.row === rookRow && from.col === 7) room.chCastling[currentColor].kingSide = false;
+  }
+  if (capturedPiece?.type === 'rook') {
+    const opp = currentColor === 'white' ? 'black' : 'white';
+    const oppRow = opp === 'white' ? 7 : 0;
+    if (to.row === oppRow && to.col === 0) room.chCastling[opp].queenSide = false;
+    if (to.row === oppRow && to.col === 7) room.chCastling[opp].kingSide = false;
+  }
+
+  // Update en passant
+  room.chEnPassant = null;
+  if (piece.type === 'pawn' && Math.abs(to.row - from.row) === 2) {
+    room.chEnPassant = { row: (from.row + to.row) / 2, col: from.col };
+  }
+
+  room.chTurn = currentColor === 'white' ? 'black' : 'white';
+  chStartTurnTimer(roomKey);
+
+  const inCheck = chIsInCheck(board, room.chTurn);
+
+  broadcastToRoom(roomKey, {
+    type: 'chBoardUpdate',
+    board: room.chBoard, turn: room.chTurn,
+    lastMove: {
+      from, to,
+      captured: !!(capturedPiece || epCapture),
+      capturedColor: epCapture ? (currentColor === 'white' ? 'black' : 'white') : capturedColor,
+      promoted, castle: move.castle || null,
+    },
+    castling: room.chCastling, enPassant: room.chEnPassant,
+    inCheck,
+    turnDeadline: room.chTurnDeadline || 0,
+  });
+
+  const result = chCheckGameEnd(board, room.chTurn, room.chCastling, room.chEnPassant);
+  if (result) {
+    room.chPhase = 'over';
+    chClearTurnTimer(room);
+    const winner = result === 'checkmate' ? currentColor : null;
+    broadcastToRoom(roomKey, { type: 'chGameOver', winner, reason: result });
+  }
+}
+
 wss.on('connection', (ws) => {
   ws.id = crypto.randomUUID();
 
@@ -1349,6 +1688,7 @@ wss.on('connection', (ws) => {
         if (msg.gameType === 'lobby') room.gameType = 'lobby';
         else if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
         else if (msg.gameType === 'checkers') room.gameType = 'checkers';
+        else if (msg.gameType === 'chess') room.gameType = 'chess';
 
         let targetGameType = msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'lobby');
         let gameFull = false;
@@ -1456,7 +1796,7 @@ wss.on('connection', (ws) => {
         const pIdx = room.players.findIndex((p) => p.ws === ws);
         if (pIdx < 0) return;
         const newType = msg.gameType || 'holdem';
-        if (newType !== 'holdem' && newType !== 'blackjack' && newType !== 'checkers') return;
+        if (newType !== 'holdem' && newType !== 'blackjack' && newType !== 'checkers' && newType !== 'chess') return;
         const currentView = room.players[pIdx].currentView ?? 'lobby';
         if (currentView !== newType && isGameFull(room, newType)) {
           ws.send(JSON.stringify({ type: 'gameFull', gameType: newType }));
@@ -1508,6 +1848,8 @@ wss.on('connection', (ws) => {
           bjStartGame(data.roomKey);
         } else if (gameType === 'checkers') {
           ckStartGame(data.roomKey, msg.timerSeconds);
+        } else if (gameType === 'chess') {
+          chStartGame(data.roomKey, msg.timerSeconds);
         } else {
           const resetStreaks = msg.resetStreaks === true;
           const resetChips = msg.resetChips === true;
@@ -1778,6 +2120,10 @@ wss.on('connection', (ws) => {
         const data = clients.get(ws);
         if (!data) return;
         ckMakeMove(data.roomKey, ws.id, msg.from, msg.to);
+      } else if (type === 'chMove') {
+        const data = clients.get(ws);
+        if (!data) return;
+        chMakeMove(data.roomKey, ws.id, msg.from, msg.to);
       }
     } catch (err) {
       console.error('Message error:', err);
@@ -1825,6 +2171,13 @@ wss.on('connection', (ws) => {
             const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
             room.ckPhase = 'over';
             broadcastToRoom(data.roomKey, { type: 'ckGameOver', winner: remainingColor, reason: 'disconnect' });
+          }
+
+          if (room.chPhase === 'playing') {
+            chClearTurnTimer(room);
+            const chRemainingColor = room.chPlayers?.white === ws.id ? 'black' : 'white';
+            room.chPhase = 'over';
+            broadcastToRoom(data.roomKey, { type: 'chGameOver', winner: chRemainingColor, reason: 'disconnect' });
           }
 
           const activeCount = room.players.filter((p) => !p.folded).length;

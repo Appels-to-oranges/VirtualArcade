@@ -48,6 +48,46 @@ const soundMediumReaction = createSoundAudio(SOUND_FILES.mediumReaction);
 const soundBigReaction = createSoundAudio(SOUND_FILES.bigReaction);
 
 let audioCtx = null;
+const SFX_BITDEPTH_KEY = 'arcade_sfx_bitdepth';
+
+function getSfxBitDepth() {
+  const raw = localStorage.getItem(SFX_BITDEPTH_KEY);
+  if (raw === '8' || raw === '12' || raw === '16') return parseInt(raw, 10);
+  return 0;
+}
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function ensureAudioBuffer(audio) {
+  if (audio._decodedBuffer) return Promise.resolve(audio._decodedBuffer);
+  if (audio._bufferLoading) return audio._bufferLoading;
+  const url = audio.src;
+  if (!url) return Promise.resolve(null);
+  audio._bufferLoading = fetch(url)
+    .then(r => r.arrayBuffer())
+    .then(buf => getAudioCtx().decodeAudioData(buf))
+    .then(decoded => { audio._decodedBuffer = decoded; return decoded; })
+    .catch(() => { audio._bufferLoading = null; return null; });
+  return audio._bufferLoading;
+}
+
+function bitCrushBuffer(buffer, bitDepth) {
+  const ctx = getAudioCtx();
+  const crushed = ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+  const halfLevels = Math.pow(2, bitDepth - 1);
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const input = buffer.getChannelData(ch);
+    const output = crushed.getChannelData(ch);
+    for (let i = 0; i < input.length; i++) {
+      output[i] = Math.round(input[i] * halfLevels) / halfLevels;
+    }
+  }
+  return crushed;
+}
+
 function playFallbackClick(vol = 0.3) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -64,13 +104,51 @@ function playFallbackClick(vol = 0.3) {
   } catch (_) {}
 }
 
+function playSoundBitCrushed(audio, vol, bitDepth) {
+  ensureAudioBuffer(audio).then(buffer => {
+    if (!buffer) {
+      audio.volume = vol;
+      audio.currentTime = 0;
+      audio.play().catch(() => playFallbackClick(vol));
+      return;
+    }
+    const ctx = getAudioCtx();
+    const crushed = bitCrushBuffer(buffer, bitDepth);
+    const source = ctx.createBufferSource();
+    source.buffer = crushed;
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = vol;
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    source.start(0);
+  });
+}
+
+function playSfx(audio, vol) {
+  vol = Math.max(0, Math.min(1, vol));
+  const bitDepth = getSfxBitDepth();
+  if (bitDepth > 0) {
+    playSoundBitCrushed(audio, vol, bitDepth);
+    return;
+  }
+  audio.volume = vol;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
+}
+
 function playSound(audio, volumeKey) {
   let vol = 0.25;
   if (volumeKey) {
     const raw = parseInt(localStorage.getItem(volumeKey), 10);
     vol = (isNaN(raw) ? 80 : Math.max(0, Math.min(100, raw))) / 100;
   }
-  audio.volume = Math.max(0, Math.min(1, vol));
+  vol = Math.max(0, Math.min(1, vol));
+  const bitDepth = getSfxBitDepth();
+  if (bitDepth > 0 && volumeKey === CARD_FX_VOLUME_KEY) {
+    playSoundBitCrushed(audio, vol, bitDepth);
+    return;
+  }
+  audio.volume = vol;
   audio.currentTime = 0;
   audio.play().catch(() => playFallbackClick(vol));
 }
@@ -282,6 +360,7 @@ const cardFxVolumeSlider = document.getElementById('card-fx-volume');
 const cardFxVolumeValue = document.getElementById('card-fx-volume-value');
 const ambienceVolumeSlider = document.getElementById('ambience-volume');
 const ambienceVolumeValue = document.getElementById('ambience-volume-value');
+const sfxBitDepthSelect = document.getElementById('sfx-bitdepth');
 const nowPlayingRadio = document.getElementById('now-playing-radio');
 const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
 const bjRadioBtn = document.getElementById('bj-radio-btn');
@@ -380,6 +459,7 @@ function connectLobby() {
   const bjScreen = document.getElementById('bj-screen');
   if (bjScreen) bjScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
+  if (window.chess) window.chess.hide();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 Connecting...`;
   if (participantsList) participantsList.innerHTML = '';
@@ -413,6 +493,7 @@ function showGameSelectScreen(players, chatHistory) {
   const bjScreen = document.getElementById('bj-screen');
   if (bjScreen) bjScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
+  if (window.chess) window.chess.hide();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
   lobbyPlayers = (players || lobbyPlayers).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
@@ -430,7 +511,7 @@ function showGameSelectScreen(players, chatHistory) {
   }
 }
 
-const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', lobby: 'Lobby' };
+const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', lobby: 'Lobby' };
 
 function renderParticipants() {
   if (!participantsList) return;
@@ -513,6 +594,7 @@ function joinWithGameType(gameType) {
     ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType }));
     if (window.bjSetWs) window.bjSetWs(ws);
     if (window.ckSetWs) window.ckSetWs(ws);
+    if (window.chSetWs) window.chSetWs(ws);
   };
 
   ws.onmessage = (ev) => {
@@ -538,6 +620,7 @@ function hideAllGameScreens() {
   const bjScreen = document.getElementById('bj-screen');
   if (bjScreen) bjScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
+  if (window.chess) window.chess.hide();
   if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
 }
 
@@ -548,6 +631,10 @@ function handleMessage(msg) {
   }
   if (msg.type && msg.type.startsWith('ck')) {
     if (window.checkers) window.checkers.handleMessage(msg);
+    return;
+  }
+  if (msg.type && msg.type.startsWith('ch') && msg.type[2] >= 'A' && msg.type[2] <= 'Z') {
+    if (window.chess) window.chess.handleMessage(msg);
     return;
   }
   switch (msg.type) {
@@ -585,6 +672,13 @@ function handleMessage(msg) {
           if (window.checkers) {
             window.checkers.init(ws, myId, gamePlayers, msg.roomKey);
             window.checkers.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else if (currentGameType === 'chess') {
+          if (window.chess) {
+            window.chess.init(ws, myId, gamePlayers, msg.roomKey);
+            window.chess.show();
           }
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
@@ -640,6 +734,13 @@ function handleMessage(msg) {
           if (window.checkers) {
             window.checkers.init(ws, myId, gamePlayers, msg.roomKey);
             window.checkers.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else if (currentGameType === 'chess') {
+          if (window.chess) {
+            window.chess.init(ws, myId, gamePlayers, msg.roomKey);
+            window.chess.show();
           }
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
@@ -966,6 +1067,7 @@ function showJoinScreen() {
   hideAllGameScreens();
   if (window.blackjack) window.blackjack.hide();
   if (window.checkers) window.checkers.hide();
+  if (window.chess) window.chess.hide();
   stopAmbience();
   stopNextHandTimer();
   hasPlayedGame = false;
@@ -1682,6 +1784,9 @@ function initRadioVolume() {
   const ambVol = isNaN(amb) ? 25 : Math.max(0, Math.min(100, amb));
   if (ambienceVolumeSlider) ambienceVolumeSlider.value = ambVol;
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = ambVol + '%';
+
+  const bd = localStorage.getItem(SFX_BITDEPTH_KEY) || '0';
+  if (sfxBitDepthSelect) sfxBitDepthSelect.value = bd;
 }
 
 function searchRadioStations(query) {
@@ -1810,6 +1915,10 @@ if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   soundAmbience.volume = v / 100;
   localStorage.setItem(AMBIENCE_VOLUME_KEY, v);
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
+});
+
+if (sfxBitDepthSelect) sfxBitDepthSelect.addEventListener('change', () => {
+  localStorage.setItem(SFX_BITDEPTH_KEY, sfxBitDepthSelect.value);
 });
 
 function sendChat() {

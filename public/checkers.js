@@ -476,11 +476,11 @@
           if (capturerColor === 'red') ckCapturesRed++; else ckCapturesWhite++;
         }
         if (msg.promoted) {
-          try { KING_SFX.volume = volNorm; KING_SFX.currentTime = 0; KING_SFX.play(); } catch (_) {}
+          try { if (typeof playSfx === 'function') playSfx(KING_SFX, volNorm); else { KING_SFX.volume = volNorm; KING_SFX.currentTime = 0; KING_SFX.play(); } } catch (_) {}
         } else if (msg.lastMove && msg.lastMove.captured) {
-          try { CAPTURE_SFX.volume = volNorm; CAPTURE_SFX.currentTime = 0; CAPTURE_SFX.play(); } catch (_) {}
+          try { if (typeof playSfx === 'function') playSfx(CAPTURE_SFX, volNorm); else { CAPTURE_SFX.volume = volNorm; CAPTURE_SFX.currentTime = 0; CAPTURE_SFX.play(); } } catch (_) {}
         } else if (msg.lastMove) {
-          try { MOVE_SFX.volume = volNorm; MOVE_SFX.currentTime = 0; MOVE_SFX.play(); } catch (_) {}
+          try { if (typeof playSfx === 'function') playSfx(MOVE_SFX, volNorm); else { MOVE_SFX.volume = volNorm; MOVE_SFX.currentTime = 0; MOVE_SFX.play(); } } catch (_) {}
         }
 
         if (ckTurn === ckMyColor) {
