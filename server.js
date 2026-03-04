@@ -86,6 +86,18 @@ const TURN_TIMEOUT_MS = 60 * 1000;
 
 const LOBBY_CHAT_MAX = 100;
 
+const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2 };
+
+function getPlayersInGame(room, gameType) {
+  return room.players.filter((p) => (p.currentView ?? 'lobby') === gameType);
+}
+
+function isGameFull(room, gameType) {
+  const max = MAX_PLAYERS[gameType];
+  if (!max) return false;
+  return getPlayersInGame(room, gameType).length >= max;
+}
+
 function getRoom(roomKey) {
   if (!rooms.has(roomKey)) {
     rooms.set(roomKey, {
@@ -1257,6 +1269,13 @@ wss.on('connection', (ws) => {
         else if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
         else if (msg.gameType === 'checkers') room.gameType = 'checkers';
 
+        let targetGameType = msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'lobby');
+        let gameFull = false;
+        if (targetGameType !== 'lobby' && isGameFull(room, targetGameType)) {
+          targetGameType = 'lobby';
+          gameFull = true;
+        }
+
         const existing = room.players.find((p) => p.ws === ws);
         if (existing) {
           existing.nickname = safeNick;
@@ -1273,18 +1292,19 @@ wss.on('connection', (ws) => {
             allIn: false,
             winStreak: 0,
             maxWinStreak: 0,
-            currentView: msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'lobby'),
+            currentView: targetGameType,
           });
         }
-        if (existing) existing.currentView = msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'lobby');
+        if (existing) existing.currentView = targetGameType;
 
-        clients.set(ws, { roomKey: safeRoom, nickname: safeNick, gameType: msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'lobby') });
+        clients.set(ws, { roomKey: safeRoom, nickname: safeNick, gameType: targetGameType });
 
         ws.send(JSON.stringify({
           type: 'joined',
           id: ws.id,
           roomKey: safeRoom,
-          gameType: msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'holdem'),
+          gameType: targetGameType === 'lobby' ? 'lobby' : (targetGameType || 'holdem'),
+          ...(gameFull && { gameFull: msg.gameType }),
           players: room.players.map((p) => ({
             id: p.id,
             nickname: p.nickname,
@@ -1312,7 +1332,7 @@ wss.on('connection', (ws) => {
           chips: 1000,
           winStreak: 0,
           maxWinStreak: 0,
-          currentView: room.players.find((p) => p.ws === ws)?.currentView ?? 'lobby',
+          currentView: targetGameType,
         }, ws);
       } else if (type === 'backToLobby') {
         const data = clients.get(ws);
@@ -1348,6 +1368,11 @@ wss.on('connection', (ws) => {
         if (pIdx < 0) return;
         const newType = msg.gameType || 'holdem';
         if (newType !== 'holdem' && newType !== 'blackjack' && newType !== 'checkers') return;
+        const currentView = room.players[pIdx].currentView ?? 'lobby';
+        if (currentView !== newType && isGameFull(room, newType)) {
+          ws.send(JSON.stringify({ type: 'gameFull', gameType: newType }));
+          return;
+        }
         room.players[pIdx].currentView = newType;
         clients.set(ws, { ...data, gameType: newType });
         broadcastToRoom(data.roomKey, {

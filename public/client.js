@@ -534,6 +534,10 @@ function handleMessage(msg) {
       if (currentGameType === 'lobby') {
         lobbyPlayers = (players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         showGameSelectScreen(players, msg.chatHistory);
+        if (msg.gameFull) {
+          const name = GAME_NAMES[msg.gameFull] || msg.gameFull;
+          showToast(`${name} is full. You've been placed in the lobby.`);
+        }
         return;
       }
       if (currentGameType === 'blackjack') {
@@ -563,6 +567,12 @@ function handleMessage(msg) {
         initRadioVolume();
       }
       break;
+
+    case 'gameFull': {
+      const name = GAME_NAMES[msg.gameType] || msg.gameType;
+      showToast(`${name} is full (max players reached).`);
+      break;
+    }
 
     case 'radioChanged':
       playRadio(msg.station);
