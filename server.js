@@ -449,6 +449,9 @@ function showdown(roomKey) {
         maxWinStreak: p.maxWinStreak ?? 0,
       })),
     });
+    if (active[0].isBot) {
+      maybeBotChat(roomKey, active[0].id, active[0].nickname, BOT_PHRASES.win, 800);
+    }
   } else {
     const allCards = room.communityCards;
     const hands = active.map((p) => {
@@ -499,6 +502,15 @@ function showdown(roomKey) {
         maxWinStreak: p.maxWinStreak ?? 0,
       })),
     });
+    const winnerSet = new Set(winnerIds);
+    players.forEach((p) => {
+      if (!p.isBot) return;
+      if (winnerSet.has(p.id)) {
+        maybeBotChat(roomKey, p.id, p.nickname, BOT_PHRASES.win, 800);
+      } else if (!p.folded) {
+        maybeBotChat(roomKey, p.id, p.nickname, BOT_PHRASES.lose, 800);
+      }
+    });
   }
 
   room.phase = 'lobby';
@@ -548,6 +560,38 @@ function hasHumanPlayers(room) {
 
 const BOT_NAMES = ['Ace', 'Blaze', 'Cobra', 'Duke', 'Echo', 'Frost', 'Ghost', 'Hawk', 'Iron', 'Jinx'];
 let botNameIdx = 0;
+
+const BOT_PHRASES = {
+  win: [
+    'Thats what I thought', 'Get good', 'Easy.', 'Nice try.', 'Are you mad?',
+    'booyah!', 'ez', 'gg', 'thanks for the chips lol', "that's rent",
+    "that's how you do it", "don't cry", 'im rich',
+  ],
+  raiseCall: [
+    'You dont have it', 'Lets make this interesting', 'Time to test your resolve',
+    "let's make this interesting", 'locking in', "It's time…",
+    'Show me the money!!!', "Don't be shy", 'You should just fold',
+    'the path to victory is clear',
+  ],
+  fold: [
+    'Nah', 'Hmmm..', 'Good things come to those who wait..',
+    "nah I'm good", 'nope', 'Im out', 'bad vibes lol', 'trash cards',
+    'not worth it',
+  ],
+  lose: [
+    'Thats BS', 'Grrr', 'Luck.', 'dang', 'what?! nooooo',
+    "that stings :'(", 'shoot!', 'how bout you dont tho',
+    'so close…', 'good play', 'not bad', 'teach me', 'well done',
+  ],
+};
+
+function maybeBotChat(roomKey, botId, botNickname, phrases, delayMs = 0) {
+  if (Math.random() > 0.25) return;
+  const text = phrases[Math.floor(Math.random() * phrases.length)];
+  const send = () => broadcastToRoom(roomKey, { type: 'chat', playerId: botId, nickname: botNickname, text });
+  if (delayMs > 0) setTimeout(send, delayMs);
+  else send();
+}
 
 function scheduleBotAction(roomKey) {
   const room = getRoom(roomKey);
@@ -605,6 +649,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
       pot: room.pot,
       players: players.map((p, i) => ({ id: p.id, folded: p.folded, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
     });
+    maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.fold, 300);
     if (activeCount <= 1) {
       setTimeout(() => { if (room.phase !== 'lobby') showdown(roomKey); }, 1200);
       return;
@@ -630,6 +675,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
       pot: room.pot,
       players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
     });
+    maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raiseCall, 300);
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
 
@@ -648,6 +694,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
         pot: room.pot,
         players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
       });
+      maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raiseCall, 300);
     } else {
       const raiseTo = Math.max(room.currentBet + room.minRaise, Math.floor(amount || room.currentBet + room.bigBlind));
       const toAdd = raiseTo - player.betThisRound;
@@ -668,6 +715,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
         currentBet: room.currentBet, minRaise: room.minRaise, pot: room.pot,
         players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
       });
+      maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raiseCall, 300);
     }
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
@@ -704,6 +752,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
       currentBet: room.currentBet, minRaise: room.minRaise, pot: room.pot, facingAllIn,
       players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
     });
+    maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raiseCall, 300);
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
 

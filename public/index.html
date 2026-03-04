@@ -68,12 +68,15 @@
         </div>
       </div>
       <button type="button" id="game-select-back" class="btn-back">&#x2190; Leave Room</button>
-      <button type="button" id="lobby-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
-      <div class="now-playing-radio hidden" id="lobby-now-playing-radio">
-        <span class="now-playing-label" id="lobby-now-playing-radio-label"></span>
-        <button type="button" class="now-playing-stop" id="lobby-radio-stop" title="Stop radio">&#x25A0;</button>
-      </div>
     </div>
+    <div class="lobby-right-col">
+      <div class="lobby-radio-panel">
+        <button type="button" id="lobby-radio-btn" class="lobby-radio-open-btn" title="Pick a station">&#x1F4FB; Radio</button>
+        <div class="lobby-now-playing hidden" id="lobby-now-playing-radio">
+          <span class="lobby-now-playing-label" id="lobby-now-playing-radio-label"></span>
+          <button type="button" class="lobby-now-playing-stop" id="lobby-radio-stop" title="Stop radio">&#x25A0;</button>
+        </div>
+      </div>
     <aside class="game-select-chat" id="game-select-chat">
       <div class="chat-panel-header">
         <span>Chat</span>
@@ -87,6 +90,7 @@
         </div>
       </div>
     </aside>
+    </div>
     </div>
   </div>
 
@@ -230,11 +234,15 @@
         <button type="button" id="radio-search-btn">Search</button>
       </div>
       <div class="sound-controls">
+        <h3 class="sound-section-title">Radio Volume</h3>
         <div class="radio-volume-wrap">
           <label>Radio</label>
           <input type="range" id="radio-volume" min="0" max="100" value="80">
           <span id="radio-volume-value">80%</span>
         </div>
+      </div>
+      <div class="sound-controls sound-settings-section">
+        <h3 class="sound-section-title">Sound Settings</h3>
         <div class="radio-volume-wrap">
           <label>Card FX & sounds</label>
           <input type="range" id="card-fx-volume" min="0" max="100" value="80">
