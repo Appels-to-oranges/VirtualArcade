@@ -6,6 +6,7 @@
   const CURSOR_IMG = '/checkers/cursor.png';
   const MOVE_SFX = new Audio('/checker-move.ogg');
   const CAPTURE_SFX = new Audio('/checker-capture.ogg');
+  const KING_SFX = new Audio('/checker-king.ogg');
 
   /* Sprite positions (percentage-based, with background-size: 400% 100%)
      Sheet is 64x16 — four 16x16 sprites in a row. */
@@ -468,22 +469,18 @@
         ckTurn = msg.turn;
         ckSelected = null;
         ckValidMoves = [];
+        var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
+        var volNorm = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
         if (msg.lastMove && msg.lastMove.captured) {
           var capturerColor = msg.turn === 'red' ? 'white' : 'red';
           if (capturerColor === 'red') ckCapturesRed++; else ckCapturesWhite++;
-          try {
-            var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
-            CAPTURE_SFX.volume = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
-            CAPTURE_SFX.currentTime = 0;
-            CAPTURE_SFX.play();
-          } catch (_) {}
-        } else {
-          try {
-            var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
-            MOVE_SFX.volume = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
-            MOVE_SFX.currentTime = 0;
-            MOVE_SFX.play();
-          } catch (_) {}
+        }
+        if (msg.promoted) {
+          try { KING_SFX.volume = volNorm; KING_SFX.currentTime = 0; KING_SFX.play(); } catch (_) {}
+        } else if (msg.lastMove && msg.lastMove.captured) {
+          try { CAPTURE_SFX.volume = volNorm; CAPTURE_SFX.currentTime = 0; CAPTURE_SFX.play(); } catch (_) {}
+        } else if (msg.lastMove) {
+          try { MOVE_SFX.volume = volNorm; MOVE_SFX.currentTime = 0; MOVE_SFX.play(); } catch (_) {}
         }
 
         if (ckTurn === ckMyColor) {

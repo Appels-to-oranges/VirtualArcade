@@ -335,7 +335,6 @@ const gameSelectBack = document.getElementById('game-select-back');
 const participantsList = document.getElementById('participants-list');
 const lobbyChatMessages = document.getElementById('lobby-chat-messages');
 const lobbyChatInput = document.getElementById('lobby-chat-input');
-const lobbyChatSend = document.getElementById('lobby-chat-send');
 
 const IMAGE_THEMES = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot'];
 const ALL_THEMES = ['default', 'amber', 'slate', 'gray', 'blue', ...IMAGE_THEMES];
@@ -1826,13 +1825,11 @@ function sendChat() {
 }
 
 const chatInput = document.getElementById('chat-input');
-const chatSend = document.getElementById('chat-send');
 if (chatInput) {
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
   });
 }
-if (chatSend) chatSend.addEventListener('click', sendChat);
 
 function sendBjChat() {
   const input = document.getElementById('bj-chat-input');
@@ -1862,7 +1859,6 @@ if (lobbyChatInput) {
     if (e.key === 'Enter') { e.preventDefault(); sendLobbyChat(); }
   });
 }
-if (lobbyChatSend) lobbyChatSend.addEventListener('click', sendLobbyChat);
 
 // ── Lobby overlays & buttons ──
 const themesOverlay = document.getElementById('themes-overlay');
@@ -1916,13 +1912,11 @@ if (inviteBtn) {
 }
 
 const bjChatInput = document.getElementById('bj-chat-input');
-const bjChatSend = document.getElementById('bj-chat-send');
 if (bjChatInput) {
   bjChatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); sendBjChat(); }
   });
 }
-if (bjChatSend) bjChatSend.addEventListener('click', sendBjChat);
 
 const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');
