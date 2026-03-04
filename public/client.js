@@ -2037,6 +2037,29 @@ if (inviteBtn) {
   });
 }
 
+// ── Lobby style toggle (Modern / Retro) ──
+const LOBBY_STYLE_KEY = 'arcade_lobby_style';
+
+function applyLobbyStyle(style) {
+  if (style === 'retro') {
+    document.body.classList.add('lobby-retro');
+  } else {
+    document.body.classList.remove('lobby-retro');
+  }
+  document.querySelectorAll('.lobby-style-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.style === style);
+  });
+  localStorage.setItem(LOBBY_STYLE_KEY, style);
+}
+
+document.querySelectorAll('.lobby-style-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    applyLobbyStyle(btn.dataset.style);
+  });
+});
+
+applyLobbyStyle(localStorage.getItem(LOBBY_STYLE_KEY) || 'modern');
+
 const bjChatInput = document.getElementById('bj-chat-input');
 if (bjChatInput) {
   bjChatInput.addEventListener('keydown', (e) => {

@@ -36,6 +36,7 @@
       var img = new Image();
       img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + '.gif)'; };
       img.src = '/images/themes/' + pick + '.gif';
+      if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');
     })();
   </script>
 
@@ -187,6 +188,13 @@
                 <option value="16">16-bit</option>
                 <option value="0" selected>Max / Original</option>
               </select>
+            </div>
+          </div>
+          <div class="theme-group">
+            <label>Lobby Style</label>
+            <div class="lobby-style-toggle">
+              <button type="button" class="lobby-style-btn active" data-style="modern">Modern</button>
+              <button type="button" class="lobby-style-btn" data-style="retro">Retro</button>
             </div>
           </div>
         </div>

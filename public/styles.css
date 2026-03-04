@@ -2434,6 +2434,411 @@ body.theme-snowy-lot { --lobby-accent: #8a92b8; }
   margin-left: 0.3rem;
 }
 
+/* ── Lobby style toggle ── */
+.lobby-style-toggle {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.lobby-style-btn {
+  padding: 0.35rem 0.6rem;
+  border: 0.0625rem solid #30363d;
+  border-radius: 0.35rem;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-size: 0.35rem;
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.lobby-style-btn:hover {
+  border-color: #c9b896;
+  background: #1a1a2e;
+}
+
+.lobby-style-btn.active {
+  border-color: #c9b896;
+  background: #c9b896;
+  color: #0a0a0a;
+}
+
+/* ══════════════════════════════════════════
+   Retro mode overrides (body.lobby-retro)
+   All border-radius → 0, pixel borders,
+   hard drop shadows, no smooth transitions
+   ══════════════════════════════════════════ */
+
+/* ── Join / splash screen ── */
+body.lobby-retro .join-card {
+  border-radius: 0;
+  border-width: 2px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7);
+}
+
+body.lobby-retro .join-form .form-control {
+  border-radius: 0;
+  border-width: 2px;
+  transition: none;
+}
+
+body.lobby-retro .join-form .form-control:focus {
+  box-shadow: none;
+  border-color: var(--join-accent, #c9b896);
+}
+
+body.lobby-retro .join-form .btn-join {
+  border-radius: 0;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  transition: none;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+}
+
+body.lobby-retro .join-form .btn-join:hover {
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+body.lobby-retro .join-form .btn-join:active {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.6);
+  transform: translate(2px, 2px);
+}
+
+/* ── Lobby screen ── */
+body.lobby-retro .game-select-layout {
+  max-width: 54rem;
+}
+
+body.lobby-retro .lobby-top-bar {
+  border-radius: 0;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  padding: 0.4rem 0.6rem;
+}
+
+body.lobby-retro .lobby-room-badge {
+  border-radius: 0;
+  border-width: 2px;
+}
+
+body.lobby-retro .lobby-invite-btn {
+  border-radius: 0;
+  border-width: 2px;
+  transition: none;
+}
+
+body.lobby-retro .lobby-invite-btn:hover {
+  background: var(--lobby-accent);
+  color: #000;
+}
+
+body.lobby-retro .lobby-header-btn {
+  border-radius: 0;
+  transition: none;
+}
+
+body.lobby-retro .lobby-header-btn:hover {
+  background: var(--lobby-accent);
+}
+
+body.lobby-retro .game-select-card {
+  border-radius: 0;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  padding: 1rem 1.25rem;
+}
+
+body.lobby-retro .lobby-chat-card {
+  border-radius: 0;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+}
+
+body.lobby-retro .game-select-card h1 {
+  border-bottom: 2px solid var(--lobby-border);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  letter-spacing: 0.2rem;
+}
+
+body.lobby-retro .participants-label {
+  border-bottom-width: 2px;
+}
+
+body.lobby-retro .participant-chip {
+  border-radius: 0;
+  border-width: 2px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .game-category-label {
+  border-bottom-width: 2px;
+}
+
+body.lobby-retro .game-count-badge {
+  border-radius: 0;
+  border-width: 2px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .game-option-btn {
+  border-radius: 0;
+  border-width: 2px;
+  transition: none;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+body.lobby-retro .game-option-btn:hover {
+  transform: none;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  border-color: var(--lobby-accent);
+  background: var(--lobby-accent);
+  color: #000;
+}
+
+body.lobby-retro .game-option-btn:active {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.5);
+  transform: translate(2px, 2px);
+}
+
+body.lobby-retro .game-option-img {
+  image-rendering: pixelated;
+  width: 2rem;
+  height: 2rem;
+}
+
+body.lobby-retro .btn-back {
+  border-radius: 0;
+  border-width: 2px;
+  transition: none;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+body.lobby-retro .btn-back:hover {
+  background: var(--lobby-accent);
+  color: #000;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+body.lobby-retro .btn-back:active {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.5);
+  transform: translate(2px, 2px);
+}
+
+body.lobby-retro .lobby-chat-header {
+  border-bottom-width: 2px;
+}
+
+body.lobby-retro .lobby-chat-input-panel {
+  border-top-width: 2px;
+}
+
+body.lobby-retro .lobby-chat-input-panel .chat-input {
+  border-radius: 0;
+  border-width: 2px;
+}
+
+/* ── Lobby overlays (themes, settings) ── */
+body.lobby-retro .lobby-overlay-panel {
+  border-radius: 0;
+  border-width: 2px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7);
+}
+
+body.lobby-retro .lobby-overlay-header {
+  border-bottom-width: 2px;
+}
+
+body.lobby-retro .lobby-overlay-close {
+  border-radius: 0;
+}
+
+body.lobby-retro .theme-opt {
+  border-radius: 0;
+  border-width: 2px;
+  transition: none;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .theme-opt:hover {
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .theme-opt.active {
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.lobby-retro .lobby-style-btn {
+  border-radius: 0;
+  border-width: 2px;
+  transition: none;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .lobby-style-btn:hover {
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .lobby-style-btn.active {
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.lobby-retro .sfx-bitdepth-select {
+  border-radius: 0;
+}
+
+/* ── Game screens: shared elements ── */
+body.lobby-retro .btn {
+  border-radius: 0;
+  transition: none;
+}
+
+body.lobby-retro .btn-start {
+  border-radius: 0;
+}
+
+body.lobby-retro .btn-restart {
+  border-radius: 0;
+}
+
+body.lobby-retro .btn-add-bot {
+  border-radius: 0;
+}
+
+body.lobby-retro .btn-back-inline {
+  border-radius: 0;
+}
+
+body.lobby-retro .chat-input {
+  border-radius: 0;
+}
+
+body.lobby-retro .btn-radio {
+  border-radius: 0;
+}
+
+body.lobby-retro .seat-chat-bubble {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+body.lobby-retro .winner-notification {
+  border-radius: 0;
+}
+
+body.lobby-retro .btn-rebuy {
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(107, 203, 45, 0.4);
+  animation: none;
+}
+
+body.lobby-retro .btn-rebuy:hover {
+  box-shadow: 2px 2px 0 rgba(107, 203, 45, 0.6);
+}
+
+body.lobby-retro .message-toast {
+  border-radius: 0;
+}
+
+body.lobby-retro .bet-slider {
+  border-radius: 0;
+}
+
+body.lobby-retro .bet-slider::-webkit-slider-thumb {
+  border-radius: 0;
+}
+
+body.lobby-retro .bet-slider::-moz-range-thumb {
+  border-radius: 0;
+}
+
+/* ── Showdown overlay ── */
+body.lobby-retro .showdown-modal {
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #000;
+}
+
+body.lobby-retro .btn-dismiss {
+  border-radius: 0;
+}
+
+body.lobby-retro .showdown-winner-banner {
+  border-radius: 0;
+}
+
+/* ── Radio overlay ── */
+body.lobby-retro .radio-panel {
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #000;
+}
+
+body.lobby-retro .radio-close {
+  border-radius: 0;
+}
+
+body.lobby-retro .radio-search-wrap input {
+  border-radius: 0;
+}
+
+body.lobby-retro .radio-search-wrap button {
+  border-radius: 0;
+}
+
+/* ── Game type selector (lobby) ── */
+body.lobby-retro .game-type-btn {
+  border-radius: 0;
+  transition: none;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+body.lobby-retro .game-type-btn.active {
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* ── Blackjack ── */
+body.lobby-retro .bj-player-row {
+  border-radius: 0;
+  transition: none;
+}
+
+body.lobby-retro .bj-player-status {
+  border-radius: 0;
+}
+
+body.lobby-retro .bj-player-cards .card {
+  border-radius: 0 !important;
+}
+
+body.lobby-retro .bj-dealer-cards .card {
+  border-radius: 0 !important;
+}
+
+body.lobby-retro .bj-chat-bubble {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ── Checkers / Chess (inline-style overrides) ── */
+body.lobby-retro #ck-screen .btn-start,
+body.lobby-retro #ck-screen .btn-restart {
+  border-radius: 0 !important;
+}
+
+body.lobby-retro #ck-screen select {
+  border-radius: 0 !important;
+}
+
+body.lobby-retro #ch-screen .btn-start,
+body.lobby-retro #ch-screen .btn-restart {
+  border-radius: 0 !important;
+}
+
+body.lobby-retro #ch-screen select {
+  border-radius: 0 !important;
+}
+
 /* ── Responsive lobby ── */
 @media (max-width: 700px) {
   .lobby-cards {
