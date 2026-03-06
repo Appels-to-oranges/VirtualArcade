@@ -140,7 +140,7 @@ body {
   --lobby-accent: #8a92b8;
   --lobby-input-bg: #100e16;
 }
-#game-select-screen.theme-foggy-hill {
+#game-select-screen.theme-rolling-fog {
   --lobby-bg: linear-gradient(145deg, #1a1e14 0%, #242a1c 100%);
   --lobby-card-bg: rgba(22, 26, 18, 0.92);
   --lobby-border: #3d4a35;
@@ -757,7 +757,7 @@ body.theme-foggy-hill { --lobby-accent: #7a9a6e; }
   --join-btn-bg: #4a4e6a;
   --join-btn-hover: #5a5e7a;
 }
-#join-screen.splash-foggy-hill {
+#join-screen.splash-rolling-fog {
   --join-accent: #7a9a6e;
   --join-btn-bg: #3d4a35;
   --join-btn-hover: #4d5a45;

@@ -29,12 +29,12 @@
   </div>
   <script>
     (function() {
-      var themes = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot', 'foggy-hill'];
+      var themes = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot', 'rolling-fog'];
       var pick = themes[Math.floor(Math.random() * themes.length)];
       var el = document.getElementById('join-screen');
       el.classList.add('splash-' + pick);
       var img = new Image();
-      var ext = (pick === 'snowy-lot' || pick === 'foggy-hill') ? '.png' : '.gif';
+      var ext = '.gif';
       img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + ext + ')'; };
       img.src = '/images/themes/' + pick + ext;
       if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');
@@ -149,7 +149,7 @@
             <button type="button" class="theme-opt" data-theme="apartments">Apartments</button>
             <button type="button" class="theme-opt" data-theme="fireflies">Fireflies</button>
             <button type="button" class="theme-opt" data-theme="snowy-lot">Snowy Lot</button>
-            <button type="button" class="theme-opt" data-theme="foggy-hill">Foggy Hill</button>
+            <button type="button" class="theme-opt" data-theme="rolling-fog">Rolling Fog</button>
           </div>
         </div>
       </div>

@@ -490,7 +490,7 @@ const participantsList = document.getElementById('participants-list');
 const lobbyChatMessages = document.getElementById('lobby-chat-messages');
 const lobbyChatInput = document.getElementById('lobby-chat-input');
 
-const IMAGE_THEMES = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot', 'foggy-hill'];
+const IMAGE_THEMES = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot', 'rolling-fog'];
 const ALL_THEMES = ['default', 'amber', 'slate', 'gray', 'blue', ...IMAGE_THEMES];
 const THEME_STORAGE_KEY = 'arcade_theme';
 let currentTheme = 'default';
@@ -507,7 +507,7 @@ function applyTheme(theme) {
   }
   currentTheme = theme || 'default';
   if (IMAGE_THEMES.includes(theme)) {
-    const ext = (theme === 'snowy-lot' || theme === 'foggy-hill') ? '.png' : '.gif';
+    const ext = '.gif';
     const url = '/images/themes/' + theme + ext;
     gameSelectScreen.style.backgroundImage = 'url(' + url + ')';
     gameSelectScreen.classList.add('has-bg-image');
