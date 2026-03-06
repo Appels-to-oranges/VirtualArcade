@@ -1235,13 +1235,20 @@ function broadcastCkWagerState(roomKey, room) {
   if (ckPlayers.length !== 2) return;
   const proposals = room.ckWagerProposals || {};
   const ready = room.ckWagerReady || {};
+  const locked = room.ckWagerLocked || {};
   const chips = {};
-  ckPlayers.forEach((p) => { chips[p.id] = p.chips || 0; });
+  const nicknames = {};
+  ckPlayers.forEach((p) => {
+    chips[p.id] = p.chips || 0;
+    nicknames[p.id] = p.nickname || 'Player';
+  });
   broadcastToRoom(roomKey, {
     type: 'ckWagerState',
     proposals,
     ready,
+    locked,
     chips,
+    nicknames,
   });
 }
 
@@ -1250,13 +1257,20 @@ function broadcastChWagerState(roomKey, room) {
   if (chPlayers.length !== 2) return;
   const proposals = room.chWagerProposals || {};
   const ready = room.chWagerReady || {};
+  const locked = room.chWagerLocked || {};
   const chips = {};
-  chPlayers.forEach((p) => { chips[p.id] = p.chips || 0; });
+  const nicknames = {};
+  chPlayers.forEach((p) => {
+    chips[p.id] = p.chips || 0;
+    nicknames[p.id] = p.nickname || 'Player';
+  });
   broadcastToRoom(roomKey, {
     type: 'chWagerState',
     proposals,
     ready,
+    locked,
     chips,
+    nicknames,
   });
 }
 
@@ -1266,16 +1280,16 @@ function ckStartGame(roomKey, timerSeconds) {
   if (ckPlayers.length !== 2) return;
 
   let wager = 0;
-  const proposals = room.ckWagerProposals || {};
-  const ready = room.ckWagerReady || {};
-  const bothReady = ckPlayers.every((p) => ready[p.id] === true);
-  if (bothReady) {
+  const locked = room.ckWagerLocked || {};
+  const lock1 = locked[ckPlayers[0].id];
+  const lock2 = locked[ckPlayers[1].id];
+  const bothLocked = lock1 !== undefined && lock2 !== undefined;
+  const match = bothLocked && lock1 === lock2;
+  if (bothLocked && match && lock1 > 0) {
     const p1 = ckPlayers[0];
     const p2 = ckPlayers[1];
-    const prop1 = proposals[p1.id] ?? 0;
-    const prop2 = proposals[p2.id] ?? 0;
     const maxWager = Math.min(p1.chips || 0, p2.chips || 0);
-    wager = Math.min(prop1, prop2, maxWager);
+    wager = Math.min(lock1, maxWager);
     if (wager > 0) {
       p1.chips = (p1.chips || 0) - wager;
       p2.chips = (p2.chips || 0) - wager;
@@ -1284,6 +1298,7 @@ function ckStartGame(roomKey, timerSeconds) {
   room.ckWager = wager;
   room.ckWagerProposals = {};
   room.ckWagerReady = {};
+  room.ckWagerLocked = {};
 
   room.ckPlayersList = ckPlayers;
 
@@ -1624,16 +1639,16 @@ function chStartGame(roomKey, timerSeconds) {
   if (chPlayers.length !== 2) return;
 
   let wager = 0;
-  const proposals = room.chWagerProposals || {};
-  const ready = room.chWagerReady || {};
-  const bothReady = chPlayers.every((p) => ready[p.id] === true);
-  if (bothReady) {
+  const locked = room.chWagerLocked || {};
+  const lock1 = locked[chPlayers[0].id];
+  const lock2 = locked[chPlayers[1].id];
+  const bothLocked = lock1 !== undefined && lock2 !== undefined;
+  const match = bothLocked && lock1 === lock2;
+  if (bothLocked && match && lock1 > 0) {
     const p1 = chPlayers[0];
     const p2 = chPlayers[1];
-    const prop1 = proposals[p1.id] ?? 0;
-    const prop2 = proposals[p2.id] ?? 0;
     const maxWager = Math.min(p1.chips || 0, p2.chips || 0);
-    wager = Math.min(prop1, prop2, maxWager);
+    wager = Math.min(lock1, maxWager);
     if (wager > 0) {
       p1.chips = (p1.chips || 0) - wager;
       p2.chips = (p2.chips || 0) - wager;
@@ -1642,6 +1657,7 @@ function chStartGame(roomKey, timerSeconds) {
   room.chWager = wager;
   room.chWagerProposals = {};
   room.chWagerReady = {};
+  room.chWagerLocked = {};
 
   room.chPlayersList = chPlayers;
 
@@ -2023,9 +2039,25 @@ wss.on('connection', (ws) => {
         const room = getRoom(data.roomKey);
         const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
         if (ckPlayers.length !== 2) return;
-        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        const p = ckPlayers.find((x) => x.ws === ws);
+        if (!p) return;
         room.ckWagerReady = room.ckWagerReady || {};
         room.ckWagerReady[ws.id] = msg.ready !== false;
+        broadcastCkWagerState(data.roomKey, room);
+      } else if (type === 'ckWagerLock') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.length !== 2) return;
+        const p = ckPlayers.find((x) => x.ws === ws);
+        if (!p) return;
+        const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
+        const other = ckPlayers.find((x) => x.id !== p.id);
+        const maxWager = Math.min(p.chips || 0, other?.chips || 0);
+        const capped = Math.min(amount, maxWager);
+        room.ckWagerLocked = room.ckWagerLocked || {};
+        room.ckWagerLocked[p.id] = capped;
         broadcastCkWagerState(data.roomKey, room);
       } else if (type === 'chWagerProposal') {
         const data = clients.get(ws);
@@ -2052,6 +2084,21 @@ wss.on('connection', (ws) => {
         room.chWagerReady = room.chWagerReady || {};
         room.chWagerReady[ws.id] = msg.ready !== false;
         broadcastChWagerState(data.roomKey, room);
+      } else if (type === 'chWagerLock') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.length !== 2) return;
+        const p = chPlayers.find((x) => x.ws === ws);
+        if (!p) return;
+        const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
+        const other = chPlayers.find((x) => x.id !== p.id);
+        const maxWager = Math.min(p.chips || 0, other?.chips || 0);
+        const capped = Math.min(amount, maxWager);
+        room.chWagerLocked = room.chWagerLocked || {};
+        room.chWagerLocked[p.id] = capped;
+        broadcastChWagerState(data.roomKey, room);
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;
@@ -2061,8 +2108,28 @@ wss.on('connection', (ws) => {
         if (gameType === 'blackjack') {
           bjStartGame(data.roomKey);
         } else if (gameType === 'checkers') {
+          const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+          if (ckPlayers.length === 2) {
+            const locked = room.ckWagerLocked || {};
+            const l1 = locked[ckPlayers[0].id];
+            const l2 = locked[ckPlayers[1].id];
+            if (l1 !== undefined && l2 !== undefined && l1 !== l2) {
+              ws.send(JSON.stringify({ type: 'ckWagerMismatch', message: 'Wagers must match' }));
+              return;
+            }
+          }
           ckStartGame(data.roomKey, msg.timerSeconds);
         } else if (gameType === 'chess') {
+          const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+          if (chPlayers.length === 2) {
+            const locked = room.chWagerLocked || {};
+            const l1 = locked[chPlayers[0].id];
+            const l2 = locked[chPlayers[1].id];
+            if (l1 !== undefined && l2 !== undefined && l1 !== l2) {
+              ws.send(JSON.stringify({ type: 'chWagerMismatch', message: 'Wagers must match' }));
+              return;
+            }
+          }
           chStartGame(data.roomKey, msg.timerSeconds);
         } else {
           const resetStreaks = msg.resetStreaks === true;

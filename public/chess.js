@@ -29,7 +29,9 @@
   var chCapturesWhite = 0;
   var chWagerProposals = {};
   var chWagerReady = {};
+  var chWagerLocked = {};
   var chWagerChips = {};
+  var chWagerNicknames = {};
   var chCapturesBlack = 0;
   var chCastling = null;
   var chEnPassant = null;
@@ -373,13 +375,32 @@
       ".ch-timer-setting select{font-family:'Press Start 2P',monospace;" +
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
-      '.ch-wager-setting{display:flex;align-items:center;gap:.4rem;font-size:.45rem}' +
-      '.ch-wager-setting.hidden{display:none}' +
-      '.ch-wager-setting label{color:#888}' +
-      '.ch-wager-setting input[type=range]{width:4rem}' +
-      ".ch-ready-btn{font-family:'Press Start 2P',monospace;font-size:.4rem;" +
-        'padding:.2rem .4rem;background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer}' +
-      '.ch-ready-btn.ch-ready{background:#1b4332;border:.125rem solid #40916c}' +
+      '.ch-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+      '.ch-config-overlay.ch-hidden{display:none}' +
+      '.ch-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
+        'padding:1rem;max-width:22rem;width:100%}' +
+      '.ch-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
+      '.ch-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
+      '.ch-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
+      '.ch-config-opponent-name{font-size:.5rem;color:#ddd}' +
+      '.ch-config-opponent-chips{font-size:.4rem;color:#c9b896;margin-top:.2rem}' +
+      '.ch-config-timer{margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}' +
+      '.ch-config-timer label{font-size:.4rem;color:#888}' +
+      ".ch-config-timer select{font-family:'Press Start 2P',monospace;font-size:.4rem;" +
+        'background:#1a1a1a;color:#ddd;border:.1rem solid #333;border-radius:.2rem;padding:.2rem}' +
+      '.ch-config-wagers{margin-bottom:.75rem}' +
+      '.ch-config-wager-row{margin-bottom:.5rem;display:flex;flex-direction:column;gap:.25rem}' +
+      '.ch-config-wager-row label{font-size:.4rem;color:#888}' +
+      '.ch-config-wager-row input[type=range]{width:100%}' +
+      ".ch-lock-btn{font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.25rem .5rem;" +
+        'background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer;align-self:flex-start}' +
+      '.ch-lock-btn.ch-locked{background:#1b4332;border:.125rem solid #40916c;color:#8b949e}' +
+      '.ch-opponent-wager label{color:#666}' +
+      '.ch-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
+      '.ch-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
+      '.ch-config-wager-msg.ch-show{display:block}' +
+      '#ch-config-start-btn{width:100%;margin-top:.5rem}' +
 
       '.ch-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
@@ -410,25 +431,43 @@
         '<button type="button" id="ch-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>' +
         '<span id="ch-room-label"></span>' +
         '<span class="ch-chips-display" id="ch-chips-display">$0</span>' +
-        '<div class="ch-timer-setting" id="ch-timer-setting">' +
-          '<label for="ch-timer-select">Turn timer</label>' +
-          '<select id="ch-timer-select">' +
-            '<option value="0">No timer</option>' +
-            '<option value="30">30 sec</option>' +
-            '<option value="60">60 sec</option>' +
-            '<option value="120">2 min</option>' +
-            '<option value="300">5 min</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="ch-wager-setting" id="ch-wager-setting">' +
-          '<label for="ch-wager-slider">Wager $<span id="ch-wager-value">0</span></label>' +
-          '<input type="range" id="ch-wager-slider" min="0" max="100" value="0" step="5">' +
-          '<button type="button" id="ch-wager-ready-btn" class="ch-ready-btn">Ready</button>' +
-        '</div>' +
-        '<button id="ch-start-btn" class="btn-start">Start Game</button>' +
+        '<button id="ch-start-btn" class="btn-start hidden">Start Game</button>' +
         '<button id="ch-rematch-btn" class="btn-restart hidden">Rematch</button>' +
         '<button type="button" id="ch-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>' +
         '<button type="button" id="ch-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
+      '</div>' +
+      '<div class="ch-config-overlay" id="ch-config-overlay">' +
+        '<div class="ch-config-panel">' +
+          '<h2 class="ch-config-title">Configure Game</h2>' +
+          '<div class="ch-config-opponent" id="ch-config-opponent">' +
+            '<div class="ch-config-opponent-label">Opponent</div>' +
+            '<div class="ch-config-opponent-name" id="ch-config-opponent-name">Waiting...</div>' +
+            '<div class="ch-config-opponent-chips" id="ch-config-opponent-chips"></div>' +
+          '</div>' +
+          '<div class="ch-config-timer">' +
+            '<label for="ch-timer-select">Turn timer</label>' +
+            '<select id="ch-timer-select">' +
+              '<option value="0">No timer</option>' +
+              '<option value="30">30 sec</option>' +
+              '<option value="60">60 sec</option>' +
+              '<option value="120">2 min</option>' +
+              '<option value="300">5 min</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="ch-config-wagers">' +
+            '<div class="ch-config-wager-row">' +
+              '<label>Your wager: $<span id="ch-wager-value">0</span></label>' +
+              '<input type="range" id="ch-wager-slider" min="0" max="100" value="0" step="5">' +
+              '<button type="button" id="ch-wager-lock-btn" class="ch-lock-btn">Lock In</button>' +
+            '</div>' +
+            '<div class="ch-config-wager-row ch-opponent-wager">' +
+              '<label>Opponent wager: $<span id="ch-opponent-wager-value">0</span></label>' +
+              '<div class="ch-opponent-slider-display" id="ch-opponent-slider-display"></div>' +
+            '</div>' +
+            '<div class="ch-config-wager-msg" id="ch-wager-mismatch-msg">Wagers must match</div>' +
+          '</div>' +
+          '<button id="ch-config-start-btn" class="btn-start">Start Game</button>' +
+        '</div>' +
       '</div>' +
       '<div id="ch-turn-timer" class="ch-turn-timer hidden"></div>' +
       '<div id="ch-status"></div>' +
@@ -460,15 +499,27 @@
 
     var chWagerSlider = document.getElementById('ch-wager-slider');
     var chWagerValue = document.getElementById('ch-wager-value');
-    var chWagerReadyBtn = document.getElementById('ch-wager-ready-btn');
+    var chWagerLockBtn = document.getElementById('ch-wager-lock-btn');
     if (chWagerSlider) chWagerSlider.addEventListener('input', function () {
       var val = parseInt(chWagerSlider.value, 10);
       if (chWagerValue) chWagerValue.textContent = val;
-      send({ type: 'chWagerProposal', amount: val });
+      if (!chWagerLockBtn || !chWagerLockBtn.classList.contains('ch-locked')) {
+        send({ type: 'chWagerProposal', amount: val });
+      }
     });
-    if (chWagerReadyBtn) chWagerReadyBtn.addEventListener('click', function () {
-      var isReady = chWagerReadyBtn.classList.contains('ch-ready');
-      send({ type: 'chWagerReady', ready: !isReady });
+    if (chWagerLockBtn) chWagerLockBtn.addEventListener('click', function () {
+      if (chWagerLockBtn.classList.contains('ch-locked')) return;
+      var val = parseInt(chWagerSlider ? chWagerSlider.value : 0, 10);
+      chWagerLockBtn.classList.add('ch-locked');
+      chWagerLockBtn.textContent = 'Locked $' + val;
+      if (chWagerSlider) chWagerSlider.disabled = true;
+      send({ type: 'chWagerLock', amount: val });
+    });
+    var chConfigStartBtn = document.getElementById('ch-config-start-btn');
+    if (chConfigStartBtn) chConfigStartBtn.addEventListener('click', function () {
+      var sel = document.getElementById('ch-timer-select');
+      var timer = sel ? parseInt(sel.value, 10) : 0;
+      send({ type: 'startGame', gameType: 'chess', timerSeconds: timer });
     });
     var chSettingsBtn = document.getElementById('ch-settings-btn');
     if (chSettingsBtn) chSettingsBtn.addEventListener('click', function () {
@@ -604,18 +655,22 @@
   function updateButtons() {
     var startBtn = document.getElementById('ch-start-btn');
     var rematchBtn = document.getElementById('ch-rematch-btn');
-    var timerSetting = document.getElementById('ch-timer-setting');
-    var wagerSetting = document.getElementById('ch-wager-setting');
+    var overlay = document.getElementById('ch-config-overlay');
     if (startBtn) startBtn.classList.toggle('hidden', chGameState !== 'waiting');
     if (rematchBtn) rematchBtn.classList.toggle('hidden', chGameState !== 'over');
-    if (timerSetting) timerSetting.classList.toggle('hidden', chGameState === 'playing');
-    if (wagerSetting) wagerSetting.classList.toggle('hidden', chGameState !== 'waiting' && chGameState !== 'over');
+    if (overlay) {
+      overlay.classList.toggle('ch-hidden', chGameState !== 'waiting');
+    }
     updateChWagerSlider();
+    updateChConfigPanel();
   }
 
   function updateChWagerSlider() {
     var slider = document.getElementById('ch-wager-slider');
     var valEl = document.getElementById('ch-wager-value');
+    var lockBtn = document.getElementById('ch-wager-lock-btn');
+    var oppValEl = document.getElementById('ch-opponent-wager-value');
+    var oppDisplay = document.getElementById('ch-opponent-slider-display');
     if (!slider || !valEl) return;
     var myChips = chWagerChips[chMyId] ?? (chPlayers.find(function (p) { return p.id === chMyId; })?.chips ?? 0);
     var otherIds = Object.keys(chWagerChips).filter(function (id) { return id !== chMyId; });
@@ -623,12 +678,42 @@
     var maxWager = Math.min(myChips, oppChips);
     slider.max = Math.max(1, maxWager);
     slider.min = 0;
-    var prop = chWagerProposals[chMyId] || 0;
-    var capped = Math.min(prop, maxWager);
-    slider.value = capped;
-    valEl.textContent = capped;
-    var readyBtn = document.getElementById('ch-wager-ready-btn');
-    if (readyBtn) readyBtn.classList.toggle('ch-ready', chWagerReady[chMyId] === true);
+    var locked = chWagerLocked[chMyId];
+    if (locked !== undefined) {
+      if (lockBtn) { lockBtn.classList.add('ch-locked'); lockBtn.textContent = 'Locked $' + locked; }
+      if (slider) slider.disabled = true;
+      valEl.textContent = locked;
+    } else {
+      var prop = chWagerProposals[chMyId] || 0;
+      var capped = Math.min(prop, maxWager);
+      slider.value = capped;
+      valEl.textContent = capped;
+      if (lockBtn) { lockBtn.classList.remove('ch-locked'); lockBtn.textContent = 'Lock In'; }
+      if (slider) slider.disabled = false;
+    }
+    var oppProp = otherIds.length ? (chWagerProposals[otherIds[0]] ?? 0) : 0;
+    var oppLocked = otherIds.length ? chWagerLocked[otherIds[0]] : undefined;
+    var oppWager = oppLocked !== undefined ? oppLocked : oppProp;
+    if (oppValEl) oppValEl.textContent = oppWager;
+    if (oppDisplay) {
+      oppDisplay.style.background = 'linear-gradient(to right, #238636 0%, #238636 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #1a1a1a ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
+    }
+    var mismatchMsg = document.getElementById('ch-wager-mismatch-msg');
+    var configStartBtn = document.getElementById('ch-config-start-btn');
+    var myLocked = chWagerLocked[chMyId];
+    var bothLocked = myLocked !== undefined && (otherIds.length ? chWagerLocked[otherIds[0]] !== undefined : false);
+    var match = bothLocked && otherIds.length && myLocked === chWagerLocked[otherIds[0]];
+    if (mismatchMsg) mismatchMsg.classList.toggle('ch-show', bothLocked && !match);
+    if (mismatchMsg && !bothLocked) mismatchMsg.classList.remove('ch-show');
+    if (configStartBtn) configStartBtn.disabled = !bothLocked || !match;
+  }
+
+  function updateChConfigPanel() {
+    var oppName = document.getElementById('ch-config-opponent-name');
+    var oppChipsEl = document.getElementById('ch-config-opponent-chips');
+    var other = chPlayers.find(function (p) { return p.id !== chMyId; });
+    if (oppName) oppName.textContent = other ? (chWagerNicknames[other.id] || other.nickname || 'Opponent') : 'Waiting...';
+    if (oppChipsEl) oppChipsEl.textContent = other ? '$' + (chWagerChips[other.id] ?? other.chips ?? 0) : '';
   }
 
   /* ── Timer ── */
@@ -729,15 +814,25 @@
       case 'chWagerState':
         chWagerProposals = msg.proposals || {};
         chWagerReady = msg.ready || {};
+        chWagerLocked = msg.locked || {};
         chWagerChips = msg.chips || {};
+        chWagerNicknames = msg.nicknames || {};
         updateChWagerSlider();
+        updateChConfigPanel();
+        break;
+
+      case 'chWagerMismatch':
+        if (typeof showToast === 'function') showToast(msg.message || 'Wagers must match');
         break;
 
       case 'chPlayersUpdated':
         if (msg.players) {
           chPlayers = msg.players;
           chWagerChips = {};
-          chPlayers.forEach(function (p) { chWagerChips[p.id] = p.chips || 0; });
+          chPlayers.forEach(function (p) {
+            chWagerChips[p.id] = p.chips || 0;
+            chWagerNicknames[p.id] = p.nickname || 'Player';
+          });
         }
         renderAll();
         break;
@@ -832,9 +927,14 @@
     chMyId = myId;
     chPlayers = players || [];
     chWagerChips = {};
-    chPlayers.forEach(function (p) { chWagerChips[p.id] = p.chips || 0; });
+    chWagerNicknames = {};
+    chPlayers.forEach(function (p) {
+      chWagerChips[p.id] = p.chips || 0;
+      chWagerNicknames[p.id] = p.nickname || 'Player';
+    });
     chWagerProposals = {};
     chWagerReady = {};
+    chWagerLocked = {};
     chRoomKey = roomKey || '';
     chGameState = 'waiting';
     chCapturesWhite = 0;
