@@ -5,6 +5,11 @@
   var MOVE_SFX = new Audio('/checker-move.ogg');
   var CAPTURE_SFX = new Audio('/checker-capture.ogg');
 
+  function playChessPiecePlaceSfx() {
+    if (typeof playChessPiecePlace === 'function') playChessPiecePlace();
+    else playChessSound(MOVE_SFX);
+  }
+
   /* ── State ── */
 
   var chWs = null;
@@ -611,6 +616,7 @@
     if (piece && piece.color === chMyColor) {
       chSelected = { row: row, col: col };
       chValidMoves = getValidMoves(chBoard, row, col, chMyColor);
+      if (typeof playSelectPiece === 'function') playSelectPiece();
       renderBoard();
       return;
     }
@@ -672,7 +678,7 @@
         if (msg.lastMove && msg.lastMove.captured) {
           playChessSound(CAPTURE_SFX);
         } else if (msg.lastMove) {
-          playChessSound(MOVE_SFX);
+          playChessPiecePlaceSfx();
         }
 
         if (chInCheck) {
@@ -695,6 +701,8 @@
         chSelected = null;
         chValidMoves = [];
         stopChTimer();
+        if (chWinner === chMyColor && typeof playWinCheckersChess === 'function') playWinCheckersChess();
+        else if (chWinner && chWinner !== chMyColor && typeof playLoseCheckersChess === 'function') playLoseCheckersChess();
         var reasonMap = {
           checkmate: 'checkmate',
           stalemate: 'stalemate',

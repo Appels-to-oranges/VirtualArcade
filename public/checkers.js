@@ -7,6 +7,14 @@
   const MOVE_SFX = new Audio('/checker-move.ogg');
   const CAPTURE_SFX = new Audio('/checker-capture.ogg');
   const KING_SFX = new Audio('/checker-king.ogg');
+  function playSelectPieceSfx() {
+    if (typeof playSelectPiece === 'function') playSelectPiece();
+    else if (typeof playSfx === 'function') playSfx(MOVE_SFX, 0.5);
+  }
+  function playPiecePlaceSfx() {
+    if (typeof playPiecePlaceCheckers === 'function') playPiecePlaceCheckers();
+    else { try { MOVE_SFX.volume = 0.5; MOVE_SFX.currentTime = 0; MOVE_SFX.play(); } catch (_) {} }
+  }
 
   /* Sprite positions (percentage-based, with background-size: 400% 100%)
      Sheet is 64x16 — four 16x16 sprites in a row. */
@@ -421,6 +429,7 @@
     if (piece && piece.color === ckMyColor) {
       ckSelected = { row: row, col: col };
       ckValidMoves = getValidMoves(ckBoard, row, col, ckMyColor);
+      playSelectPieceSfx();
       renderBoard();
       return;
     }
@@ -480,7 +489,7 @@
         } else if (msg.lastMove && msg.lastMove.captured) {
           try { if (typeof playSfx === 'function') playSfx(CAPTURE_SFX, volNorm); else { CAPTURE_SFX.volume = volNorm; CAPTURE_SFX.currentTime = 0; CAPTURE_SFX.play(); } } catch (_) {}
         } else if (msg.lastMove) {
-          try { if (typeof playSfx === 'function') playSfx(MOVE_SFX, volNorm); else { MOVE_SFX.volume = volNorm; MOVE_SFX.currentTime = 0; MOVE_SFX.play(); } } catch (_) {}
+          playPiecePlaceSfx();
         }
 
         if (ckTurn === ckMyColor) {
@@ -503,6 +512,8 @@
         ckValidMoves = [];
         ckMustContinue = null;
         stopCkTimer();
+        if (ckWinner === ckMyColor && typeof playWinCheckersChess === 'function') playWinCheckersChess();
+        else if (ckWinner && ckWinner !== ckMyColor && typeof playLoseCheckersChess === 'function') playLoseCheckersChess();
         var reasonMap = { capture: 'all pieces captured', noMoves: 'no legal moves', timeout: 'time ran out' };
         var reason = reasonMap[msg.reason] || msg.reason;
         setStatus(

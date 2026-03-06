@@ -34,8 +34,9 @@
       var el = document.getElementById('join-screen');
       el.classList.add('splash-' + pick);
       var img = new Image();
-      img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + '.gif)'; };
-      img.src = '/images/themes/' + pick + '.gif';
+      var ext = pick === 'snowy-lot' ? '.png' : '.gif';
+      img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + ext + ')'; };
+      img.src = '/images/themes/' + pick + ext;
       if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');
     })();
   </script>

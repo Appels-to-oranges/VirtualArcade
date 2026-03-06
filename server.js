@@ -548,7 +548,7 @@ function removeBrokeBots(roomKey) {
   const brokeBots = room.players.filter((p) => p.isBot && p.chips <= 0);
   brokeBots.forEach((bot) => {
     room.players = room.players.filter((p) => p.id !== bot.id);
-    broadcastToRoom(roomKey, { type: 'userLeft', id: bot.id });
+    broadcastToRoom(roomKey, { type: 'userLeft', id: bot.id, botEliminated: true });
   });
 }
 
@@ -580,10 +580,13 @@ const BOT_PHRASES = {
     'Show me the money!!!', "Don't be shy", 'You should just fold',
     'the path to victory is clear',
   ],
+  raise: [
+    'yolo', 'chicken', 'u wont', "How's this?", 'not a bluff',
+    'lemme sprinkle a lil more on', 'Big money moves', 'Watch and learn',
+  ],
   fold: [
-    'Nah', 'Hmmm..', 'Good things come to those who wait..',
-    "nah I'm good", 'nope', 'Im out', 'bad vibes lol', 'trash cards',
-    'not worth it',
+    'Signs say, fold', "Don't take this as weakness", 'luck not on my side here',
+    'I hate this game', 'Run it back',
   ],
   lose: [
     'Thats BS', 'Grrr', 'Luck.', 'dang', 'what?! nooooo',
@@ -722,7 +725,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
         currentBet: room.currentBet, minRaise: room.minRaise, pot: room.pot,
         players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
       });
-      maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raiseCall, 300);
+      maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raise, 300);
     }
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
@@ -759,7 +762,7 @@ function executeBotAction(roomKey, room, players, idx, player, decision) {
       currentBet: room.currentBet, minRaise: room.minRaise, pot: room.pot, facingAllIn,
       players: players.map((p, i) => ({ id: p.id, chips: p.chips, betThisRound: p.betThisRound, isTurn: i === room.turnIdx })),
     });
-    maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raiseCall, 300);
+    maybeBotChat(roomKey, player.id, player.nickname, BOT_PHRASES.raise, 300);
     room.turnIdx = advanceTurn(room, room.turnIdx);
     checkBettingComplete(roomKey);
 

@@ -1,7 +1,8 @@
-# Copy sound files from Downloads to public/sounds
+# Copy sound files from Downloads (or Downloads\sounds) to public/sounds
 # Place winner.wav, your_turn.wav (or "winner sound.wav", "your turn.wav") in Downloads, then run this script.
 
 $downloads = [Environment]::GetFolderPath("UserProfile") + "\Downloads"
+$downloadsSounds = Join-Path $downloads "sounds"
 $target = Join-Path $PSScriptRoot "public\sounds"
 
 $files = @(
@@ -23,11 +24,24 @@ $files = @(
     @{ src = "medium reaction.wav"; dest = "medium reaction.wav" },
     @{ src = "medium_reaction.wav"; dest = "medium reaction.wav" },
     @{ src = "big reaction.wav"; dest = "big reaction.wav" },
-    @{ src = "big_reaction.wav"; dest = "big reaction.wav" }
+    @{ src = "big_reaction.wav"; dest = "big reaction.wav" },
+    @{ src = "win_checkers or chess.wav"; dest = "win_checkers or chess.wav" },
+    @{ src = "lose_checkers or chess.wav"; dest = "lose_checkers or chess.wav" },
+    @{ src = "Bot_eliminated.wav"; dest = "Bot_eliminated.wav" },
+    @{ src = "checkers or chess select piece.mp3"; dest = "checkers or chess select piece.mp3" },
+    @{ src = "chess_piece_place.wav"; dest = "chess_piece_place.wav" },
+    @{ src = "piece_place checkers.wav"; dest = "piece_place checkers.wav" },
+    @{ src = "choose game coin sound.wav"; dest = "choose game coin sound.wav" },
+    @{ src = "message notification.wav"; dest = "message notification.wav" },
+    @{ src = "player join room.wav"; dest = "player join room.wav" },
+    @{ src = "player or bot joins game.wav"; dest = "player or bot joins game.wav" },
+    @{ src = "re-buy.wav"; dest = "re-buy.wav" },
+    @{ src = "send message.wav"; dest = "send message.wav" }
 )
 
 foreach ($f in $files) {
     $srcPath = Join-Path $downloads $f.src
+    if (-not (Test-Path $srcPath)) { $srcPath = Join-Path $downloadsSounds $f.src }
     if (Test-Path $srcPath) {
         Copy-Item $srcPath (Join-Path $target $f.dest) -Force
         Write-Host "Copied: $($f.src) -> $($f.dest)"

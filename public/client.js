@@ -16,6 +16,18 @@ const SOUND_FILES = {
   smallClap: ['small clap.wav', 'small_clap.wav', 'small clap.mp3', 'small_clap.mp3'],
   mediumReaction: ['medium reaction.wav', 'medium_reaction.wav', 'medium reaction.mp3', 'medium_reaction.mp3'],
   bigReaction: ['big reaction.wav', 'big_reaction.wav', 'big reaction.mp3', 'big_reaction.mp3'],
+  winCheckersChess: ['win_checkers or chess.wav'],
+  loseCheckersChess: ['lose_checkers or chess.wav'],
+  botEliminated: ['Bot_eliminated.wav'],
+  selectPiece: ['checkers or chess select piece.mp3'],
+  chessPiecePlace: ['chess_piece_place.wav'],
+  piecePlaceCheckers: ['piece_place checkers.wav'],
+  chooseGame: ['choose game coin sound.wav'],
+  messageNotification: ['message notification.wav'],
+  playerJoinRoom: ['player join room.wav'],
+  playerJoinsGame: ['player or bot joins game.wav'],
+  rebuy: ['re-buy.wav'],
+  sendMessage: ['send message.wav'],
 };
 
 function createSoundAudio(keys) {
@@ -46,6 +58,18 @@ const soundCheck = createSoundAudio(SOUND_FILES.check);
 const soundSmallClap = createSoundAudio(SOUND_FILES.smallClap);
 const soundMediumReaction = createSoundAudio(SOUND_FILES.mediumReaction);
 const soundBigReaction = createSoundAudio(SOUND_FILES.bigReaction);
+const soundWinCheckersChess = createSoundAudio(SOUND_FILES.winCheckersChess);
+const soundLoseCheckersChess = createSoundAudio(SOUND_FILES.loseCheckersChess);
+const soundBotEliminated = createSoundAudio(SOUND_FILES.botEliminated);
+const soundSelectPiece = createSoundAudio(SOUND_FILES.selectPiece);
+const soundChessPiecePlace = createSoundAudio(SOUND_FILES.chessPiecePlace);
+const soundPiecePlaceCheckers = createSoundAudio(SOUND_FILES.piecePlaceCheckers);
+const soundChooseGame = createSoundAudio(SOUND_FILES.chooseGame);
+const soundMessageNotification = createSoundAudio(SOUND_FILES.messageNotification);
+const soundPlayerJoinRoom = createSoundAudio(SOUND_FILES.playerJoinRoom);
+const soundPlayerJoinsGame = createSoundAudio(SOUND_FILES.playerJoinsGame);
+const soundRebuy = createSoundAudio(SOUND_FILES.rebuy);
+const soundSendMessage = createSoundAudio(SOUND_FILES.sendMessage);
 
 let audioCtx = null;
 const SFX_BITDEPTH_KEY = 'arcade_sfx_bitdepth';
@@ -202,6 +226,54 @@ function playMediumReaction() {
 
 function playBigReaction() {
   playSound(soundBigReaction, CARD_FX_VOLUME_KEY);
+}
+
+function playWinCheckersChess() {
+  playSound(soundWinCheckersChess, CARD_FX_VOLUME_KEY);
+}
+
+function playLoseCheckersChess() {
+  playSound(soundLoseCheckersChess, CARD_FX_VOLUME_KEY);
+}
+
+function playBotEliminated() {
+  playSound(soundBotEliminated, CARD_FX_VOLUME_KEY);
+}
+
+function playSelectPiece() {
+  playSound(soundSelectPiece, CARD_FX_VOLUME_KEY);
+}
+
+function playChessPiecePlace() {
+  playSound(soundChessPiecePlace, CARD_FX_VOLUME_KEY);
+}
+
+function playPiecePlaceCheckers() {
+  playSound(soundPiecePlaceCheckers, CARD_FX_VOLUME_KEY);
+}
+
+function playChooseGame() {
+  playSound(soundChooseGame, CARD_FX_VOLUME_KEY);
+}
+
+function playMessageNotification() {
+  playSound(soundMessageNotification, CARD_FX_VOLUME_KEY);
+}
+
+function playPlayerJoinRoom() {
+  playSound(soundPlayerJoinRoom, CARD_FX_VOLUME_KEY);
+}
+
+function playPlayerJoinsGame() {
+  playSound(soundPlayerJoinsGame, CARD_FX_VOLUME_KEY);
+}
+
+function playRebuy() {
+  playSound(soundRebuy, CARD_FX_VOLUME_KEY);
+}
+
+function playSendMessage() {
+  playSound(soundSendMessage, CARD_FX_VOLUME_KEY);
 }
 
 function startAmbience() {
@@ -435,7 +507,8 @@ function applyTheme(theme) {
   }
   currentTheme = theme || 'default';
   if (IMAGE_THEMES.includes(theme)) {
-    const url = '/images/themes/' + theme + '.gif';
+    const ext = theme === 'snowy-lot' ? '.png' : '.gif';
+    const url = '/images/themes/' + theme + ext;
     gameSelectScreen.style.backgroundImage = 'url(' + url + ')';
     gameSelectScreen.classList.add('has-bg-image');
   } else {
@@ -585,6 +658,7 @@ if (bjBackBtn) bjBackBtn.addEventListener('click', goBackToLobby);
 
 document.querySelectorAll('.game-option-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
+    playChooseGame();
     currentGameType = btn.dataset.game || 'holdem';
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ type: 'switchGame', gameType: currentGameType }));
@@ -777,6 +851,8 @@ function handleMessage(msg) {
       break;
 
     case 'userJoined':
+      if (currentGameType === 'lobby' && msg.id !== myId) playPlayerJoinRoom();
+      if ((msg.currentView || 'lobby') !== 'lobby') playPlayerJoinsGame();
       players.push({
         id: msg.id,
         nickname: msg.nickname,
@@ -798,6 +874,7 @@ function handleMessage(msg) {
       break;
 
     case 'userLeft':
+      if (msg.botEliminated) playBotEliminated();
       players = players.filter((p) => p.id !== msg.id);
       if (currentGameType === 'lobby') {
         lobbyPlayers = players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
@@ -975,6 +1052,7 @@ function handleMessage(msg) {
     }
 
     case 'rebuySuccess':
+      playRebuy();
       if (msg.chips !== undefined) {
         const pl = players.find((p) => p.id === myId);
         if (pl) pl.chips = msg.chips;
@@ -1057,6 +1135,7 @@ function handleMessage(msg) {
       break;
 
     case 'chat':
+      if (msg.playerId !== myId) playMessageNotification();
       if (currentGameType === 'lobby' && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
         appendLobbyChat(msg.playerId, msg.nickname, msg.text);
         return;
@@ -1943,6 +2022,7 @@ function sendChat() {
   const text = input?.value?.trim();
   if (!text || !ws || ws.readyState !== 1) return;
   try {
+    playSendMessage();
     ws.send(JSON.stringify({ type: 'chat', text }));
     input.value = '';
   } catch (e) {
@@ -1962,6 +2042,7 @@ function sendBjChat() {
   const text = input?.value?.trim();
   if (!text || !ws || ws.readyState !== 1) return;
   try {
+    playSendMessage();
     ws.send(JSON.stringify({ type: 'chat', text }));
     input.value = '';
   } catch (e) {
@@ -1973,6 +2054,7 @@ function sendLobbyChat() {
   const text = lobbyChatInput?.value?.trim();
   if (!text || !ws || ws.readyState !== 1) return;
   try {
+    playSendMessage();
     ws.send(JSON.stringify({ type: 'chat', text }));
     if (lobbyChatInput) lobbyChatInput.value = '';
   } catch (e) {
