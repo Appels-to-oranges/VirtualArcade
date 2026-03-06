@@ -925,11 +925,24 @@
 
       case 'chPlayersUpdated':
         if (msg.players) {
+          var prevIds = {};
+          chPlayers.forEach(function (p) { prevIds[p.id] = true; });
           chPlayers = msg.players;
           chWagerChips = {};
           chPlayers.forEach(function (p) {
             chWagerChips[p.id] = p.chips || 0;
             chWagerNicknames[p.id] = p.nickname || 'Player';
+            if (!prevIds[p.id] && p.id !== chMyId) {
+              var chatEl = document.getElementById('ch-config-chat-messages');
+              if (chatEl) {
+                var sysMsg = document.createElement('div');
+                sysMsg.className = 'ch-chat-msg system';
+                sysMsg.style.cssText = 'color:#8b949e;font-style:italic';
+                sysMsg.textContent = (p.nickname || 'Player') + ' joined Chess';
+                chatEl.appendChild(sysMsg);
+                chatEl.scrollTop = chatEl.scrollHeight;
+              }
+            }
           });
         }
         renderAll();

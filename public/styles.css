@@ -622,6 +622,12 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   color: var(--lobby-accent);
 }
 
+.chat-message.system {
+  color: var(--lobby-muted, #8b949e);
+  font-style: italic;
+  font-size: 0.3rem;
+}
+
 /* ── Lobby overlays (themes, settings) ── */
 .lobby-overlay {
   position: fixed;

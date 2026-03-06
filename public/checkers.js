@@ -758,11 +758,24 @@
 
       case 'ckPlayersUpdated':
         if (msg.players) {
+          var prevIds = {};
+          ckPlayers.forEach(function (p) { prevIds[p.id] = true; });
           ckPlayers = msg.players;
           ckWagerChips = {};
           ckPlayers.forEach(function (p) {
             ckWagerChips[p.id] = p.chips || 0;
             ckWagerNicknames[p.id] = p.nickname || 'Player';
+            if (!prevIds[p.id] && p.id !== ckMyId) {
+              var chatEl = document.getElementById('ck-config-chat-messages');
+              if (chatEl) {
+                var sysMsg = document.createElement('div');
+                sysMsg.className = 'ck-chat-msg system';
+                sysMsg.style.cssText = 'color:#8b949e;font-style:italic';
+                sysMsg.textContent = (p.nickname || 'Player') + ' joined Checkers';
+                chatEl.appendChild(sysMsg);
+                chatEl.scrollTop = chatEl.scrollHeight;
+              }
+            }
           });
         }
         renderAll();

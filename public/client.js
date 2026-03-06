@@ -8,6 +8,7 @@ const SOUND_FILES = {
   cardPutDown: ['card_put_down.wav', 'card put down.wav', 'card_put_down.mp3'],
   ambience: ['BACKGROUND_CASINO_AMBIENCE.wav', 'BACKGROUND_CASINO_AMBIENCE.mp3'],
   ambienceFireplace: ['fireplace.wav'],
+  ambienceRain: ['RAIN_AMBIENCE.wav'],
   winner: ['winner.wav', 'winner together.wav', 'winner sound.wav', 'winner.mp3'],
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
   betting: ['chips_betting.wav', 'chips_betting.mp3'],
@@ -51,6 +52,7 @@ const soundShuffle = createSoundAudio(SOUND_FILES.shuffle);
 const soundCardPutDown = createSoundAudio(SOUND_FILES.cardPutDown);
 const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
 const soundAmbienceFireplace = createSoundAudio(SOUND_FILES.ambienceFireplace);
+const soundAmbienceRain = createSoundAudio(SOUND_FILES.ambienceRain);
 const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 const soundBetting = createSoundAudio(SOUND_FILES.betting);
@@ -278,14 +280,26 @@ function playSendMessage() {
   playSound(soundSendMessage, CARD_FX_VOLUME_KEY);
 }
 
+const AMBIENCE_FX_KEY = 'arcade_ambience_fx';
+
+function getAmbienceAudio() {
+  const fx = localStorage.getItem(AMBIENCE_FX_KEY) || 'casino';
+  if (fx === 'fireplace') return soundAmbienceFireplace;
+  if (fx === 'rain') return soundAmbienceRain;
+  return soundAmbience;
+}
+
 function startAmbience() {
-  soundAmbience.loop = true;
-  playSound(soundAmbience, AMBIENCE_VOLUME_KEY);
+  const audio = getAmbienceAudio();
+  audio.loop = true;
+  playSound(audio, AMBIENCE_VOLUME_KEY);
 }
 
 function stopAmbience() {
-  soundAmbience.pause();
-  soundAmbience.currentTime = 0;
+  [soundAmbience, soundAmbienceFireplace, soundAmbienceRain].forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
 }
 
 const CHIP_DENOMS = [
@@ -653,6 +667,15 @@ function appendLobbyChat(playerId, nick, text) {
   nickSpan.textContent = (nick || 'Player') + ':';
   el.appendChild(nickSpan);
   el.appendChild(document.createTextNode(' ' + text));
+  lobbyChatMessages.appendChild(el);
+  lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
+}
+
+function appendLobbyChatSystem(text) {
+  if (!lobbyChatMessages) return;
+  const el = document.createElement('div');
+  el.className = 'chat-message system';
+  el.textContent = text;
   lobbyChatMessages.appendChild(el);
   lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
 }
@@ -1137,11 +1160,17 @@ function handleMessage(msg) {
         const prevChessCount = players.filter((p) => (p.currentView ?? 'lobby') === 'chess').length;
         msg.players.forEach((up) => {
           const ex = players.find((p) => p.id === up.id);
+          const prevView = ex ? (ex.currentView ?? 'lobby') : 'lobby';
+          const newView = up.currentView ?? 'lobby';
+          if (prevView !== newView && up.id !== myId && newView !== 'lobby') {
+            const gameName = GAME_NAMES[newView] || newView;
+            appendLobbyChatSystem((up.nickname || 'Player') + ' joined ' + gameName);
+          }
           if (ex) {
-            ex.currentView = up.currentView ?? 'lobby';
+            ex.currentView = newView;
             if (up.chips !== undefined) ex.chips = up.chips;
           } else {
-            players.push({ id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: up.chips ?? 100 });
+            players.push({ id: up.id, nickname: up.nickname, currentView: newView, chips: up.chips ?? 100 });
           }
         });
         if (currentGameType === 'lobby') {
