@@ -42,6 +42,9 @@
   let ckTimerInterval = null;
   let ckCapturesRed = 0;
   let ckCapturesWhite = 0;
+  let ckWagerProposals = {};
+  let ckWagerReady = {};
+  let ckWagerChips = {};
 
   /* ── DOM refs (lazily initialised) ── */
 
@@ -199,6 +202,13 @@
       ".ck-timer-setting select{font-family:'Press Start 2P',monospace;" +
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
+      '.ck-wager-setting{display:flex;align-items:center;gap:.4rem;font-size:.45rem}' +
+      '.ck-wager-setting.hidden{display:none}' +
+      '.ck-wager-setting label{color:#888}' +
+      '.ck-wager-setting input[type=range]{width:4rem}' +
+      ".ck-ready-btn{font-family:'Press Start 2P',monospace;font-size:.4rem;" +
+        'padding:.2rem .4rem;background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer}' +
+      '.ck-ready-btn.ck-ready{background:#1b4332;border:.125rem solid #40916c}' +
 
       '.ck-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
@@ -239,8 +249,14 @@
             '<option value="60">60 sec</option>' +
           '</select>' +
         '</div>' +
+        '<div class="ck-wager-setting" id="ck-wager-setting">' +
+          '<label for="ck-wager-slider">Wager $<span id="ck-wager-value">0</span></label>' +
+          '<input type="range" id="ck-wager-slider" min="0" max="100" value="0" step="5">' +
+          '<button type="button" id="ck-wager-ready-btn" class="ck-ready-btn">Ready</button>' +
+        '</div>' +
         '<button id="ck-start-btn" class="btn-start">Start Game</button>' +
         '<button id="ck-rematch-btn" class="btn-restart hidden">Rematch</button>' +
+        '<button type="button" id="ck-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>' +
         '<button type="button" id="ck-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
       '</div>' +
       '<div id="ck-turn-timer" class="ck-turn-timer hidden"></div>' +
@@ -269,6 +285,23 @@
       var sel = document.getElementById('ck-timer-select');
       var timer = sel ? parseInt(sel.value, 10) : 0;
       send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
+    });
+    var ckWagerSlider = document.getElementById('ck-wager-slider');
+    var ckWagerValue = document.getElementById('ck-wager-value');
+    var ckWagerReadyBtn = document.getElementById('ck-wager-ready-btn');
+    if (ckWagerSlider) ckWagerSlider.addEventListener('input', function () {
+      var val = parseInt(ckWagerSlider.value, 10);
+      if (ckWagerValue) ckWagerValue.textContent = val;
+      send({ type: 'ckWagerProposal', amount: val });
+    });
+    if (ckWagerReadyBtn) ckWagerReadyBtn.addEventListener('click', function () {
+      var isReady = ckWagerReadyBtn.classList.contains('ck-ready');
+      send({ type: 'ckWagerReady', ready: !isReady });
+    });
+    var ckSettingsBtn = document.getElementById('ck-settings-btn');
+    if (ckSettingsBtn) ckSettingsBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('settings-overlay');
+      if (overlay) overlay.classList.remove('hidden');
     });
     var ckRadioBtn = document.getElementById('ck-radio-btn');
     if (ckRadioBtn) ckRadioBtn.addEventListener('click', function () {
@@ -375,9 +408,29 @@
     var startBtn = document.getElementById('ck-start-btn');
     var rematchBtn = document.getElementById('ck-rematch-btn');
     var timerSetting = document.getElementById('ck-timer-setting');
+    var wagerSetting = document.getElementById('ck-wager-setting');
     if (startBtn) startBtn.classList.toggle('hidden', ckGameState !== 'waiting');
     if (rematchBtn) rematchBtn.classList.toggle('hidden', ckGameState !== 'over');
     if (timerSetting) timerSetting.classList.toggle('hidden', ckGameState === 'playing');
+    if (wagerSetting) wagerSetting.classList.toggle('hidden', ckGameState !== 'waiting' && ckGameState !== 'over');
+    updateCkWagerSlider();
+  }
+
+  function updateCkWagerSlider() {
+    var slider = document.getElementById('ck-wager-slider');
+    var valEl = document.getElementById('ck-wager-value');
+    if (!slider || !valEl) return;
+    var myChips = ckWagerChips[ckMyId] || 0;
+    var other = ckPlayers.find(function (p) { return p.id !== ckMyId; });
+    var oppChips = other ? (ckWagerChips[other.id] || 0) : 0;
+    var maxWager = Math.min(myChips, oppChips);
+    slider.max = Math.max(0, maxWager);
+    var prop = ckWagerProposals[ckMyId] || 0;
+    var capped = Math.min(prop, maxWager);
+    slider.value = capped;
+    valEl.textContent = capped;
+    var readyBtn = document.getElementById('ck-wager-ready-btn');
+    if (readyBtn) readyBtn.classList.toggle('ck-ready', ckWagerReady[ckMyId] === true);
   }
 
   /* ── Timer display ── */
@@ -475,6 +528,13 @@
         renderAll();
         break;
 
+      case 'ckWagerState':
+        ckWagerProposals = msg.proposals || {};
+        ckWagerReady = msg.ready || {};
+        ckWagerChips = msg.chips || {};
+        updateCkWagerSlider();
+        break;
+
       case 'ckBoardUpdate':
         ckBoard = msg.board;
         ckTurn = msg.turn;
@@ -514,6 +574,8 @@
         ckValidMoves = [];
         ckMustContinue = null;
         stopCkTimer();
+        if (msg.players) msg.players.forEach(function (p) { ckWagerChips[p.id] = p.chips; });
+        ckWagerReady = {};
         if (ckWinner === ckMyColor && typeof playWinCheckersChess === 'function') playWinCheckersChess();
         else if (ckWinner && ckWinner !== ckMyColor && typeof playLoseCheckersChess === 'function') playLoseCheckersChess();
         var reasonMap = { capture: 'all pieces captured', noMoves: 'no legal moves', timeout: 'time ran out' };
@@ -551,6 +613,10 @@
     ckWs = ws;
     ckMyId = myId;
     ckPlayers = players || [];
+    ckWagerChips = {};
+    ckPlayers.forEach(function (p) { ckWagerChips[p.id] = p.chips || 0; });
+    ckWagerProposals = {};
+    ckWagerReady = {};
     ckRoomKey = roomKey || '';
     ckGameState = 'waiting';
     ckCapturesRed = 0;

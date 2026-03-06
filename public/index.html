@@ -45,6 +45,8 @@
     <div class="game-select-layout">
       <div class="lobby-top-bar">
         <span class="lobby-room-badge" id="game-select-room"></span>
+        <span class="lobby-chips-display" id="lobby-chips-display">$100</span>
+        <button type="button" class="lobby-rebuy-btn hidden" id="lobby-rebuy-btn" title="Rebuy $100">Rebuy $100</button>
         <button type="button" class="lobby-invite-btn" id="lobby-invite-btn" title="Copy invite link">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           Invite
@@ -120,83 +122,83 @@
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="lobby-overlay hidden" id="themes-overlay">
-      <div class="lobby-overlay-panel">
-        <div class="lobby-overlay-header">
-          <h2>Themes</h2>
-          <button type="button" class="lobby-overlay-close" id="themes-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="lobby-overlay-body">
-          <div class="theme-group">
-            <label>Color Themes</label>
-            <div class="theme-options">
-              <button type="button" class="theme-opt active" data-theme="default">Default</button>
-              <button type="button" class="theme-opt" data-theme="amber">Amber</button>
-              <button type="button" class="theme-opt" data-theme="slate">Slate</button>
-              <button type="button" class="theme-opt" data-theme="gray">Gray</button>
-              <button type="button" class="theme-opt" data-theme="blue">Blue</button>
-            </div>
+  <div class="lobby-overlay hidden" id="themes-overlay">
+    <div class="lobby-overlay-panel">
+      <div class="lobby-overlay-header">
+        <h2>Themes</h2>
+        <button type="button" class="lobby-overlay-close" id="themes-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="lobby-overlay-body">
+        <div class="theme-group">
+          <label>Color Themes</label>
+          <div class="theme-options">
+            <button type="button" class="theme-opt active" data-theme="default">Default</button>
+            <button type="button" class="theme-opt" data-theme="amber">Amber</button>
+            <button type="button" class="theme-opt" data-theme="slate">Slate</button>
+            <button type="button" class="theme-opt" data-theme="gray">Gray</button>
+            <button type="button" class="theme-opt" data-theme="blue">Blue</button>
           </div>
-          <div class="theme-group">
-            <label>Animated Backgrounds</label>
-            <div class="theme-options">
-              <button type="button" class="theme-opt" data-theme="waterfront">Waterfront</button>
-              <button type="button" class="theme-opt" data-theme="buildings">Buildings</button>
-              <button type="button" class="theme-opt" data-theme="apartments">Apartments</button>
-              <button type="button" class="theme-opt" data-theme="fireflies">Fireflies</button>
-              <button type="button" class="theme-opt" data-theme="snowy-lot">Snowy Lot</button>
-            </div>
+        </div>
+        <div class="theme-group">
+          <label>Animated Backgrounds</label>
+          <div class="theme-options">
+            <button type="button" class="theme-opt" data-theme="waterfront">Waterfront</button>
+            <button type="button" class="theme-opt" data-theme="buildings">Buildings</button>
+            <button type="button" class="theme-opt" data-theme="apartments">Apartments</button>
+            <button type="button" class="theme-opt" data-theme="fireflies">Fireflies</button>
+            <button type="button" class="theme-opt" data-theme="snowy-lot">Snowy Lot</button>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="lobby-overlay hidden" id="settings-overlay">
-      <div class="lobby-overlay-panel">
-        <div class="lobby-overlay-header">
-          <h2>Settings</h2>
-          <button type="button" class="lobby-overlay-close" id="settings-close" aria-label="Close">&times;</button>
+  <div class="lobby-overlay hidden" id="settings-overlay">
+    <div class="lobby-overlay-panel">
+      <div class="lobby-overlay-header">
+        <h2>Settings</h2>
+        <button type="button" class="lobby-overlay-close" id="settings-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="lobby-overlay-body">
+        <div class="theme-group">
+          <label>Radio Volume</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="radio-volume" min="0" max="100" value="80">
+            <span id="radio-volume-value">80%</span>
+          </div>
         </div>
-        <div class="lobby-overlay-body">
-          <div class="theme-group">
-            <label>Radio Volume</label>
-            <div class="radio-volume-wrap">
-              <input type="range" id="radio-volume" min="0" max="100" value="80">
-              <span id="radio-volume-value">80%</span>
-            </div>
+        <div class="theme-group">
+          <label>Card FX &amp; Sounds</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="card-fx-volume" min="0" max="100" value="80">
+            <span id="card-fx-volume-value">80%</span>
           </div>
-          <div class="theme-group">
-            <label>Card FX &amp; Sounds</label>
-            <div class="radio-volume-wrap">
-              <input type="range" id="card-fx-volume" min="0" max="100" value="80">
-              <span id="card-fx-volume-value">80%</span>
-            </div>
+        </div>
+        <div class="theme-group">
+          <label>Ambience</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="ambience-volume" min="0" max="100" value="25">
+            <span id="ambience-volume-value">25%</span>
           </div>
-          <div class="theme-group">
-            <label>Ambience</label>
-            <div class="radio-volume-wrap">
-              <input type="range" id="ambience-volume" min="0" max="100" value="25">
-              <span id="ambience-volume-value">25%</span>
-            </div>
+        </div>
+        <div class="theme-group">
+          <label>SFX Bit Depth</label>
+          <div class="radio-volume-wrap">
+            <select id="sfx-bitdepth" class="sfx-bitdepth-select">
+              <option value="8">8-bit</option>
+              <option value="12">12-bit</option>
+              <option value="16">16-bit</option>
+              <option value="0" selected>Max / Original</option>
+            </select>
           </div>
-          <div class="theme-group">
-            <label>SFX Bit Depth</label>
-            <div class="radio-volume-wrap">
-              <select id="sfx-bitdepth" class="sfx-bitdepth-select">
-                <option value="8">8-bit</option>
-                <option value="12">12-bit</option>
-                <option value="16">16-bit</option>
-                <option value="0" selected>Max / Original</option>
-              </select>
-            </div>
-          </div>
-          <div class="theme-group">
-            <label>Lobby Style</label>
-            <div class="lobby-style-toggle">
-              <button type="button" class="lobby-style-btn active" data-style="modern">Modern</button>
-              <button type="button" class="lobby-style-btn" data-style="retro">Retro</button>
-            </div>
+        </div>
+        <div class="theme-group">
+          <label>Lobby Style</label>
+          <div class="lobby-style-toggle">
+            <button type="button" class="lobby-style-btn active" data-style="modern">Modern</button>
+            <button type="button" class="lobby-style-btn" data-style="retro">Retro</button>
           </div>
         </div>
       </div>
@@ -216,6 +218,7 @@
       <div class="chat-input-wrap">
         <input type="text" id="chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
       </div>
+      <button type="button" id="holdem-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>
       <button type="button" id="radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
       <div class="now-playing-radio hidden" id="now-playing-radio">
         <span class="now-playing-label" id="now-playing-radio-label"></span>
@@ -292,6 +295,7 @@
       <div class="chat-input-wrap">
         <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
       </div>
+      <button type="button" id="bj-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>
       <button type="button" id="bj-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
       <div class="now-playing-radio hidden" id="bj-now-playing-radio">
         <span class="now-playing-label" id="bj-now-playing-radio-label"></span>

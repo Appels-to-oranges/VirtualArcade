@@ -569,6 +569,18 @@ function connectLobby() {
   };
 }
 
+const lobbyChipsDisplay = document.getElementById('lobby-chips-display');
+const lobbyRebuyBtn = document.getElementById('lobby-rebuy-btn');
+
+function updateLobbyChipDisplay() {
+  const me = lobbyPlayers.find((p) => p.id === myId);
+  const chips = me?.chips ?? 100;
+  if (lobbyChipsDisplay) lobbyChipsDisplay.textContent = '$' + chips;
+  if (lobbyRebuyBtn) {
+    lobbyRebuyBtn.classList.toggle('hidden', chips > 0);
+  }
+}
+
 function showGameSelectScreen(players, chatHistory) {
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
@@ -580,6 +592,7 @@ function showGameSelectScreen(players, chatHistory) {
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
   lobbyPlayers = (players || lobbyPlayers).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
+  updateLobbyChipDisplay();
   renderParticipants();
   updateGameCounts();
   if (chatHistory && lobbyChatMessages) {
@@ -893,8 +906,11 @@ function handleMessage(msg) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
           if (pl) pl.chips = p.chips;
+          const lp = lobbyPlayers.find((x) => x.id === p.id);
+          if (lp) lp.chips = p.chips;
         });
       }
+      if (currentGameType === 'lobby') updateLobbyChipDisplay();
       renderTable();
       updateControls();
       break;
@@ -1056,7 +1072,10 @@ function handleMessage(msg) {
       if (msg.chips !== undefined) {
         const pl = players.find((p) => p.id === myId);
         if (pl) pl.chips = msg.chips;
+        const lp = lobbyPlayers.find((p) => p.id === myId);
+        if (lp) lp.chips = msg.chips;
       }
+      if (currentGameType === 'lobby') updateLobbyChipDisplay();
       renderTable();
       updateControls();
       break;
@@ -2082,10 +2101,19 @@ function toggleOverlay(overlay) {
   overlay.classList.toggle('hidden');
 }
 
+function openSettingsOverlay() {
+  if (settingsOverlay) settingsOverlay.classList.remove('hidden');
+}
+
 if (themesBtn) themesBtn.addEventListener('click', () => toggleOverlay(themesOverlay));
 if (themesClose) themesClose.addEventListener('click', () => themesOverlay.classList.add('hidden'));
 if (settingsBtn) settingsBtn.addEventListener('click', () => toggleOverlay(settingsOverlay));
 if (settingsClose) settingsClose.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
+
+const holdemSettingsBtn = document.getElementById('holdem-settings-btn');
+const bjSettingsBtn = document.getElementById('bj-settings-btn');
+if (holdemSettingsBtn) holdemSettingsBtn.addEventListener('click', openSettingsOverlay);
+if (bjSettingsBtn) bjSettingsBtn.addEventListener('click', openSettingsOverlay);
 
 if (themesOverlay) {
   themesOverlay.addEventListener('click', (e) => {
@@ -2107,6 +2135,19 @@ document.querySelectorAll('.theme-opt').forEach((btn) => {
     }
   });
 });
+
+if (lobbyRebuyBtn) {
+  lobbyRebuyBtn.addEventListener('click', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'rebuy' }));
+      if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
+        soundRebuy.volume = 0.5;
+        soundRebuy.currentTime = 0;
+        soundRebuy.play().catch(() => {});
+      }
+    }
+  });
+}
 
 if (inviteBtn) {
   inviteBtn.addEventListener('click', () => {

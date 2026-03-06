@@ -27,6 +27,9 @@
   var chTurnDeadline = 0;
   var chTimerInterval = null;
   var chCapturesWhite = 0;
+  var chWagerProposals = {};
+  var chWagerReady = {};
+  var chWagerChips = {};
   var chCapturesBlack = 0;
   var chCastling = null;
   var chEnPassant = null;
@@ -369,6 +372,13 @@
       ".ch-timer-setting select{font-family:'Press Start 2P',monospace;" +
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
+      '.ch-wager-setting{display:flex;align-items:center;gap:.4rem;font-size:.45rem}' +
+      '.ch-wager-setting.hidden{display:none}' +
+      '.ch-wager-setting label{color:#888}' +
+      '.ch-wager-setting input[type=range]{width:4rem}' +
+      ".ch-ready-btn{font-family:'Press Start 2P',monospace;font-size:.4rem;" +
+        'padding:.2rem .4rem;background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer}' +
+      '.ch-ready-btn.ch-ready{background:#1b4332;border:.125rem solid #40916c}' +
 
       '.ch-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
@@ -408,8 +418,14 @@
             '<option value="300">5 min</option>' +
           '</select>' +
         '</div>' +
+        '<div class="ch-wager-setting" id="ch-wager-setting">' +
+          '<label for="ch-wager-slider">Wager $<span id="ch-wager-value">0</span></label>' +
+          '<input type="range" id="ch-wager-slider" min="0" max="100" value="0" step="5">' +
+          '<button type="button" id="ch-wager-ready-btn" class="ch-ready-btn">Ready</button>' +
+        '</div>' +
         '<button id="ch-start-btn" class="btn-start">Start Game</button>' +
         '<button id="ch-rematch-btn" class="btn-restart hidden">Rematch</button>' +
+        '<button type="button" id="ch-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>' +
         '<button type="button" id="ch-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
       '</div>' +
       '<div id="ch-turn-timer" class="ch-turn-timer hidden"></div>' +
@@ -440,6 +456,23 @@
       send({ type: 'startGame', gameType: 'chess', timerSeconds: timer });
     });
 
+    var chWagerSlider = document.getElementById('ch-wager-slider');
+    var chWagerValue = document.getElementById('ch-wager-value');
+    var chWagerReadyBtn = document.getElementById('ch-wager-ready-btn');
+    if (chWagerSlider) chWagerSlider.addEventListener('input', function () {
+      var val = parseInt(chWagerSlider.value, 10);
+      if (chWagerValue) chWagerValue.textContent = val;
+      send({ type: 'chWagerProposal', amount: val });
+    });
+    if (chWagerReadyBtn) chWagerReadyBtn.addEventListener('click', function () {
+      var isReady = chWagerReadyBtn.classList.contains('ch-ready');
+      send({ type: 'chWagerReady', ready: !isReady });
+    });
+    var chSettingsBtn = document.getElementById('ch-settings-btn');
+    if (chSettingsBtn) chSettingsBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('settings-overlay');
+      if (overlay) overlay.classList.remove('hidden');
+    });
     var chRadioBtn = document.getElementById('ch-radio-btn');
     if (chRadioBtn) chRadioBtn.addEventListener('click', function () {
       var overlay = document.getElementById('radio-overlay');
@@ -562,9 +595,29 @@
     var startBtn = document.getElementById('ch-start-btn');
     var rematchBtn = document.getElementById('ch-rematch-btn');
     var timerSetting = document.getElementById('ch-timer-setting');
+    var wagerSetting = document.getElementById('ch-wager-setting');
     if (startBtn) startBtn.classList.toggle('hidden', chGameState !== 'waiting');
     if (rematchBtn) rematchBtn.classList.toggle('hidden', chGameState !== 'over');
     if (timerSetting) timerSetting.classList.toggle('hidden', chGameState === 'playing');
+    if (wagerSetting) wagerSetting.classList.toggle('hidden', chGameState !== 'waiting' && chGameState !== 'over');
+    updateChWagerSlider();
+  }
+
+  function updateChWagerSlider() {
+    var slider = document.getElementById('ch-wager-slider');
+    var valEl = document.getElementById('ch-wager-value');
+    if (!slider || !valEl) return;
+    var myChips = chWagerChips[chMyId] || 0;
+    var other = chPlayers.find(function (p) { return p.id !== chMyId; });
+    var oppChips = other ? (chWagerChips[other.id] || 0) : 0;
+    var maxWager = Math.min(myChips, oppChips);
+    slider.max = Math.max(0, maxWager);
+    var prop = chWagerProposals[chMyId] || 0;
+    var capped = Math.min(prop, maxWager);
+    slider.value = capped;
+    valEl.textContent = capped;
+    var readyBtn = document.getElementById('ch-wager-ready-btn');
+    if (readyBtn) readyBtn.classList.toggle('ch-ready', chWagerReady[chMyId] === true);
   }
 
   /* ── Timer ── */
@@ -662,6 +715,13 @@
         renderAll();
         break;
 
+      case 'chWagerState':
+        chWagerProposals = msg.proposals || {};
+        chWagerReady = msg.ready || {};
+        chWagerChips = msg.chips || {};
+        updateChWagerSlider();
+        break;
+
       case 'chBoardUpdate':
         chBoard = msg.board;
         chTurn = msg.turn;
@@ -703,6 +763,8 @@
         chSelected = null;
         chValidMoves = [];
         stopChTimer();
+        if (msg.players) msg.players.forEach(function (p) { chWagerChips[p.id] = p.chips; });
+        chWagerReady = {};
         if (chWinner === chMyColor && typeof playWinCheckersChess === 'function') playWinCheckersChess();
         else if (chWinner && chWinner !== chMyColor && typeof playLoseCheckersChess === 'function') playLoseCheckersChess();
         var reasonMap = {
@@ -749,6 +811,10 @@
     chWs = ws;
     chMyId = myId;
     chPlayers = players || [];
+    chWagerChips = {};
+    chPlayers.forEach(function (p) { chWagerChips[p.id] = p.chips || 0; });
+    chWagerProposals = {};
+    chWagerReady = {};
     chRoomKey = roomKey || '';
     chGameState = 'waiting';
     chCapturesWhite = 0;

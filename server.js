@@ -1214,18 +1214,77 @@ function ckStartTurnTimer(roomKey) {
     const losingColor = r.ckTurn;
     const winnerColor = losingColor === 'red' ? 'white' : 'red';
     r.ckPhase = 'over';
+    const wager = r.ckWager || 0;
+    if (wager > 0 && r.ckPlayers && r.ckPlayersList) {
+      const winnerId = r.ckPlayers[winnerColor];
+      const winnerP = r.ckPlayersList.find((p) => p.id === winnerId);
+      if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
+    }
     broadcastToRoom(roomKey, {
       type: 'ckGameOver',
       winner: winnerColor,
       reason: 'timeout',
+      wager,
+      players: r.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
     });
   }, room.ckTimerMs);
+}
+
+function broadcastCkWagerState(roomKey, room) {
+  const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+  if (ckPlayers.length !== 2) return;
+  const proposals = room.ckWagerProposals || {};
+  const ready = room.ckWagerReady || {};
+  const chips = {};
+  ckPlayers.forEach((p) => { chips[p.id] = p.chips || 0; });
+  broadcastToRoom(roomKey, {
+    type: 'ckWagerState',
+    proposals,
+    ready,
+    chips,
+  });
+}
+
+function broadcastChWagerState(roomKey, room) {
+  const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+  if (chPlayers.length !== 2) return;
+  const proposals = room.chWagerProposals || {};
+  const ready = room.chWagerReady || {};
+  const chips = {};
+  chPlayers.forEach((p) => { chips[p.id] = p.chips || 0; });
+  broadcastToRoom(roomKey, {
+    type: 'chWagerState',
+    proposals,
+    ready,
+    chips,
+  });
 }
 
 function ckStartGame(roomKey, timerSeconds) {
   const room = getRoom(roomKey);
   const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
   if (ckPlayers.length !== 2) return;
+
+  let wager = 0;
+  const proposals = room.ckWagerProposals || {};
+  const ready = room.ckWagerReady || {};
+  const bothReady = ckPlayers.every((p) => ready[p.id] === true);
+  if (bothReady) {
+    const p1 = ckPlayers[0];
+    const p2 = ckPlayers[1];
+    const prop1 = proposals[p1.id] ?? 0;
+    const prop2 = proposals[p2.id] ?? 0;
+    const maxWager = Math.min(p1.chips || 0, p2.chips || 0);
+    wager = Math.min(prop1, prop2, maxWager);
+    if (wager > 0) {
+      p1.chips = (p1.chips || 0) - wager;
+      p2.chips = (p2.chips || 0) - wager;
+    }
+  }
+  room.ckWager = wager;
+  room.ckWagerProposals = {};
+  room.ckWagerReady = {};
+
   room.ckPlayersList = ckPlayers;
 
   room.ckBoard = ckCreateBoard();
@@ -1255,6 +1314,8 @@ function ckStartGame(roomKey, timerSeconds) {
     players: playersInfo,
     timerSeconds: room.ckTimerMs > 0 ? room.ckTimerMs / 1000 : 0,
     timerMs: room.ckTimerMs || 0,
+    wager: room.ckWager || 0,
+    playersChips: ckPlayers.reduce((o, p) => { o[p.id] = p.chips; return o; }, {}),
   });
 
   ckPlayers.forEach((p) => {
@@ -1317,6 +1378,12 @@ function ckMakeMove(roomKey, playerId, from, to) {
     if (winner) {
       room.ckPhase = 'over';
       ckClearTurnTimer(room);
+      const wager = room.ckWager || 0;
+      if (wager > 0 && room.ckPlayers && room.ckPlayersList) {
+        const winnerId = room.ckPlayers[winner];
+        const winnerP = room.ckPlayersList.find((p) => p.id === winnerId);
+        if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
+      }
       const hasPieces = (() => {
         for (let r = 0; r < 8; r++)
           for (let c = 0; c < 8; c++)
@@ -1327,6 +1394,8 @@ function ckMakeMove(roomKey, playerId, from, to) {
         type: 'ckGameOver',
         winner,
         reason: hasPieces ? 'noMoves' : 'capture',
+        wager,
+        players: room.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
       });
     }
   }
@@ -1533,7 +1602,19 @@ function chStartTurnTimer(roomKey) {
     const losingColor = r.chTurn;
     const winnerColor = losingColor === 'white' ? 'black' : 'white';
     r.chPhase = 'over';
-    broadcastToRoom(roomKey, { type: 'chGameOver', winner: winnerColor, reason: 'timeout' });
+    const wager = r.chWager || 0;
+    if (wager > 0 && r.chPlayers && r.chPlayersList) {
+      const winnerId = r.chPlayers[winnerColor];
+      const winnerP = r.chPlayersList.find((p) => p.id === winnerId);
+      if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
+    }
+    broadcastToRoom(roomKey, {
+      type: 'chGameOver',
+      winner: winnerColor,
+      reason: 'timeout',
+      wager,
+      players: r.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
+    });
   }, room.chTimerMs);
 }
 
@@ -1541,6 +1622,27 @@ function chStartGame(roomKey, timerSeconds) {
   const room = getRoom(roomKey);
   const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
   if (chPlayers.length !== 2) return;
+
+  let wager = 0;
+  const proposals = room.chWagerProposals || {};
+  const ready = room.chWagerReady || {};
+  const bothReady = chPlayers.every((p) => ready[p.id] === true);
+  if (bothReady) {
+    const p1 = chPlayers[0];
+    const p2 = chPlayers[1];
+    const prop1 = proposals[p1.id] ?? 0;
+    const prop2 = proposals[p2.id] ?? 0;
+    const maxWager = Math.min(p1.chips || 0, p2.chips || 0);
+    wager = Math.min(prop1, prop2, maxWager);
+    if (wager > 0) {
+      p1.chips = (p1.chips || 0) - wager;
+      p2.chips = (p2.chips || 0) - wager;
+    }
+  }
+  room.chWager = wager;
+  room.chWagerProposals = {};
+  room.chWagerReady = {};
+
   room.chPlayersList = chPlayers;
 
   room.chBoard = chCreateBoard();
@@ -1569,6 +1671,8 @@ function chStartGame(roomKey, timerSeconds) {
     castling: room.chCastling, enPassant: null,
     timerSeconds: room.chTimerMs > 0 ? room.chTimerMs / 1000 : 0,
     timerMs: room.chTimerMs || 0,
+    wager: room.chWager || 0,
+    playersChips: chPlayers.reduce((o, p) => { o[p.id] = p.chips; return o; }, {}),
   });
 
   chPlayers.forEach((p) => {
@@ -1667,7 +1771,19 @@ function chMakeMove(roomKey, playerId, from, to) {
     room.chPhase = 'over';
     chClearTurnTimer(room);
     const winner = result === 'checkmate' ? currentColor : null;
-    broadcastToRoom(roomKey, { type: 'chGameOver', winner, reason: result });
+    const wager = room.chWager || 0;
+    if (winner && wager > 0 && room.chPlayers && room.chPlayersList) {
+      const winnerId = room.chPlayers[winner];
+      const winnerP = room.chPlayersList.find((p) => p.id === winnerId);
+      if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
+    }
+    broadcastToRoom(roomKey, {
+      type: 'chGameOver',
+      winner,
+      reason: result,
+      wager,
+      players: room.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
+    });
   }
 }
 
@@ -1849,6 +1965,10 @@ wss.on('connection', (ws) => {
           type: 'playerViewChanged',
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, currentView: p.currentView ?? 'lobby' })),
         });
+        const ckCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers').length;
+        const chCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess').length;
+        if (newType === 'checkers' && ckCount === 2) broadcastCkWagerState(data.roomKey, room);
+        if (newType === 'chess' && chCount === 2) broadcastChWagerState(data.roomKey, room);
         ws.send(JSON.stringify({
           type: 'gameSwitched',
           id: ws.id,
@@ -1872,6 +1992,56 @@ wss.on('connection', (ws) => {
           },
           radio: room.radio,
         }));
+      } else if (type === 'ckWagerProposal') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.length !== 2) return;
+        const p = ckPlayers.find((x) => x.ws === ws);
+        if (!p) return;
+        const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
+        const other = ckPlayers.find((x) => x.id !== p.id);
+        const maxWager = Math.min(p.chips || 0, other?.chips || 0);
+        const capped = Math.min(amount, maxWager);
+        room.ckWagerProposals = room.ckWagerProposals || {};
+        room.ckWagerProposals[p.id] = capped;
+        broadcastCkWagerState(data.roomKey, room);
+      } else if (type === 'ckWagerReady') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.length !== 2) return;
+        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.ckWagerReady = room.ckWagerReady || {};
+        room.ckWagerReady[ws.id] = msg.ready !== false;
+        broadcastCkWagerState(data.roomKey, room);
+      } else if (type === 'chWagerProposal') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.length !== 2) return;
+        const p = chPlayers.find((x) => x.ws === ws);
+        if (!p) return;
+        const amount = Math.max(0, Math.floor(Number(msg.amount) || 0));
+        const other = chPlayers.find((x) => x.id !== p.id);
+        const maxWager = Math.min(p.chips || 0, other?.chips || 0);
+        const capped = Math.min(amount, maxWager);
+        room.chWagerProposals = room.chWagerProposals || {};
+        room.chWagerProposals[p.id] = capped;
+        broadcastChWagerState(data.roomKey, room);
+      } else if (type === 'chWagerReady') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.length !== 2) return;
+        if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.chWagerReady = room.chWagerReady || {};
+        room.chWagerReady[ws.id] = msg.ready !== false;
+        broadcastChWagerState(data.roomKey, room);
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;

@@ -208,6 +208,30 @@ body.theme-snowy-lot { --lobby-accent: #8a92b8; }
 
 .lobby-invite-btn svg { flex-shrink: 0; }
 
+.lobby-chips-display {
+  font-size: 0.4rem;
+  color: var(--lobby-accent);
+  padding: 0.2rem 0.4rem;
+  background: var(--lobby-input-bg);
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.35rem;
+  white-space: nowrap;
+}
+
+.lobby-rebuy-btn {
+  padding: 0.2rem 0.5rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.35rem;
+  background: #238636;
+  color: #fff;
+  border: none;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.lobby-rebuy-btn:hover { background: #2ea043; }
+.lobby-rebuy-btn.hidden { display: none !important; }
+
 .lobby-top-spacer { flex: 1; }
 
 .lobby-now-playing {
@@ -1009,6 +1033,21 @@ body.theme-snowy-lot { --lobby-accent: #8a92b8; }
 }
 
 .btn-radio:hover {
+  border-color: #c9b896;
+  background: #222;
+}
+
+.btn-settings-inline {
+  padding: 0.2rem 0.4rem;
+  background: #1a1a1a;
+  border: 0.125rem solid #333;
+  color: #c9b896;
+  font-size: 0.65rem;
+  cursor: pointer;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.btn-settings-inline:hover {
   border-color: #c9b896;
   background: #222;
 }
