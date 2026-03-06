@@ -1176,6 +1176,26 @@ function handleMessage(msg) {
         appendLobbyChat(msg.playerId, msg.nickname, msg.text);
         return;
       }
+      if (currentGameType === 'checkers') {
+        const ckChat = document.getElementById('ck-config-chat-messages');
+        if (ckChat) {
+          const div = document.createElement('div');
+          div.className = 'ck-chat-msg' + (msg.playerId === myId ? ' you' : '');
+          div.innerHTML = '<span class="ck-chat-nick">' + (msg.nickname || 'Player') + ':</span> ' + (msg.text || '').replace(/</g, '&lt;');
+          ckChat.appendChild(div);
+          ckChat.scrollTop = ckChat.scrollHeight;
+        }
+      }
+      if (currentGameType === 'chess') {
+        const chChat = document.getElementById('ch-config-chat-messages');
+        if (chChat) {
+          const div = document.createElement('div');
+          div.className = 'ch-chat-msg' + (msg.playerId === myId ? ' you' : '');
+          div.innerHTML = '<span class="ch-chat-nick">' + (msg.nickname || 'Player') + ':</span> ' + (msg.text || '').replace(/</g, '&lt;');
+          chChat.appendChild(div);
+          chChat.scrollTop = chChat.scrollHeight;
+        }
+      }
       playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + CHAT_DURATION_MS };
       if (playerChatTimeouts[msg.playerId]) clearTimeout(playerChatTimeouts[msg.playerId]);
       playerChatTimeouts[msg.playerId] = setTimeout(() => {

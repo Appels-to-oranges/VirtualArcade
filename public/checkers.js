@@ -208,8 +208,9 @@
       '.ck-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
         'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ck-config-overlay.ck-hidden{display:none}' +
+      '.ck-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
       '.ck-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
-        'padding:1rem;max-width:22rem;width:100%}' +
+        'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
       '.ck-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
       '.ck-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
       '.ck-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
@@ -231,6 +232,22 @@
       '.ck-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ck-config-wager-msg.ck-show{display:block}' +
       '#ck-config-start-btn{width:100%;margin-top:.5rem}' +
+      '.ck-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
+        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
+      '.ck-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
+      '.ck-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
+      '.ck-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ck-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
+      '.ck-chat-msg.you .ck-chat-nick{color:#4ade80}' +
+      '.ck-chat-nick{color:#8b949e}' +
+      '.ck-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+      '.ck-gameover-overlay.ck-hidden{display:none}' +
+      '.ck-gameover-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;padding:1.5rem;text-align:center;min-width:18rem}' +
+      '.ck-gameover-title{font-size:.6rem;color:#c9b896;margin-bottom:1rem}' +
+      '.ck-gameover-winner{font-size:.5rem;color:#4ade80;margin-bottom:.5rem}' +
+      '.ck-gameover-amount{font-size:.45rem;color:#c9b896;margin-bottom:.5rem}' +
+      '.ck-gameover-loser{font-size:.4rem;color:#f87171;margin-bottom:1rem}' +
 
       '.ck-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
@@ -267,6 +284,7 @@
         '<button type="button" id="ck-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
       '</div>' +
       '<div class="ck-config-overlay" id="ck-config-overlay">' +
+        '<div class="ck-config-layout">' +
         '<div class="ck-config-panel">' +
           '<h2 class="ck-config-title">Configure Game</h2>' +
           '<div class="ck-config-opponent" id="ck-config-opponent">' +
@@ -298,6 +316,21 @@
             '<div class="ck-config-wager-msg" id="ck-wager-mismatch-msg">Wagers must match</div>' +
           '</div>' +
           '<button id="ck-config-start-btn" class="btn-start">Start Game</button>' +
+        '</div>' +
+        '<div class="ck-config-chat">' +
+          '<div class="ck-config-chat-header">Chat</div>' +
+          '<div class="ck-config-chat-messages" id="ck-config-chat-messages"></div>' +
+          '<input type="text" id="ck-config-chat-input" class="ck-config-chat-input" placeholder="Send message..." maxlength="100">' +
+        '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ck-gameover-overlay ck-hidden" id="ck-gameover-overlay">' +
+        '<div class="ck-gameover-panel">' +
+          '<h2 class="ck-gameover-title" id="ck-gameover-title">Game Over</h2>' +
+          '<div class="ck-gameover-winner" id="ck-gameover-winner"></div>' +
+          '<div class="ck-gameover-amount" id="ck-gameover-amount"></div>' +
+          '<div class="ck-gameover-loser" id="ck-gameover-loser"></div>' +
+          '<button id="ck-gameover-rematch-btn" class="btn-start">Rematch</button>' +
         '</div>' +
       '</div>' +
       '<div id="ck-turn-timer" class="ck-turn-timer hidden"></div>' +
@@ -338,12 +371,38 @@
       }
     });
     if (ckWagerLockBtn) ckWagerLockBtn.addEventListener('click', function () {
-      if (ckWagerLockBtn.classList.contains('ck-locked')) return;
+      if (ckWagerLockBtn.classList.contains('ck-locked')) {
+        send({ type: 'ckWagerUnlock' });
+        return;
+      }
       var val = parseInt(ckWagerSlider ? ckWagerSlider.value : 0, 10);
       ckWagerLockBtn.classList.add('ck-locked');
-      ckWagerLockBtn.textContent = 'Locked $' + val;
+      ckWagerLockBtn.textContent = 'Unlock';
       if (ckWagerSlider) ckWagerSlider.disabled = true;
       send({ type: 'ckWagerLock', amount: val });
+    });
+    var ckTimerSelect = document.getElementById('ck-timer-select');
+    if (ckTimerSelect) ckTimerSelect.addEventListener('change', function () {
+      var val = parseInt(ckTimerSelect.value, 10);
+      send({ type: 'ckTimerChange', timerSeconds: val });
+    });
+    var ckConfigChatInput = document.getElementById('ck-config-chat-input');
+    if (ckConfigChatInput) ckConfigChatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var text = (ckConfigChatInput.value || '').trim();
+        if (text && ckWs && ckWs.readyState === WebSocket.OPEN) {
+          ckWs.send(JSON.stringify({ type: 'chat', text: text }));
+          ckConfigChatInput.value = '';
+        }
+      }
+    });
+    var ckGameoverRematchBtn = document.getElementById('ck-gameover-rematch-btn');
+    if (ckGameoverRematchBtn) ckGameoverRematchBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('ck-gameover-overlay');
+      if (overlay) overlay.classList.add('ck-hidden');
+      var sel = document.getElementById('ck-timer-select');
+      var timer = sel ? parseInt(sel.value, 10) : 0;
+      send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
     });
     var ckConfigStartBtn = document.getElementById('ck-config-start-btn');
     if (ckConfigStartBtn) ckConfigStartBtn.addEventListener('click', function () {
@@ -493,7 +552,7 @@
     slider.min = 0;
     var locked = ckWagerLocked[ckMyId];
     if (locked !== undefined) {
-      if (lockBtn) { lockBtn.classList.add('ck-locked'); lockBtn.textContent = 'Locked $' + locked; }
+      if (lockBtn) { lockBtn.classList.add('ck-locked'); lockBtn.textContent = 'Unlock'; }
       if (slider) slider.disabled = true;
       valEl.textContent = locked;
     } else {
@@ -592,10 +651,12 @@
 
   function handleMessage(msg) {
     switch (msg.type) {
-      case 'ckGameStarted':
+      case 'ckGameStarted': {
         ckGameState = 'playing';
         ckCapturesRed = 0;
         ckCapturesWhite = 0;
+        var goOv = document.getElementById('ck-gameover-overlay');
+        if (goOv) goOv.classList.add('ck-hidden');
         ckBoard = msg.board || emptyBoard();
         ckTurn = msg.turn || 'red';
         ckWinner = null;
@@ -619,6 +680,7 @@
         }
         renderAll();
         break;
+      }
 
       case 'ckYourColor':
         ckMyColor = msg.color;
@@ -637,6 +699,11 @@
 
       case 'ckWagerMismatch':
         if (typeof showToast === 'function') showToast(msg.message || 'Wagers must match');
+        break;
+
+      case 'ckTimerChanged':
+        var sel = document.getElementById('ck-timer-select');
+        if (sel && msg.timerSeconds !== undefined) sel.value = String(msg.timerSeconds);
         break;
 
       case 'ckPlayersUpdated':
@@ -704,6 +771,21 @@
             ? 'You win! (' + reason + ')'
             : colorDisplay + ' wins! (' + reason + ')'
         );
+        var wager = msg.wager || 0;
+        var goOverlay = document.getElementById('ck-gameover-overlay');
+        var goTitle = document.getElementById('ck-gameover-title');
+        var goWinner = document.getElementById('ck-gameover-winner');
+        var goAmount = document.getElementById('ck-gameover-amount');
+        var goLoser = document.getElementById('ck-gameover-loser');
+        if (goOverlay) {
+          goOverlay.classList.remove('ck-hidden');
+          var winnerName = ckWinner === ckMyColor ? 'You' : (msg.winnerNickname || colorDisplay);
+          var loserName = ckWinner === ckMyColor ? (msg.loserNickname || 'Opponent') : 'You';
+          if (goTitle) goTitle.textContent = 'Game Over';
+          if (goWinner) goWinner.textContent = winnerName + ' won!';
+          if (goAmount) goAmount.textContent = wager > 0 ? winnerName + ' won $' + wager : '';
+          if (goLoser) goLoser.textContent = wager > 0 ? loserName + ' lost $' + wager : '';
+        }
         renderAll();
         break;
       }
@@ -714,6 +796,8 @@
         ckCapturesWhite = 0;
         stopCkTimer();
         setStatus('Waiting for opponent...');
+        var goOv = document.getElementById('ck-gameover-overlay');
+        if (goOv) goOv.classList.add('ck-hidden');
         renderAll();
         break;
 

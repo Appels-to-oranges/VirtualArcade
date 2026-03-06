@@ -1220,12 +1220,16 @@ function ckStartTurnTimer(roomKey) {
       const winnerP = r.ckPlayersList.find((p) => p.id === winnerId);
       if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
     }
+    const winnerP = r.ckPlayersList?.find((p) => p.id === r.ckPlayers[winnerColor]);
+    const loserP = r.ckPlayersList?.find((p) => p.id === r.ckPlayers[losingColor]);
     broadcastToRoom(roomKey, {
       type: 'ckGameOver',
       winner: winnerColor,
       reason: 'timeout',
       wager,
-      players: r.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
+      players: r.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+      winnerNickname: winnerP?.nickname || 'Winner',
+      loserNickname: loserP?.nickname || 'Opponent',
     });
   }, room.ckTimerMs);
 }
@@ -1405,12 +1409,16 @@ function ckMakeMove(roomKey, playerId, from, to) {
             if (board[r][c] && board[r][c].color === room.ckTurn) return true;
         return false;
       })();
+      const winnerP = room.ckPlayersList?.find((p) => p.id === room.ckPlayers[winner]);
+      const loserP = room.ckPlayersList?.find((p) => p.id === room.ckPlayers[room.ckTurn]);
       broadcastToRoom(roomKey, {
         type: 'ckGameOver',
         winner,
         reason: hasPieces ? 'noMoves' : 'capture',
         wager,
-        players: room.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
+        players: room.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+        winnerNickname: winnerP?.nickname || 'Winner',
+        loserNickname: loserP?.nickname || 'Opponent',
       });
     }
   }
@@ -1623,12 +1631,16 @@ function chStartTurnTimer(roomKey) {
       const winnerP = r.chPlayersList.find((p) => p.id === winnerId);
       if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
     }
+    const winnerP = r.chPlayersList?.find((p) => p.id === r.chPlayers[winnerColor]);
+    const loserP = r.chPlayersList?.find((p) => p.id === r.chPlayers[losingColor]);
     broadcastToRoom(roomKey, {
       type: 'chGameOver',
       winner: winnerColor,
       reason: 'timeout',
       wager,
-      players: r.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
+      players: r.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+      winnerNickname: winnerP?.nickname || 'Winner',
+      loserNickname: loserP?.nickname || 'Opponent',
     });
   }, room.chTimerMs);
 }
@@ -1793,12 +1805,17 @@ function chMakeMove(roomKey, playerId, from, to) {
       const winnerP = room.chPlayersList.find((p) => p.id === winnerId);
       if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
     }
+    const winnerP = room.chPlayersList?.find((p) => p.id === room.chPlayers[winner]);
+    const loserColor = winner === 'white' ? 'black' : 'white';
+    const loserP = room.chPlayersList?.find((p) => p.id === room.chPlayers[loserColor]);
     broadcastToRoom(roomKey, {
       type: 'chGameOver',
       winner,
       reason: result,
       wager,
-      players: room.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips })) || [],
+      players: room.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+      winnerNickname: winnerP?.nickname || 'Winner',
+      loserNickname: loserP?.nickname || 'Opponent',
     });
   }
 }
@@ -1920,15 +1937,39 @@ wss.on('connection', (ws) => {
         if (prevGameType === 'checkers' && room.ckPhase === 'playing') {
           ckClearTurnTimer(room);
           const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
+          const losingColor = remainingColor === 'red' ? 'white' : 'red';
           room.ckPhase = 'over';
-          broadcastToRoom(data.roomKey, { type: 'ckGameOver', winner: remainingColor, reason: 'disconnect' });
+          const wager = room.ckWager || 0;
+          const winnerP = room.ckPlayersList?.find((p) => p.id === room.ckPlayers[remainingColor]);
+          const loserP = room.ckPlayersList?.find((p) => p.id === room.ckPlayers[losingColor]);
+          broadcastToRoom(data.roomKey, {
+            type: 'ckGameOver',
+            winner: remainingColor,
+            reason: 'disconnect',
+            wager,
+            players: room.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+            winnerNickname: winnerP?.nickname || 'Winner',
+            loserNickname: loserP?.nickname || 'Opponent',
+          });
         }
 
         if (prevGameType === 'chess' && room.chPhase === 'playing') {
           chClearTurnTimer(room);
           const chRemainingColor = room.chPlayers?.white === ws.id ? 'black' : 'white';
+          const chLosingColor = chRemainingColor === 'white' ? 'black' : 'white';
           room.chPhase = 'over';
-          broadcastToRoom(data.roomKey, { type: 'chGameOver', winner: chRemainingColor, reason: 'disconnect' });
+          const wager = room.chWager || 0;
+          const winnerP = room.chPlayersList?.find((p) => p.id === room.chPlayers[chRemainingColor]);
+          const loserP = room.chPlayersList?.find((p) => p.id === room.chPlayers[chLosingColor]);
+          broadcastToRoom(data.roomKey, {
+            type: 'chGameOver',
+            winner: chRemainingColor,
+            reason: 'disconnect',
+            wager,
+            players: room.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+            winnerNickname: winnerP?.nickname || 'Winner',
+            loserNickname: loserP?.nickname || 'Opponent',
+          });
         }
 
         const humansInHoldem = room.players.some((p) => !p.isBot && (p.currentView ?? 'lobby') === 'holdem');
@@ -2059,6 +2100,25 @@ wss.on('connection', (ws) => {
         room.ckWagerLocked = room.ckWagerLocked || {};
         room.ckWagerLocked[p.id] = capped;
         broadcastCkWagerState(data.roomKey, room);
+      } else if (type === 'ckWagerUnlock') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.length !== 2) return;
+        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.ckWagerLocked = room.ckWagerLocked || {};
+        delete room.ckWagerLocked[ws.id];
+        broadcastCkWagerState(data.roomKey, room);
+      } else if (type === 'ckTimerChange') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        const sec = Math.max(0, Math.min(300, Math.floor(Number(msg.timerSeconds) || 0)));
+        room.ckTimerProposal = sec;
+        broadcastToRoom(data.roomKey, { type: 'ckTimerChanged', timerSeconds: sec });
       } else if (type === 'chWagerProposal') {
         const data = clients.get(ws);
         if (!data) return;
@@ -2099,6 +2159,25 @@ wss.on('connection', (ws) => {
         room.chWagerLocked = room.chWagerLocked || {};
         room.chWagerLocked[p.id] = capped;
         broadcastChWagerState(data.roomKey, room);
+      } else if (type === 'chWagerUnlock') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.length !== 2) return;
+        if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.chWagerLocked = room.chWagerLocked || {};
+        delete room.chWagerLocked[ws.id];
+        broadcastChWagerState(data.roomKey, room);
+      } else if (type === 'chTimerChange') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        const sec = Math.max(0, Math.min(300, Math.floor(Number(msg.timerSeconds) || 0)));
+        room.chTimerProposal = sec;
+        broadcastToRoom(data.roomKey, { type: 'chTimerChanged', timerSeconds: sec });
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;
@@ -2118,7 +2197,7 @@ wss.on('connection', (ws) => {
               return;
             }
           }
-          ckStartGame(data.roomKey, msg.timerSeconds);
+          ckStartGame(data.roomKey, room.ckTimerProposal ?? msg.timerSeconds);
         } else if (gameType === 'chess') {
           const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
           if (chPlayers.length === 2) {
@@ -2130,7 +2209,7 @@ wss.on('connection', (ws) => {
               return;
             }
           }
-          chStartGame(data.roomKey, msg.timerSeconds);
+          chStartGame(data.roomKey, room.chTimerProposal ?? msg.timerSeconds);
         } else {
           const resetStreaks = msg.resetStreaks === true;
           const resetChips = msg.resetChips === true;
@@ -2450,15 +2529,39 @@ wss.on('connection', (ws) => {
           if (room.ckPhase === 'playing') {
             ckClearTurnTimer(room);
             const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
+            const losingColor = remainingColor === 'red' ? 'white' : 'red';
             room.ckPhase = 'over';
-            broadcastToRoom(data.roomKey, { type: 'ckGameOver', winner: remainingColor, reason: 'disconnect' });
+            const wager = room.ckWager || 0;
+            const winnerP = room.ckPlayersList?.find((p) => p.id === room.ckPlayers[remainingColor]);
+            const loserP = room.ckPlayersList?.find((p) => p.id === room.ckPlayers[losingColor]);
+            broadcastToRoom(data.roomKey, {
+              type: 'ckGameOver',
+              winner: remainingColor,
+              reason: 'disconnect',
+              wager,
+              players: room.ckPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+              winnerNickname: winnerP?.nickname || 'Winner',
+              loserNickname: loserP?.nickname || 'Opponent',
+            });
           }
 
           if (room.chPhase === 'playing') {
             chClearTurnTimer(room);
             const chRemainingColor = room.chPlayers?.white === ws.id ? 'black' : 'white';
+            const chLosingColor = chRemainingColor === 'white' ? 'black' : 'white';
             room.chPhase = 'over';
-            broadcastToRoom(data.roomKey, { type: 'chGameOver', winner: chRemainingColor, reason: 'disconnect' });
+            const wager = room.chWager || 0;
+            const winnerP = room.chPlayersList?.find((p) => p.id === room.chPlayers[chRemainingColor]);
+            const loserP = room.chPlayersList?.find((p) => p.id === room.chPlayers[chLosingColor]);
+            broadcastToRoom(data.roomKey, {
+              type: 'chGameOver',
+              winner: chRemainingColor,
+              reason: 'disconnect',
+              wager,
+              players: room.chPlayersList?.map((p) => ({ id: p.id, chips: p.chips, nickname: p.nickname })) || [],
+              winnerNickname: winnerP?.nickname || 'Winner',
+              loserNickname: loserP?.nickname || 'Opponent',
+            });
           }
 
           const activeCount = room.players.filter((p) => !p.folded).length;

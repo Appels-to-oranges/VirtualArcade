@@ -378,8 +378,9 @@
       '.ch-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
         'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ch-config-overlay.ch-hidden{display:none}' +
+      '.ch-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
       '.ch-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
-        'padding:1rem;max-width:22rem;width:100%}' +
+        'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
       '.ch-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
       '.ch-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
       '.ch-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
@@ -401,6 +402,22 @@
       '.ch-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ch-config-wager-msg.ch-show{display:block}' +
       '#ch-config-start-btn{width:100%;margin-top:.5rem}' +
+      '.ch-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
+        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
+      '.ch-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
+      '.ch-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
+      '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ch-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
+      '.ch-chat-msg.you .ch-chat-nick{color:#4ade80}' +
+      '.ch-chat-nick{color:#8b949e}' +
+      '.ch-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+      '.ch-gameover-overlay.ch-hidden{display:none}' +
+      '.ch-gameover-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;padding:1.5rem;text-align:center;min-width:18rem}' +
+      '.ch-gameover-title{font-size:.6rem;color:#c9b896;margin-bottom:1rem}' +
+      '.ch-gameover-winner{font-size:.5rem;color:#4ade80;margin-bottom:.5rem}' +
+      '.ch-gameover-amount{font-size:.45rem;color:#c9b896;margin-bottom:.5rem}' +
+      '.ch-gameover-loser{font-size:.4rem;color:#f87171;margin-bottom:1rem}' +
 
       '.ch-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
@@ -437,6 +454,7 @@
         '<button type="button" id="ch-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
       '</div>' +
       '<div class="ch-config-overlay" id="ch-config-overlay">' +
+        '<div class="ch-config-layout">' +
         '<div class="ch-config-panel">' +
           '<h2 class="ch-config-title">Configure Game</h2>' +
           '<div class="ch-config-opponent" id="ch-config-opponent">' +
@@ -467,6 +485,21 @@
             '<div class="ch-config-wager-msg" id="ch-wager-mismatch-msg">Wagers must match</div>' +
           '</div>' +
           '<button id="ch-config-start-btn" class="btn-start">Start Game</button>' +
+        '</div>' +
+        '<div class="ch-config-chat">' +
+          '<div class="ch-config-chat-header">Chat</div>' +
+          '<div class="ch-config-chat-messages" id="ch-config-chat-messages"></div>' +
+          '<input type="text" id="ch-config-chat-input" class="ch-config-chat-input" placeholder="Send message..." maxlength="100">' +
+        '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ch-gameover-overlay ch-hidden" id="ch-gameover-overlay">' +
+        '<div class="ch-gameover-panel">' +
+          '<h2 class="ch-gameover-title" id="ch-gameover-title">Game Over</h2>' +
+          '<div class="ch-gameover-winner" id="ch-gameover-winner"></div>' +
+          '<div class="ch-gameover-amount" id="ch-gameover-amount"></div>' +
+          '<div class="ch-gameover-loser" id="ch-gameover-loser"></div>' +
+          '<button id="ch-gameover-rematch-btn" class="btn-start">Rematch</button>' +
         '</div>' +
       '</div>' +
       '<div id="ch-turn-timer" class="ch-turn-timer hidden"></div>' +
@@ -508,12 +541,38 @@
       }
     });
     if (chWagerLockBtn) chWagerLockBtn.addEventListener('click', function () {
-      if (chWagerLockBtn.classList.contains('ch-locked')) return;
+      if (chWagerLockBtn.classList.contains('ch-locked')) {
+        send({ type: 'chWagerUnlock' });
+        return;
+      }
       var val = parseInt(chWagerSlider ? chWagerSlider.value : 0, 10);
       chWagerLockBtn.classList.add('ch-locked');
-      chWagerLockBtn.textContent = 'Locked $' + val;
+      chWagerLockBtn.textContent = 'Unlock';
       if (chWagerSlider) chWagerSlider.disabled = true;
       send({ type: 'chWagerLock', amount: val });
+    });
+    var chTimerSelect = document.getElementById('ch-timer-select');
+    if (chTimerSelect) chTimerSelect.addEventListener('change', function () {
+      var val = parseInt(chTimerSelect.value, 10);
+      send({ type: 'chTimerChange', timerSeconds: val });
+    });
+    var chConfigChatInput = document.getElementById('ch-config-chat-input');
+    if (chConfigChatInput) chConfigChatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var text = (chConfigChatInput.value || '').trim();
+        if (text && chWs && chWs.readyState === WebSocket.OPEN) {
+          chWs.send(JSON.stringify({ type: 'chat', text: text }));
+          chConfigChatInput.value = '';
+        }
+      }
+    });
+    var chGameoverRematchBtn = document.getElementById('ch-gameover-rematch-btn');
+    if (chGameoverRematchBtn) chGameoverRematchBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('ch-gameover-overlay');
+      if (overlay) overlay.classList.add('ch-hidden');
+      var sel = document.getElementById('ch-timer-select');
+      var timer = sel ? parseInt(sel.value, 10) : 0;
+      send({ type: 'startGame', gameType: 'chess', timerSeconds: timer });
     });
     var chConfigStartBtn = document.getElementById('ch-config-start-btn');
     if (chConfigStartBtn) chConfigStartBtn.addEventListener('click', function () {
@@ -680,7 +739,7 @@
     slider.min = 0;
     var locked = chWagerLocked[chMyId];
     if (locked !== undefined) {
-      if (lockBtn) { lockBtn.classList.add('ch-locked'); lockBtn.textContent = 'Locked $' + locked; }
+      if (lockBtn) { lockBtn.classList.add('ch-locked'); lockBtn.textContent = 'Unlock'; }
       if (slider) slider.disabled = true;
       valEl.textContent = locked;
     } else {
@@ -779,10 +838,12 @@
 
   function handleMessage(msg) {
     switch (msg.type) {
-      case 'chGameStarted':
+      case 'chGameStarted': {
         chGameState = 'playing';
         chCapturesWhite = 0;
         chCapturesBlack = 0;
+        var goOv = document.getElementById('ch-gameover-overlay');
+        if (goOv) goOv.classList.add('ch-hidden');
         chBoard = msg.board || emptyBoard();
         chTurn = msg.turn || 'white';
         chWinner = null;
@@ -805,6 +866,7 @@
         else stopChTimer();
         renderAll();
         break;
+      }
 
       case 'chYourColor':
         chMyColor = msg.color;
@@ -823,6 +885,11 @@
 
       case 'chWagerMismatch':
         if (typeof showToast === 'function') showToast(msg.message || 'Wagers must match');
+        break;
+
+      case 'chTimerChanged':
+        var sel = document.getElementById('ch-timer-select');
+        if (sel && msg.timerSeconds !== undefined) sel.value = String(msg.timerSeconds);
         break;
 
       case 'chPlayersUpdated':
@@ -878,6 +945,7 @@
         chSelected = null;
         chValidMoves = [];
         stopChTimer();
+        chWagerLocked = {};
         if (msg.players) msg.players.forEach(function (p) { chWagerChips[p.id] = p.chips; });
         chWagerReady = {};
         if (chWinner === chMyColor && typeof playWinCheckersChess === 'function') playWinCheckersChess();
@@ -898,6 +966,21 @@
               : (chWinner || 'Opponent') + ' wins! (' + reason + ')'
           );
         }
+        var wager = msg.wager || 0;
+        var goOverlay = document.getElementById('ch-gameover-overlay');
+        var goTitle = document.getElementById('ch-gameover-title');
+        var goWinner = document.getElementById('ch-gameover-winner');
+        var goAmount = document.getElementById('ch-gameover-amount');
+        var goLoser = document.getElementById('ch-gameover-loser');
+        if (goOverlay) {
+          goOverlay.classList.remove('ch-hidden');
+          var winnerName = chWinner === chMyColor ? 'You' : (msg.winnerNickname || chWinner || 'Winner');
+          var loserName = chWinner === chMyColor ? (msg.loserNickname || 'Opponent') : 'You';
+          if (goTitle) goTitle.textContent = msg.reason === 'stalemate' ? 'Draw' : 'Game Over';
+          if (goWinner) goWinner.textContent = msg.reason === 'stalemate' ? 'Stalemate - Draw!' : (winnerName + ' won!');
+          if (goAmount) goAmount.textContent = (msg.reason !== 'stalemate' && wager > 0) ? winnerName + ' won $' + wager : '';
+          if (goLoser) goLoser.textContent = (msg.reason !== 'stalemate' && wager > 0) ? loserName + ' lost $' + wager : '';
+        }
         renderAll();
         break;
       }
@@ -908,6 +991,8 @@
         chCapturesBlack = 0;
         stopChTimer();
         setStatus('Waiting for opponent...');
+        var goOv = document.getElementById('ch-gameover-overlay');
+        if (goOv) goOv.classList.add('ch-hidden');
         renderAll();
         break;
 
