@@ -47,6 +47,7 @@
   let ckWagerLocked = {};
   let ckWagerChips = {};
   let ckWagerNicknames = {};
+  let ckWagerAmount = 0;
 
   /* ── DOM refs (lazily initialised) ── */
 
@@ -127,6 +128,7 @@
       '#ck-screen .ck-room-bar{width:100%;display:flex;align-items:center;' +
         'justify-content:center;flex-wrap:wrap;gap:.75rem;padding:.4rem .75rem;' +
         'background:#111;border-bottom:.2rem solid #1a1a1a;flex-shrink:0}' +
+      '.ck-room-bar-spacer{flex:1;min-width:.5rem}' +
 
       '#ck-room-label{font-size:.6rem;color:#666;letter-spacing:.0625rem}' +
 
@@ -141,6 +143,8 @@
 
       '#ck-status{font-size:.65rem;color:#c9b896;text-transform:uppercase;' +
         'letter-spacing:.1rem;text-align:center;padding:.4rem .5rem;flex-shrink:0}' +
+      '.ck-wager-display{font-size:.5rem;color:#c9b896;text-align:center;padding:.25rem .5rem;flex-shrink:0}' +
+      '.ck-wager-display.ck-hidden{display:none}' +
 
       '#ck-players-area{display:flex;gap:1rem;justify-content:center;' +
         'align-items:center;padding:.25rem .5rem;flex-shrink:0}' +
@@ -159,6 +163,7 @@
       '.ck-color-white{background:#eee}' +
 
       '.ck-player-name{color:#ddd}' +
+      '.ck-player-chips{color:#c9b896;font-size:.4rem;margin-left:.25rem}' +
       '.ck-captures{color:#888;font-size:.4rem;margin-left:.25rem}' +
       '.ck-chips-display{font-size:.5rem;color:#c9b896;padding:.2rem .4rem;background:#1a1a1a;border:.1rem solid #333;border-radius:.2rem}' +
 
@@ -231,15 +236,10 @@
       '.ck-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
       '.ck-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ck-config-wager-msg.ck-show{display:block}' +
-      '#ck-config-start-btn{width:100%;margin-top:.5rem}' +
-      '.ck-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
-        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
-      '.ck-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
-      '.ck-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
-      '.ck-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
-      '.ck-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
-      '.ck-chat-msg.you .ck-chat-nick{color:#4ade80}' +
-      '.ck-chat-nick{color:#8b949e}' +
+      '.ck-config-buttons{display:flex;gap:.5rem;margin-top:.5rem}' +
+      '.ck-config-buttons button{flex:1}' +
+      '.ck-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
+      '.ck-gameover-buttons button{flex:1}' +
       '.ck-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
         'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ck-gameover-overlay.ck-hidden{display:none}' +
@@ -280,8 +280,10 @@
         '<span class="ck-chips-display" id="ck-chips-display">$0</span>' +
         '<button id="ck-start-btn" class="btn-start hidden">Start Game</button>' +
         '<button id="ck-rematch-btn" class="btn-restart hidden">Rematch</button>' +
-        '<button type="button" id="ck-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>' +
-        '<button type="button" id="ck-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
+        '<div class="ck-room-bar-spacer"></div>' +
+        '<button type="button" id="ck-radio-btn" class="lobby-header-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="lobby-header-icon"></button>' +
+        '<button type="button" id="ck-themes-btn" class="lobby-header-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="lobby-header-icon"></button>' +
+        '<button type="button" id="ck-settings-btn" class="lobby-header-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="lobby-header-icon"></button>' +
       '</div>' +
       '<div class="ck-config-overlay" id="ck-config-overlay">' +
         '<div class="ck-config-layout">' +
@@ -315,12 +317,10 @@
             '</div>' +
             '<div class="ck-config-wager-msg" id="ck-wager-mismatch-msg">Wagers must match</div>' +
           '</div>' +
-          '<button id="ck-config-start-btn" class="btn-start">Start Game</button>' +
-        '</div>' +
-        '<div class="ck-config-chat">' +
-          '<div class="ck-config-chat-header">Chat</div>' +
-          '<div class="ck-config-chat-messages" id="ck-config-chat-messages"></div>' +
-          '<input type="text" id="ck-config-chat-input" class="ck-config-chat-input" placeholder="Send message..." maxlength="100">' +
+          '<div class="ck-config-buttons">' +
+            '<button id="ck-config-back-btn" class="btn-back">Back to Lobby</button>' +
+            '<button id="ck-config-start-btn" class="btn-start">Start Game</button>' +
+          '</div>' +
         '</div>' +
         '</div>' +
       '</div>' +
@@ -330,11 +330,15 @@
           '<div class="ck-gameover-winner" id="ck-gameover-winner"></div>' +
           '<div class="ck-gameover-amount" id="ck-gameover-amount"></div>' +
           '<div class="ck-gameover-loser" id="ck-gameover-loser"></div>' +
-          '<button id="ck-gameover-rematch-btn" class="btn-start">Rematch</button>' +
+          '<div class="ck-gameover-buttons">' +
+            '<button id="ck-gameover-back-btn" class="btn-back">Back to Lobby</button>' +
+            '<button id="ck-gameover-rematch-btn" class="btn-start">Rematch</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<div id="ck-turn-timer" class="ck-turn-timer hidden"></div>' +
       '<div id="ck-status"></div>' +
+      '<div id="ck-wager-display" class="ck-wager-display ck-hidden"></div>' +
       '<div id="ck-players-area"></div>' +
       '<div class="ck-board-wrap"><div id="ck-board"></div></div>' +
       '<div class="now-playing-radio hidden" id="ck-now-playing-radio">' +
@@ -356,9 +360,9 @@
     });
     var rematchBtn = document.getElementById('ck-rematch-btn');
     if (rematchBtn) rematchBtn.addEventListener('click', function () {
-      var sel = document.getElementById('ck-timer-select');
-      var timer = sel ? parseInt(sel.value, 10) : 0;
-      send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
+      var overlay = document.getElementById('ck-gameover-overlay');
+      if (overlay) overlay.classList.add('ck-hidden');
+      send({ type: 'ckRematch' });
     });
     var ckWagerSlider = document.getElementById('ck-wager-slider');
     var ckWagerValue = document.getElementById('ck-wager-value');
@@ -386,29 +390,26 @@
       var val = parseInt(ckTimerSelect.value, 10);
       send({ type: 'ckTimerChange', timerSeconds: val });
     });
-    var ckConfigChatInput = document.getElementById('ck-config-chat-input');
-    if (ckConfigChatInput) ckConfigChatInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        var text = (ckConfigChatInput.value || '').trim();
-        if (text && ckWs && ckWs.readyState === WebSocket.OPEN) {
-          ckWs.send(JSON.stringify({ type: 'chat', text: text }));
-          ckConfigChatInput.value = '';
-        }
-      }
-    });
+    var ckConfigBackBtn = document.getElementById('ck-config-back-btn');
+    if (ckConfigBackBtn) ckConfigBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
+    var ckGameoverBackBtn = document.getElementById('ck-gameover-back-btn');
+    if (ckGameoverBackBtn) ckGameoverBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
     var ckGameoverRematchBtn = document.getElementById('ck-gameover-rematch-btn');
     if (ckGameoverRematchBtn) ckGameoverRematchBtn.addEventListener('click', function () {
       var overlay = document.getElementById('ck-gameover-overlay');
       if (overlay) overlay.classList.add('ck-hidden');
-      var sel = document.getElementById('ck-timer-select');
-      var timer = sel ? parseInt(sel.value, 10) : 0;
-      send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
+      send({ type: 'ckRematch' });
     });
     var ckConfigStartBtn = document.getElementById('ck-config-start-btn');
     if (ckConfigStartBtn) ckConfigStartBtn.addEventListener('click', function () {
       var sel = document.getElementById('ck-timer-select');
       var timer = sel ? parseInt(sel.value, 10) : 0;
       send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
+    });
+    var ckThemesBtn = document.getElementById('ck-themes-btn');
+    if (ckThemesBtn) ckThemesBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('themes-overlay');
+      if (overlay) overlay.classList.remove('hidden');
     });
     var ckSettingsBtn = document.getElementById('ck-settings-btn');
     if (ckSettingsBtn) ckSettingsBtn.addEventListener('click', function () {
@@ -499,6 +500,13 @@
       nm.className = 'ck-player-name';
       nm.textContent = (p.nickname || p.id) + (p.id === ckMyId ? ' (you)' : '');
       tag.appendChild(nm);
+      if (ckGameState === 'playing') {
+        var chips = ckWagerChips[p.id] ?? (ckPlayers.find(function (x) { return x.id === p.id; })?.chips ?? 0);
+        var chipsSpan = document.createElement('span');
+        chipsSpan.className = 'ck-player-chips';
+        chipsSpan.textContent = ' $' + chips;
+        tag.appendChild(chipsSpan);
+      }
       if (p.color) {
         var cap = document.createElement('span');
         cap.className = 'ck-captures';
@@ -514,7 +522,19 @@
     renderBoard();
     renderPlayers();
     updateCkChipsDisplay();
+    updateCkWagerDisplay();
     updateButtons();
+  }
+
+  function updateCkWagerDisplay() {
+    var el = document.getElementById('ck-wager-display');
+    if (!el) return;
+    if (ckGameState === 'playing' && ckWagerAmount > 0) {
+      el.textContent = 'Wager: $' + ckWagerAmount;
+      el.classList.remove('ck-hidden');
+    } else {
+      el.classList.add('ck-hidden');
+    }
   }
 
   function updateCkChipsDisplay() {
@@ -664,6 +684,8 @@
         ckValidMoves = [];
         ckMustContinue = null;
         ckTimerSeconds = msg.timerSeconds || 0;
+        ckWagerAmount = msg.wager || 0;
+        if (msg.playersChips) ckWagerChips = msg.playersChips;
         var selSync = document.getElementById('ck-timer-select');
         if (selSync) selSync.value = String(ckTimerSeconds);
         if (msg.players) {

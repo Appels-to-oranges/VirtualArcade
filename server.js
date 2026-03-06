@@ -2178,6 +2178,30 @@ wss.on('connection', (ws) => {
         const sec = Math.max(0, Math.min(300, Math.floor(Number(msg.timerSeconds) || 0)));
         room.chTimerProposal = sec;
         broadcastToRoom(data.roomKey, { type: 'chTimerChanged', timerSeconds: sec });
+      } else if (type === 'ckRematch') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.length !== 2) return;
+        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.ckPhase = 'waiting';
+        room.ckWagerLocked = {};
+        room.ckWagerReady = {};
+        broadcastToRoom(data.roomKey, { type: 'ckWaiting' });
+        broadcastCkWagerState(data.roomKey, room);
+      } else if (type === 'chRematch') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.length !== 2) return;
+        if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.chPhase = 'waiting';
+        room.chWagerLocked = {};
+        room.chWagerReady = {};
+        broadcastToRoom(data.roomKey, { type: 'chWaiting' });
+        broadcastChWagerState(data.roomKey, room);
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;

@@ -140,6 +140,15 @@ body {
   --lobby-accent: #8a92b8;
   --lobby-input-bg: #100e16;
 }
+#game-select-screen.theme-foggy-hill {
+  --lobby-bg: linear-gradient(145deg, #1a1e14 0%, #242a1c 100%);
+  --lobby-card-bg: rgba(22, 26, 18, 0.92);
+  --lobby-border: #3d4a35;
+  --lobby-text: #c8d4c0;
+  --lobby-muted: #5a6b52;
+  --lobby-accent: #7a9a6e;
+  --lobby-input-bg: #1a1e14;
+}
 
 /* Body theme accent for game screens (blackjack, checkers, chess) */
 body { --lobby-accent: #c9b896; }
@@ -152,6 +161,7 @@ body.theme-buildings { --lobby-accent: #7a8a9e; }
 body.theme-apartments { --lobby-accent: #d4a060; }
 body.theme-fireflies { --lobby-accent: #5ca882; }
 body.theme-snowy-lot { --lobby-accent: #8a92b8; }
+body.theme-foggy-hill { --lobby-accent: #7a9a6e; }
 
 .game-select-layout {
   display: flex;
@@ -746,6 +756,11 @@ body.theme-snowy-lot { --lobby-accent: #8a92b8; }
   --join-accent: #8a92b8;
   --join-btn-bg: #4a4e6a;
   --join-btn-hover: #5a5e7a;
+}
+#join-screen.splash-foggy-hill {
+  --join-accent: #7a9a6e;
+  --join-btn-bg: #3d4a35;
+  --join-btn-hover: #4d5a45;
 }
 
 #join-screen::before {

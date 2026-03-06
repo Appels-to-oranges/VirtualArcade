@@ -32,6 +32,7 @@
   var chWagerLocked = {};
   var chWagerChips = {};
   var chWagerNicknames = {};
+  var chWagerAmount = 0;
   var chCapturesBlack = 0;
   var chCastling = null;
   var chEnPassant = null;
@@ -295,6 +296,7 @@
       '#ch-screen .ch-room-bar{width:100%;display:flex;align-items:center;' +
         'justify-content:center;flex-wrap:wrap;gap:.75rem;padding:.4rem .75rem;' +
         'background:#111;border-bottom:.2rem solid #1a1a1a;flex-shrink:0}' +
+      '.ch-room-bar-spacer{flex:1;min-width:.5rem}' +
 
       '#ch-room-label{font-size:.6rem;color:#666;letter-spacing:.0625rem}' +
 
@@ -399,17 +401,13 @@
       '.ch-lock-btn.ch-locked{background:#1b4332;border:.125rem solid #40916c;color:#8b949e}' +
       '.ch-opponent-wager label{color:#666}' +
       '.ch-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
+      '.ch-player-chips{color:#c9b896;font-size:.4rem;margin-left:.25rem}' +
       '.ch-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ch-config-wager-msg.ch-show{display:block}' +
-      '#ch-config-start-btn{width:100%;margin-top:.5rem}' +
-      '.ch-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
-        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
-      '.ch-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
-      '.ch-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
-      '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
-      '.ch-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
-      '.ch-chat-msg.you .ch-chat-nick{color:#4ade80}' +
-      '.ch-chat-nick{color:#8b949e}' +
+      '.ch-config-buttons{display:flex;gap:.5rem;margin-top:.5rem}' +
+      '.ch-config-buttons button{flex:1}' +
+      '.ch-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
+      '.ch-gameover-buttons button{flex:1}' +
       '.ch-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
         'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ch-gameover-overlay.ch-hidden{display:none}' +
@@ -450,8 +448,10 @@
         '<span class="ch-chips-display" id="ch-chips-display">$0</span>' +
         '<button id="ch-start-btn" class="btn-start hidden">Start Game</button>' +
         '<button id="ch-rematch-btn" class="btn-restart hidden">Rematch</button>' +
-        '<button type="button" id="ch-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>' +
-        '<button type="button" id="ch-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>' +
+        '<div class="ch-room-bar-spacer"></div>' +
+        '<button type="button" id="ch-radio-btn" class="lobby-header-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="lobby-header-icon"></button>' +
+        '<button type="button" id="ch-themes-btn" class="lobby-header-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="lobby-header-icon"></button>' +
+        '<button type="button" id="ch-settings-btn" class="lobby-header-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="lobby-header-icon"></button>' +
       '</div>' +
       '<div class="ch-config-overlay" id="ch-config-overlay">' +
         '<div class="ch-config-layout">' +
@@ -484,12 +484,10 @@
             '</div>' +
             '<div class="ch-config-wager-msg" id="ch-wager-mismatch-msg">Wagers must match</div>' +
           '</div>' +
-          '<button id="ch-config-start-btn" class="btn-start">Start Game</button>' +
-        '</div>' +
-        '<div class="ch-config-chat">' +
-          '<div class="ch-config-chat-header">Chat</div>' +
-          '<div class="ch-config-chat-messages" id="ch-config-chat-messages"></div>' +
-          '<input type="text" id="ch-config-chat-input" class="ch-config-chat-input" placeholder="Send message..." maxlength="100">' +
+          '<div class="ch-config-buttons">' +
+            '<button id="ch-config-back-btn" class="btn-back">Back to Lobby</button>' +
+            '<button id="ch-config-start-btn" class="btn-start">Start Game</button>' +
+          '</div>' +
         '</div>' +
         '</div>' +
       '</div>' +
@@ -499,11 +497,15 @@
           '<div class="ch-gameover-winner" id="ch-gameover-winner"></div>' +
           '<div class="ch-gameover-amount" id="ch-gameover-amount"></div>' +
           '<div class="ch-gameover-loser" id="ch-gameover-loser"></div>' +
-          '<button id="ch-gameover-rematch-btn" class="btn-start">Rematch</button>' +
+          '<div class="ch-gameover-buttons">' +
+            '<button id="ch-gameover-back-btn" class="btn-back">Back to Lobby</button>' +
+            '<button id="ch-gameover-rematch-btn" class="btn-start">Rematch</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<div id="ch-turn-timer" class="ch-turn-timer hidden"></div>' +
       '<div id="ch-status"></div>' +
+      '<div id="ch-wager-display" class="ch-wager-display ch-hidden"></div>' +
       '<div id="ch-players-area"></div>' +
       '<div class="ch-board-wrap"><div id="ch-board"></div></div>' +
       '<div class="now-playing-radio hidden" id="ch-now-playing-radio">' +
@@ -525,9 +527,9 @@
 
     var rematchBtn = document.getElementById('ch-rematch-btn');
     if (rematchBtn) rematchBtn.addEventListener('click', function () {
-      var sel = document.getElementById('ch-timer-select');
-      var timer = sel ? parseInt(sel.value, 10) : 0;
-      send({ type: 'startGame', gameType: 'chess', timerSeconds: timer });
+      var overlay = document.getElementById('ch-gameover-overlay');
+      if (overlay) overlay.classList.add('ch-hidden');
+      send({ type: 'chRematch' });
     });
 
     var chWagerSlider = document.getElementById('ch-wager-slider');
@@ -556,23 +558,15 @@
       var val = parseInt(chTimerSelect.value, 10);
       send({ type: 'chTimerChange', timerSeconds: val });
     });
-    var chConfigChatInput = document.getElementById('ch-config-chat-input');
-    if (chConfigChatInput) chConfigChatInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        var text = (chConfigChatInput.value || '').trim();
-        if (text && chWs && chWs.readyState === WebSocket.OPEN) {
-          chWs.send(JSON.stringify({ type: 'chat', text: text }));
-          chConfigChatInput.value = '';
-        }
-      }
-    });
+    var chConfigBackBtn = document.getElementById('ch-config-back-btn');
+    if (chConfigBackBtn) chConfigBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
+    var chGameoverBackBtn = document.getElementById('ch-gameover-back-btn');
+    if (chGameoverBackBtn) chGameoverBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
     var chGameoverRematchBtn = document.getElementById('ch-gameover-rematch-btn');
     if (chGameoverRematchBtn) chGameoverRematchBtn.addEventListener('click', function () {
       var overlay = document.getElementById('ch-gameover-overlay');
       if (overlay) overlay.classList.add('ch-hidden');
-      var sel = document.getElementById('ch-timer-select');
-      var timer = sel ? parseInt(sel.value, 10) : 0;
-      send({ type: 'startGame', gameType: 'chess', timerSeconds: timer });
+      send({ type: 'chRematch' });
     });
     var chConfigStartBtn = document.getElementById('ch-config-start-btn');
     if (chConfigStartBtn) chConfigStartBtn.addEventListener('click', function () {
@@ -591,6 +585,11 @@
       var searchInput = document.getElementById('radio-search');
       if (overlay) overlay.classList.remove('hidden');
       if (searchInput) searchInput.focus();
+    });
+    var chThemesBtn = document.getElementById('ch-themes-btn');
+    if (chThemesBtn) chThemesBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('themes-overlay');
+      if (overlay) overlay.classList.remove('hidden');
     });
 
     var chRadioStop = document.getElementById('ch-radio-stop');
@@ -685,6 +684,13 @@
       nm.className = 'ch-player-name';
       nm.textContent = (p.nickname || p.id) + (p.id === chMyId ? ' (you)' : '');
       tag.appendChild(nm);
+      if (chGameState === 'playing') {
+        var chips = chWagerChips[p.id] ?? (chPlayers.find(function (x) { return x.id === p.id; })?.chips ?? 0);
+        var chipsSpan = document.createElement('span');
+        chipsSpan.className = 'ch-player-chips';
+        chipsSpan.textContent = ' $' + chips;
+        tag.appendChild(chipsSpan);
+      }
 
       if (p.color) {
         var cap = document.createElement('span');
@@ -854,6 +860,8 @@
         chLastMove = null;
         chInCheck = false;
         chTimerSeconds = msg.timerSeconds || 0;
+        chWagerAmount = msg.wager || 0;
+        if (msg.playersChips) chWagerChips = msg.playersChips;
         var selSync = document.getElementById('ch-timer-select');
         if (selSync) selSync.value = String(chTimerSeconds);
         if (msg.players) {
