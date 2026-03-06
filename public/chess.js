@@ -383,6 +383,14 @@
       '.ch-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
       '.ch-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
         'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
+      '.ch-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
+        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
+      '.ch-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
+      '.ch-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
+      '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ch-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
+      '.ch-chat-msg.you .ch-chat-nick{color:#4ade80}' +
+      '.ch-chat-nick{color:#8b949e}' +
       '.ch-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
       '.ch-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
       '.ch-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
@@ -489,6 +497,11 @@
             '<button id="ch-config-start-btn" class="btn-start">Start Game</button>' +
           '</div>' +
         '</div>' +
+        '<div class="ch-config-chat">' +
+          '<div class="ch-config-chat-header">Chat</div>' +
+          '<div class="ch-config-chat-messages" id="ch-config-chat-messages"></div>' +
+          '<input type="text" id="ch-config-chat-input" class="ch-config-chat-input" placeholder="Send message..." maxlength="100">' +
+        '</div>' +
         '</div>' +
       '</div>' +
       '<div class="ch-gameover-overlay ch-hidden" id="ch-gameover-overlay">' +
@@ -560,6 +573,16 @@
     });
     var chConfigBackBtn = document.getElementById('ch-config-back-btn');
     if (chConfigBackBtn) chConfigBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
+    var chConfigChatInput = document.getElementById('ch-config-chat-input');
+    if (chConfigChatInput) chConfigChatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var text = (chConfigChatInput.value || '').trim();
+        if (text && chWs && chWs.readyState === WebSocket.OPEN) {
+          chWs.send(JSON.stringify({ type: 'chat', text: text }));
+          chConfigChatInput.value = '';
+        }
+      }
+    });
     var chGameoverBackBtn = document.getElementById('ch-gameover-back-btn');
     if (chGameoverBackBtn) chGameoverBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
     var chGameoverRematchBtn = document.getElementById('ch-gameover-rematch-btn');

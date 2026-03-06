@@ -7,6 +7,7 @@ const SOUND_FILES = {
   shuffle: ['shuffle.wav', 'shuffle.mp3'],
   cardPutDown: ['card_put_down.wav', 'card put down.wav', 'card_put_down.mp3'],
   ambience: ['BACKGROUND_CASINO_AMBIENCE.wav', 'BACKGROUND_CASINO_AMBIENCE.mp3'],
+  ambienceFireplace: ['fireplace.wav'],
   winner: ['winner.wav', 'winner together.wav', 'winner sound.wav', 'winner.mp3'],
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
   betting: ['chips_betting.wav', 'chips_betting.mp3'],
@@ -49,6 +50,7 @@ function createSoundAudio(keys) {
 const soundShuffle = createSoundAudio(SOUND_FILES.shuffle);
 const soundCardPutDown = createSoundAudio(SOUND_FILES.cardPutDown);
 const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
+const soundAmbienceFireplace = createSoundAudio(SOUND_FILES.ambienceFireplace);
 const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 const soundBetting = createSoundAudio(SOUND_FILES.betting);
@@ -433,6 +435,7 @@ const radioVolumeSlider = document.getElementById('radio-volume');
 const radioVolumeValue = document.getElementById('radio-volume-value');
 const cardFxVolumeSlider = document.getElementById('card-fx-volume');
 const cardFxVolumeValue = document.getElementById('card-fx-volume-value');
+const ambienceFxSelect = document.getElementById('ambience-fx');
 const ambienceVolumeSlider = document.getElementById('ambience-volume');
 const ambienceVolumeValue = document.getElementById('ambience-volume-value');
 const lobbyBgOpacitySlider = document.getElementById('lobby-bg-opacity');
@@ -586,7 +589,7 @@ function updateLobbyChipDisplay() {
 
 function showGameSelectScreen(players, chatHistory) {
   const opacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
-  const opacityVal = isNaN(opacity) ? 45 : Math.max(0, Math.min(100, opacity));
+  const opacityVal = isNaN(opacity) ? 70 : Math.max(0, Math.min(100, opacity));
   if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (opacityVal / 100).toFixed(2));
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
@@ -652,6 +655,22 @@ function appendLobbyChat(playerId, nick, text) {
   el.appendChild(document.createTextNode(' ' + text));
   lobbyChatMessages.appendChild(el);
   lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
+}
+
+function appendConfigChat(container, playerId, nick, text, myId) {
+  if (!container) return;
+  const isChess = container.id === 'ch-config-chat-messages';
+  const msgClass = isChess ? 'ch-chat-msg' : 'ck-chat-msg';
+  const nickClass = isChess ? 'ch-chat-nick' : 'ck-chat-nick';
+  const el = document.createElement('div');
+  el.className = msgClass + (playerId === myId ? ' you' : '');
+  const nickSpan = document.createElement('span');
+  nickSpan.className = nickClass;
+  nickSpan.textContent = (nick || 'Player') + ': ';
+  el.appendChild(nickSpan);
+  el.appendChild(document.createTextNode(text));
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
 }
 
 const joinBtn = document.getElementById('join-btn');
@@ -1180,6 +1199,16 @@ function handleMessage(msg) {
       if (msg.playerId !== myId) playMessageNotification();
       if (currentGameType === 'lobby' && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
         appendLobbyChat(msg.playerId, msg.nickname, msg.text);
+        return;
+      }
+      if (currentGameType === 'checkers') {
+        const ckChat = document.getElementById('ck-config-chat-messages');
+        if (ckChat) appendConfigChat(ckChat, msg.playerId, msg.nickname, msg.text, myId);
+        return;
+      }
+      if (currentGameType === 'chess') {
+        const chChat = document.getElementById('ch-config-chat-messages');
+        if (chChat) appendConfigChat(chChat, msg.playerId, msg.nickname, msg.text, myId);
         return;
       }
       playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + CHAT_DURATION_MS };
@@ -1928,6 +1957,14 @@ function initRadioVolume() {
 
   const bd = localStorage.getItem(SFX_BITDEPTH_KEY) || '0';
   if (sfxBitDepthSelect) sfxBitDepthSelect.value = bd;
+
+  const ambFx = localStorage.getItem(AMBIENCE_FX_KEY) || 'casino';
+  if (ambienceFxSelect) ambienceFxSelect.value = ambFx;
+
+  const lobOpacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
+  const lobVal = isNaN(lobOpacity) ? 70 : Math.max(0, Math.min(100, lobOpacity));
+  if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.value = lobVal;
+  if (lobbyBgOpacityValue) lobbyBgOpacityValue.textContent = lobVal + '%';
 }
 
 function searchRadioStations(query) {
@@ -2051,9 +2088,17 @@ if (cardFxVolumeSlider) cardFxVolumeSlider.addEventListener('input', () => {
   if (cardFxVolumeValue) cardFxVolumeValue.textContent = v + '%';
 });
 
+if (ambienceFxSelect) ambienceFxSelect.addEventListener('change', () => {
+  const fx = ambienceFxSelect.value;
+  localStorage.setItem(AMBIENCE_FX_KEY, fx);
+  stopAmbience();
+  try { startAmbience(); } catch (_) {}
+});
+
 if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   const v = parseInt(ambienceVolumeSlider.value, 10);
-  soundAmbience.volume = v / 100;
+  const audio = getAmbienceAudio();
+  audio.volume = v / 100;
   localStorage.setItem(AMBIENCE_VOLUME_KEY, v);
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });

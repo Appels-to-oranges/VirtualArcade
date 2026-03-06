@@ -3,7 +3,8 @@
 
   const SPRITE_SHEET = '/checkers/pieces.png';
   const BOARD_BG = '/checkers/boards/board_plain_01.png';
-  const CURSOR_IMG = '/checkers/cursor.png';
+  const CURSOR_IMG = '/checkers/hand2.png';
+  const CURSOR_IMG_DRAG = '/checkers/hand_drag2.png';
   const MOVE_SFX = new Audio('/checker-move.ogg');
   const CAPTURE_SFX = new Audio('/checker-capture.ogg');
   const KING_SFX = new Audio('/checker-king.ogg');
@@ -182,8 +183,8 @@
         'box-sizing:border-box;image-rendering:pixelated}' +
       '.ck-cell.ck-dark{background:#6b5a42}' +
       '.ck-cell.ck-light{background:#d4c49a}' +
-
       ".ck-cell.ck-clickable{cursor:url('" + CURSOR_IMG + "') 8 8,pointer}" +
+      "#ck-board.ck-has-selection .ck-cell.ck-clickable{cursor:url('" + CURSOR_IMG_DRAG + "') 8 8,pointer}" +
 
       '.ck-piece{width:78%;height:78%;max-width:78%;max-height:78%;aspect-ratio:1;flex-shrink:0;' +
         "background-image:url('" + SPRITE_SHEET + "');" +
@@ -238,6 +239,14 @@
       '.ck-config-wager-msg.ck-show{display:block}' +
       '.ck-config-buttons{display:flex;gap:.5rem;margin-top:.5rem}' +
       '.ck-config-buttons button{flex:1}' +
+      '.ck-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
+        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
+      '.ck-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
+      '.ck-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
+      '.ck-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ck-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
+      '.ck-chat-msg.you .ck-chat-nick{color:#4ade80}' +
+      '.ck-chat-nick{color:#8b949e}' +
       '.ck-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
       '.ck-gameover-buttons button{flex:1}' +
       '.ck-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
@@ -322,6 +331,11 @@
             '<button id="ck-config-start-btn" class="btn-start">Start Game</button>' +
           '</div>' +
         '</div>' +
+        '<div class="ck-config-chat">' +
+          '<div class="ck-config-chat-header">Chat</div>' +
+          '<div class="ck-config-chat-messages" id="ck-config-chat-messages"></div>' +
+          '<input type="text" id="ck-config-chat-input" class="ck-config-chat-input" placeholder="Send message..." maxlength="100">' +
+        '</div>' +
         '</div>' +
       '</div>' +
       '<div class="ck-gameover-overlay ck-hidden" id="ck-gameover-overlay">' +
@@ -392,6 +406,16 @@
     });
     var ckConfigBackBtn = document.getElementById('ck-config-back-btn');
     if (ckConfigBackBtn) ckConfigBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
+    var ckConfigChatInput = document.getElementById('ck-config-chat-input');
+    if (ckConfigChatInput) ckConfigChatInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var text = (ckConfigChatInput.value || '').trim();
+        if (text && ckWs && ckWs.readyState === WebSocket.OPEN) {
+          ckWs.send(JSON.stringify({ type: 'chat', text: text }));
+          ckConfigChatInput.value = '';
+        }
+      }
+    });
     var ckGameoverBackBtn = document.getElementById('ck-gameover-back-btn');
     if (ckGameoverBackBtn) ckGameoverBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
     var ckGameoverRematchBtn = document.getElementById('ck-gameover-rematch-btn');
@@ -439,6 +463,10 @@
 
   function renderBoard() {
     if (!boardEl || !ckBoard) return;
+    if (boardEl.classList) {
+      if (ckSelected) boardEl.classList.add('ck-has-selection');
+      else boardEl.classList.remove('ck-has-selection');
+    }
     boardEl.innerHTML = '';
 
     const flipped = ckMyColor === 'white';
