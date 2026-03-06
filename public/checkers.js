@@ -454,14 +454,16 @@
         ckValidMoves = [];
         ckMustContinue = null;
         ckTimerSeconds = msg.timerSeconds || 0;
+        var selSync = document.getElementById('ck-timer-select');
+        if (selSync) selSync.value = String(ckTimerSeconds);
         if (msg.players) {
           ckPlayers = msg.players;
           var me = ckPlayers.find(function (p) { return p.id === ckMyId; });
           if (me) ckMyColor = me.color;
         }
         setStatus(ckTurn === ckMyColor ? 'Your turn!' : 'Waiting for ' + ckTurn + '...');
-        if (ckTimerSeconds > 0 && msg.turnDeadline) {
-          startCkTimer(msg.turnDeadline);
+        if (msg.timerMs > 0) {
+          startCkTimer(Date.now() + msg.timerMs);
         } else {
           stopCkTimer();
         }
@@ -497,8 +499,8 @@
         } else {
           setStatus('Waiting for ' + ckTurn + '...');
         }
-        if (ckTimerSeconds > 0 && msg.turnDeadline) {
-          startCkTimer(msg.turnDeadline);
+        if (msg.timerMs > 0) {
+          startCkTimer(Date.now() + msg.timerMs);
         } else {
           stopCkTimer();
         }

@@ -1360,7 +1360,7 @@ function renderTable() {
 
   const CX = 50, CY = 46;
   const RX = 42, RY = 36;
-  const BET_LERP = 0.65;
+  const BET_LERP = 0.75;
 
   function polyPositions(n) {
     const out = [];

@@ -1254,7 +1254,7 @@ function ckStartGame(roomKey, timerSeconds) {
     turn: 'red',
     players: playersInfo,
     timerSeconds: room.ckTimerMs > 0 ? room.ckTimerMs / 1000 : 0,
-    turnDeadline: room.ckTurnDeadline || 0,
+    timerMs: room.ckTimerMs || 0,
   });
 
   ckPlayers.forEach((p) => {
@@ -1309,7 +1309,7 @@ function ckMakeMove(roomKey, playerId, from, to) {
     lastMove: { from, to, captured: capturedInfo },
     mustContinue: null,
     promoted,
-    turnDeadline: room.ckTurnDeadline || 0,
+    timerMs: room.ckTimerMs || 0,
   });
 
   {
@@ -1568,7 +1568,7 @@ function chStartGame(roomKey, timerSeconds) {
     board: room.chBoard, turn: 'white', players: playersInfo,
     castling: room.chCastling, enPassant: null,
     timerSeconds: room.chTimerMs > 0 ? room.chTimerMs / 1000 : 0,
-    turnDeadline: room.chTurnDeadline || 0,
+    timerMs: room.chTimerMs || 0,
   });
 
   chPlayers.forEach((p) => {
@@ -1659,7 +1659,7 @@ function chMakeMove(roomKey, playerId, from, to) {
     },
     castling: room.chCastling, enPassant: room.chEnPassant,
     inCheck,
-    turnDeadline: room.chTurnDeadline || 0,
+    timerMs: room.chTimerMs || 0,
   });
 
   const result = chCheckGameEnd(board, room.chTurn, room.chCastling, room.chEnPassant);

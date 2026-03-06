@@ -644,13 +644,15 @@
         chLastMove = null;
         chInCheck = false;
         chTimerSeconds = msg.timerSeconds || 0;
+        var selSync = document.getElementById('ch-timer-select');
+        if (selSync) selSync.value = String(chTimerSeconds);
         if (msg.players) {
           chPlayers = msg.players;
           var me = chPlayers.find(function (p) { return p.id === chMyId; });
           if (me) chMyColor = me.color;
         }
         setStatus(chTurn === chMyColor ? 'Your turn!' : 'Waiting for opponent...');
-        if (chTimerSeconds > 0 && msg.turnDeadline) startChTimer(msg.turnDeadline);
+        if (msg.timerMs > 0) startChTimer(Date.now() + msg.timerMs);
         else stopChTimer();
         renderAll();
         break;
@@ -690,7 +692,7 @@
           setStatus('Waiting for opponent...');
         }
 
-        if (chTimerSeconds > 0 && msg.turnDeadline) startChTimer(msg.turnDeadline);
+        if (msg.timerMs > 0) startChTimer(Date.now() + msg.timerMs);
         else stopChTimer();
         renderAll();
         break;
