@@ -1922,7 +1922,12 @@ wss.on('connection', (ws) => {
 
         broadcastToRoom(data.roomKey, {
           type: 'playerViewChanged',
-          players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, currentView: p.currentView ?? 'lobby' })),
+          players: room.players.map((p) => ({
+            id: p.id,
+            nickname: p.nickname,
+            currentView: p.currentView ?? 'lobby',
+            chips: p.chips,
+          })),
         });
         ws.send(JSON.stringify({
           type: 'backToLobby',
@@ -1963,7 +1968,12 @@ wss.on('connection', (ws) => {
 
         broadcastToRoom(data.roomKey, {
           type: 'playerViewChanged',
-          players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, currentView: p.currentView ?? 'lobby' })),
+          players: room.players.map((p) => ({
+            id: p.id,
+            nickname: p.nickname,
+            currentView: p.currentView ?? 'lobby',
+            chips: p.chips,
+          })),
         });
         const ckCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers').length;
         const chCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess').length;

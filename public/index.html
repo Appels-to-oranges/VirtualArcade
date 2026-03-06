@@ -34,7 +34,7 @@
       var el = document.getElementById('join-screen');
       el.classList.add('splash-' + pick);
       var img = new Image();
-      var ext = '.gif';
+      var ext = pick === 'snowy-lot' ? '.png' : '.gif';
       img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + ext + ')'; };
       img.src = '/images/themes/' + pick + ext;
       if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');
@@ -210,6 +210,7 @@
     <div class="room-bar">
       <button type="button" id="holdem-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>
       <span id="room-label"></span>
+      <span class="room-bar-chips" id="holdem-chips-display">$0</span>
       <span id="waiting-for-players" class="waiting-msg hidden"></span>
       <button id="start-btn" class="btn-start">Start Game</button>
       <button id="add-bot-btn" class="btn-add-bot hidden">Add Bot</button>
@@ -292,6 +293,7 @@
     <div class="room-bar">
       <button type="button" id="bj-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>
       <span id="bj-room-label"></span>
+      <span class="room-bar-chips" id="bj-chips-display">$0</span>
       <div class="chat-input-wrap">
         <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
       </div>

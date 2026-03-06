@@ -259,6 +259,8 @@
     } else if (chipsDisplay) {
       chipsDisplay.textContent = '';
     }
+    const roomBarChips = el('bj-chips-display');
+    if (roomBarChips) roomBarChips.textContent = player ? `$${player.chips}` : '$0';
 
     if (bjGameState === 'lobby') {
       if (startBtn) startBtn.classList.remove('hidden');

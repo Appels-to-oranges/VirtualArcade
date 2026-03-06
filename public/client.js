@@ -507,7 +507,7 @@ function applyTheme(theme) {
   }
   currentTheme = theme || 'default';
   if (IMAGE_THEMES.includes(theme)) {
-    const ext = '.gif';
+    const ext = theme === 'snowy-lot' ? '.png' : '.gif';
     const url = '/images/themes/' + theme + ext;
     gameSelectScreen.style.backgroundImage = 'url(' + url + ')';
     gameSelectScreen.classList.add('has-bg-image');
@@ -1108,14 +1108,21 @@ function handleMessage(msg) {
 
     case 'playerViewChanged':
       if (msg.players) {
+        const prevCheckersCount = players.filter((p) => (p.currentView ?? 'lobby') === 'checkers').length;
+        const prevChessCount = players.filter((p) => (p.currentView ?? 'lobby') === 'chess').length;
         msg.players.forEach((up) => {
           const ex = players.find((p) => p.id === up.id);
-          if (ex) ex.currentView = up.currentView ?? 'lobby';
+          if (ex) {
+            ex.currentView = up.currentView ?? 'lobby';
+            if (up.chips !== undefined) ex.chips = up.chips;
+          } else {
+            players.push({ id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: up.chips ?? 100 });
+          }
         });
         if (currentGameType === 'lobby') {
           lobbyPlayers = msg.players.map((up) => {
             const ex = lobbyPlayers.find((p) => p.id === up.id);
-            return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: ex?.chips ?? 100 };
+            return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: up.chips ?? ex?.chips ?? 100 };
           });
           renderParticipants();
           updateGameCounts();
@@ -1133,6 +1140,16 @@ function handleMessage(msg) {
               window.blackjack.handleMessage({ type: 'bjUserLeft', id });
             }
           });
+        } else if (currentGameType === 'checkers' && window.checkers) {
+          const ckNow = players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+          const count = ckNow.length;
+          if (count > prevCheckersCount && typeof playPlayerJoinsGame === 'function') playPlayerJoinsGame();
+          window.checkers.handleMessage({ type: 'ckPlayersUpdated', players: ckNow });
+        } else if (currentGameType === 'chess' && window.chess) {
+          const chNow = players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+          const count = chNow.length;
+          if (count > prevChessCount && typeof playPlayerJoinsGame === 'function') playPlayerJoinsGame();
+          window.chess.handleMessage({ type: 'chPlayersUpdated', players: chNow });
         }
       }
       break;
@@ -1688,6 +1705,9 @@ function updateControls() {
     turnStartedAt = 0;
     prevTurnIdx = -1;
   }
+
+  const holdemChipsEl = document.getElementById('holdem-chips-display');
+  if (holdemChipsEl) holdemChipsEl.textContent = '$' + (me?.chips ?? 0);
 
   const canRebuy = !gameState && myChips <= 0;
   if (btnRebuy) {

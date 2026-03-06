@@ -993,6 +993,15 @@ body.theme-snowy-lot { --lobby-accent: #8a92b8; }
   overflow-x: auto;
 }
 
+.room-bar-chips {
+  font-size: 0.5rem;
+  color: #c9b896;
+  padding: 0.2rem 0.4rem;
+  background: #1a1a1a;
+  border: 0.125rem solid #333;
+  border-radius: 0.2rem;
+}
+
 .room-bar #room-label {
   font-size: 0.5rem;
   color: #666;

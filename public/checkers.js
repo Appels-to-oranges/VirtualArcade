@@ -158,6 +158,7 @@
 
       '.ck-player-name{color:#ddd}' +
       '.ck-captures{color:#888;font-size:.4rem;margin-left:.25rem}' +
+      '.ck-chips-display{font-size:.5rem;color:#c9b896;padding:.2rem .4rem;background:#1a1a1a;border:.1rem solid #333;border-radius:.2rem}' +
 
       '.ck-board-wrap{flex:1;display:flex;align-items:center;justify-content:center;' +
         'min-height:0;padding:.5rem}' +
@@ -238,6 +239,7 @@
       '<div class="ck-room-bar">' +
         '<button type="button" id="ck-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>' +
         '<span id="ck-room-label"></span>' +
+        '<span class="ck-chips-display" id="ck-chips-display">$0</span>' +
         '<div class="ck-timer-setting" id="ck-timer-setting">' +
           '<label for="ck-timer-select">Turn timer</label>' +
           '<select id="ck-timer-select">' +
@@ -380,7 +382,7 @@
       if (p.id === ckMyId) tag.classList.add('ck-is-me');
 
       var sw = document.createElement('div');
-      sw.className = 'ck-player-swatch ck-color-' + (p.color || 'red');
+      sw.className = 'ck-player-swatch ck-color-' + (p.color || (p.id === ckMyId ? 'red' : 'white'));
       tag.appendChild(sw);
 
       var nm = document.createElement('span');
@@ -401,7 +403,15 @@
   function renderAll() {
     renderBoard();
     renderPlayers();
+    updateCkChipsDisplay();
     updateButtons();
+  }
+
+  function updateCkChipsDisplay() {
+    var el = document.getElementById('ck-chips-display');
+    if (!el) return;
+    var chips = ckWagerChips[ckMyId] ?? (ckPlayers.find(function (p) { return p.id === ckMyId; })?.chips ?? 0);
+    el.textContent = '$' + chips;
   }
 
   function updateButtons() {
@@ -420,11 +430,12 @@
     var slider = document.getElementById('ck-wager-slider');
     var valEl = document.getElementById('ck-wager-value');
     if (!slider || !valEl) return;
-    var myChips = ckWagerChips[ckMyId] || 0;
-    var other = ckPlayers.find(function (p) { return p.id !== ckMyId; });
-    var oppChips = other ? (ckWagerChips[other.id] || 0) : 0;
+    var myChips = ckWagerChips[ckMyId] ?? (ckPlayers.find(function (p) { return p.id === ckMyId; })?.chips ?? 0);
+    var otherIds = Object.keys(ckWagerChips).filter(function (id) { return id !== ckMyId; });
+    var oppChips = otherIds.length ? Math.min.apply(null, otherIds.map(function (id) { return ckWagerChips[id] || 0; })) : 0;
     var maxWager = Math.min(myChips, oppChips);
-    slider.max = Math.max(0, maxWager);
+    slider.max = Math.max(1, maxWager);
+    slider.min = 0;
     var prop = ckWagerProposals[ckMyId] || 0;
     var capped = Math.min(prop, maxWager);
     slider.value = capped;
@@ -533,6 +544,15 @@
         ckWagerReady = msg.ready || {};
         ckWagerChips = msg.chips || {};
         updateCkWagerSlider();
+        break;
+
+      case 'ckPlayersUpdated':
+        if (msg.players) {
+          ckPlayers = msg.players;
+          ckWagerChips = {};
+          ckPlayers.forEach(function (p) { ckWagerChips[p.id] = p.chips || 0; });
+        }
+        renderAll();
         break;
 
       case 'ckBoardUpdate':

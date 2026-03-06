@@ -326,6 +326,7 @@
 
       '.ch-player-name{color:#ddd}' +
       '.ch-captures{color:#888;font-size:.4rem;margin-left:.25rem}' +
+      '.ch-chips-display{font-size:.5rem;color:#c9b896;padding:.2rem .4rem;background:#1a1a1a;border:.1rem solid #333;border-radius:.2rem}' +
 
       '.ch-board-wrap{flex:1;display:flex;align-items:center;justify-content:center;' +
         'min-height:0;padding:.5rem}' +
@@ -408,6 +409,7 @@
       '<div class="ch-room-bar">' +
         '<button type="button" id="ch-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>' +
         '<span id="ch-room-label"></span>' +
+        '<span class="ch-chips-display" id="ch-chips-display">$0</span>' +
         '<div class="ch-timer-setting" id="ch-timer-setting">' +
           '<label for="ch-timer-select">Turn timer</label>' +
           '<select id="ch-timer-select">' +
@@ -588,7 +590,15 @@
   function renderAll() {
     renderBoard();
     renderPlayers();
+    updateChChipsDisplay();
     updateButtons();
+  }
+
+  function updateChChipsDisplay() {
+    var el = document.getElementById('ch-chips-display');
+    if (!el) return;
+    var chips = chWagerChips[chMyId] ?? (chPlayers.find(function (p) { return p.id === chMyId; })?.chips ?? 0);
+    el.textContent = '$' + chips;
   }
 
   function updateButtons() {
@@ -607,11 +617,12 @@
     var slider = document.getElementById('ch-wager-slider');
     var valEl = document.getElementById('ch-wager-value');
     if (!slider || !valEl) return;
-    var myChips = chWagerChips[chMyId] || 0;
-    var other = chPlayers.find(function (p) { return p.id !== chMyId; });
-    var oppChips = other ? (chWagerChips[other.id] || 0) : 0;
+    var myChips = chWagerChips[chMyId] ?? (chPlayers.find(function (p) { return p.id === chMyId; })?.chips ?? 0);
+    var otherIds = Object.keys(chWagerChips).filter(function (id) { return id !== chMyId; });
+    var oppChips = otherIds.length ? Math.min.apply(null, otherIds.map(function (id) { return chWagerChips[id] || 0; })) : 0;
     var maxWager = Math.min(myChips, oppChips);
-    slider.max = Math.max(0, maxWager);
+    slider.max = Math.max(1, maxWager);
+    slider.min = 0;
     var prop = chWagerProposals[chMyId] || 0;
     var capped = Math.min(prop, maxWager);
     slider.value = capped;
@@ -720,6 +731,15 @@
         chWagerReady = msg.ready || {};
         chWagerChips = msg.chips || {};
         updateChWagerSlider();
+        break;
+
+      case 'chPlayersUpdated':
+        if (msg.players) {
+          chPlayers = msg.players;
+          chWagerChips = {};
+          chPlayers.forEach(function (p) { chWagerChips[p.id] = p.chips || 0; });
+        }
+        renderAll();
         break;
 
       case 'chBoardUpdate':
