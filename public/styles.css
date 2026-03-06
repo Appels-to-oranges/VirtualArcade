@@ -63,7 +63,8 @@ body {
 /* ── Theme overrides ── */
 #game-select-screen.theme-amber {
   --lobby-bg: linear-gradient(145deg, #1e1b1a 0%, #2d2620 100%);
-  --lobby-card-bg: rgba(45, 38, 32, 0.95);
+  --lobby-card-bg-rgb: 45, 38, 32;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #4a3f36;
   --lobby-text: #e0d4c8;
   --lobby-muted: #8b7355;
@@ -82,7 +83,8 @@ body {
 }
 #game-select-screen.theme-gray {
   --lobby-bg: linear-gradient(145deg, #2a2a2e 0%, #3d3d42 100%);
-  --lobby-card-bg: rgba(61, 61, 66, 0.95);
+  --lobby-card-bg-rgb: 61, 61, 66;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #505056;
   --lobby-text: #d4d4d8;
   --lobby-muted: #71717a;
@@ -101,7 +103,8 @@ body {
 }
 #game-select-screen.theme-waterfront {
   --lobby-bg: linear-gradient(145deg, #161008 0%, #1e1810 100%);
-  --lobby-card-bg: rgba(22, 16, 8, 0.92);
+  --lobby-card-bg-rgb: 22, 16, 8;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #4a3c2a;
   --lobby-text: #e0d4c0;
   --lobby-muted: #8a7458;
@@ -120,7 +123,8 @@ body {
 }
 #game-select-screen.theme-apartments {
   --lobby-bg: linear-gradient(145deg, #14100c 0%, #1e1610 100%);
-  --lobby-card-bg: rgba(20, 16, 12, 0.92);
+  --lobby-card-bg-rgb: 20, 16, 12;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #4a3824;
   --lobby-text: #dcd0c0;
   --lobby-muted: #887050;
