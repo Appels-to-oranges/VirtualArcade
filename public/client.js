@@ -507,7 +507,7 @@ function applyTheme(theme) {
   }
   currentTheme = theme || 'default';
   if (IMAGE_THEMES.includes(theme)) {
-    const ext = theme === 'snowy-lot' ? '.png' : '.gif';
+    const ext = '.gif';
     const url = '/images/themes/' + theme + ext;
     gameSelectScreen.style.backgroundImage = 'url(' + url + ')';
     gameSelectScreen.classList.add('has-bg-image');

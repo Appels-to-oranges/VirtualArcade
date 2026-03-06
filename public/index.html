@@ -34,7 +34,7 @@
       var el = document.getElementById('join-screen');
       el.classList.add('splash-' + pick);
       var img = new Image();
-      var ext = pick === 'snowy-lot' ? '.png' : '.gif';
+      var ext = '.gif';
       img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + ext + ')'; };
       img.src = '/images/themes/' + pick + ext;
       if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');
