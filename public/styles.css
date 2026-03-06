@@ -26,7 +26,9 @@ body {
 /* ── Game selection screen ── */
 #game-select-screen {
   --lobby-bg: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
-  --lobby-card-bg: #161b22;
+  --lobby-card-bg-opacity: 0.45;
+  --lobby-card-bg-rgb: 22, 27, 34;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #30363d;
   --lobby-text: #c9d1d9;
   --lobby-muted: #8b949e;
@@ -70,7 +72,8 @@ body {
 }
 #game-select-screen.theme-slate {
   --lobby-bg: linear-gradient(145deg, #0f1419 0%, #1a2332 100%);
-  --lobby-card-bg: rgba(26, 35, 50, 0.95);
+  --lobby-card-bg-rgb: 26, 35, 50;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #2d3d52;
   --lobby-text: #b8d4e8;
   --lobby-muted: #6b8fb8;
@@ -88,7 +91,8 @@ body {
 }
 #game-select-screen.theme-blue {
   --lobby-bg: linear-gradient(145deg, #0c1929 0%, #132f4c 100%);
-  --lobby-card-bg: rgba(19, 47, 76, 0.95);
+  --lobby-card-bg-rgb: 19, 47, 76;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #1e4976;
   --lobby-text: #b8d4f0;
   --lobby-muted: #5b8fc4;
@@ -106,7 +110,8 @@ body {
 }
 #game-select-screen.theme-buildings {
   --lobby-bg: linear-gradient(145deg, #12141c 0%, #1a1e2a 100%);
-  --lobby-card-bg: rgba(18, 20, 28, 0.92);
+  --lobby-card-bg-rgb: 18, 20, 28;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #3e4258;
   --lobby-text: #c8ccd6;
   --lobby-muted: #606878;
@@ -124,7 +129,8 @@ body {
 }
 #game-select-screen.theme-fireflies {
   --lobby-bg: linear-gradient(145deg, #0a100e 0%, #101c18 100%);
-  --lobby-card-bg: rgba(8, 16, 14, 0.92);
+  --lobby-card-bg-rgb: 8, 16, 14;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #2a4a3e;
   --lobby-text: #b8d4c6;
   --lobby-muted: #4a7a66;
@@ -133,7 +139,8 @@ body {
 }
 #game-select-screen.theme-snowy-lot {
   --lobby-bg: linear-gradient(145deg, #100e16 0%, #181624 100%);
-  --lobby-card-bg: rgba(16, 14, 22, 0.92);
+  --lobby-card-bg-rgb: 16, 14, 22;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #3a3848;
   --lobby-text: #cccad8;
   --lobby-muted: #606078;
@@ -142,7 +149,8 @@ body {
 }
 #game-select-screen.theme-rolling-fog {
   --lobby-bg: linear-gradient(145deg, #1a1e14 0%, #242a1c 100%);
-  --lobby-card-bg: rgba(22, 26, 18, 0.92);
+  --lobby-card-bg-rgb: 22, 26, 18;
+  --lobby-card-bg: rgba(var(--lobby-card-bg-rgb), var(--lobby-card-bg-opacity));
   --lobby-border: #3d4a35;
   --lobby-text: #c8d4c0;
   --lobby-muted: #5a6b52;
@@ -161,7 +169,7 @@ body.theme-buildings { --lobby-accent: #7a8a9e; }
 body.theme-apartments { --lobby-accent: #d4a060; }
 body.theme-fireflies { --lobby-accent: #5ca882; }
 body.theme-snowy-lot { --lobby-accent: #8a92b8; }
-body.theme-foggy-hill { --lobby-accent: #7a9a6e; }
+body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 
 .game-select-layout {
   display: flex;

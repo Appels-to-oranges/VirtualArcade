@@ -435,6 +435,8 @@ const cardFxVolumeSlider = document.getElementById('card-fx-volume');
 const cardFxVolumeValue = document.getElementById('card-fx-volume-value');
 const ambienceVolumeSlider = document.getElementById('ambience-volume');
 const ambienceVolumeValue = document.getElementById('ambience-volume-value');
+const lobbyBgOpacitySlider = document.getElementById('lobby-bg-opacity');
+const lobbyBgOpacityValue = document.getElementById('lobby-bg-opacity-value');
 const sfxBitDepthSelect = document.getElementById('sfx-bitdepth');
 const nowPlayingRadio = document.getElementById('now-playing-radio');
 const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
@@ -482,6 +484,7 @@ let currentRadioName = '';
 const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
+const LOBBY_BG_OPACITY_KEY = 'arcade_lobby_bg_opacity';
 
 const gameSelectScreen = document.getElementById('game-select-screen');
 const gameSelectRoom = document.getElementById('game-select-room');
@@ -582,6 +585,9 @@ function updateLobbyChipDisplay() {
 }
 
 function showGameSelectScreen(players, chatHistory) {
+  const opacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
+  const opacityVal = isNaN(opacity) ? 45 : Math.max(0, Math.min(100, opacity));
+  if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (opacityVal / 100).toFixed(2));
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -2052,6 +2058,13 @@ if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });
 
+if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.addEventListener('input', () => {
+  const v = parseInt(lobbyBgOpacitySlider.value, 10);
+  localStorage.setItem(LOBBY_BG_OPACITY_KEY, v);
+  if (lobbyBgOpacityValue) lobbyBgOpacityValue.textContent = v + '%';
+  if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (v / 100).toFixed(2));
+});
+
 if (sfxBitDepthSelect) sfxBitDepthSelect.addEventListener('change', () => {
   localStorage.setItem(SFX_BITDEPTH_KEY, sfxBitDepthSelect.value);
 });
@@ -2122,6 +2135,7 @@ function toggleOverlay(overlay) {
 }
 
 function openSettingsOverlay() {
+  initRadioVolume();
   if (settingsOverlay) settingsOverlay.classList.remove('hidden');
 }
 
