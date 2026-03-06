@@ -378,7 +378,7 @@
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
       '.ch-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
       '.ch-config-overlay.ch-hidden{display:none}' +
       '.ch-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
       '.ch-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
@@ -417,7 +417,7 @@
       '.ch-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
       '.ch-gameover-buttons button{flex:1}' +
       '.ch-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
       '.ch-gameover-overlay.ch-hidden{display:none}' +
       '.ch-gameover-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;padding:1.5rem;text-align:center;min-width:18rem}' +
       '.ch-gameover-title{font-size:.6rem;color:#c9b896;margin-bottom:1rem}' +

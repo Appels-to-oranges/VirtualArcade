@@ -2948,6 +2948,39 @@ body.lobby-retro #ch-screen select {
   border-radius: 0 !important;
 }
 
+/* ── Checkers / Chess wager & game over menus (retro) ── */
+body.lobby-retro .ck-config-panel,
+body.lobby-retro .ck-config-chat,
+body.lobby-retro .ck-gameover-panel {
+  border-radius: 0 !important;
+  border-width: 2px !important;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7) !important;
+}
+
+body.lobby-retro .ch-config-panel,
+body.lobby-retro .ch-config-chat,
+body.lobby-retro .ch-gameover-panel {
+  border-radius: 0 !important;
+  border-width: 2px !important;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7) !important;
+}
+
+body.lobby-retro .ck-config-panel .ck-lock-btn,
+body.lobby-retro .ck-config-buttons button,
+body.lobby-retro .ck-gameover-buttons button,
+body.lobby-retro .ch-config-panel .ch-lock-btn,
+body.lobby-retro .ch-config-buttons button,
+body.lobby-retro .ch-gameover-buttons button {
+  border-radius: 0 !important;
+}
+
+body.lobby-retro .ck-config-panel select,
+body.lobby-retro .ck-config-panel input[type="range"],
+body.lobby-retro .ch-config-panel select,
+body.lobby-retro .ch-config-panel input[type="range"] {
+  border-radius: 0 !important;
+}
+
 /* ── Responsive lobby ── */
 @media (max-width: 700px) {
   .lobby-cards {

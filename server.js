@@ -1149,7 +1149,7 @@ function ckCreateBoard() {
   return board;
 }
 
-function ckGetValidMoves(board, row, col, color) {
+function ckGetValidMoves(board, row, col, color, capturesOnly = false) {
   const piece = board[row][col];
   if (!piece || piece.color !== color) return [];
 
@@ -1157,7 +1157,8 @@ function ckGetValidMoves(board, row, col, color) {
     ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
     : color === 'red' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
 
-  const results = [];
+  const jumps = [];
+  const steps = [];
 
   for (const [dr, dc] of dirs) {
     const mr = row + dr, mc = col + dc;
@@ -1165,15 +1166,27 @@ function ckGetValidMoves(board, row, col, color) {
 
     if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 &&
         board[mr]?.[mc] && board[mr][mc].color !== color && !board[jr][jc]) {
-      results.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
+      jumps.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
     }
 
-    if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
-      results.push({ row: mr, col: mc });
+    if (!capturesOnly && mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
+      steps.push({ row: mr, col: mc });
     }
   }
 
-  return results;
+  if (capturesOnly || jumps.length > 0) return jumps;
+  return steps;
+}
+
+function ckHasAnyCapture(board, color, fromRow = null, fromCol = null) {
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (fromRow != null && (r !== fromRow || c !== fromCol)) continue;
+      const moves = ckGetValidMoves(board, r, c, color, true);
+      if (moves.length > 0) return true;
+    }
+  }
+  return false;
 }
 
 function ckCheckWin(board, nextTurnColor) {
@@ -1356,7 +1369,12 @@ function ckMakeMove(roomKey, playerId, from, to) {
   const piece = board[from.row]?.[from.col];
   if (!piece || piece.color !== currentColor) return;
 
-  const validMoves = ckGetValidMoves(board, from.row, from.col, currentColor);
+  if (room.ckMustContinue && (room.ckMustContinue.row !== from.row || room.ckMustContinue.col !== from.col)) return;
+
+  let validMoves = ckGetValidMoves(board, from.row, from.col, currentColor);
+  if (room.ckMustContinue) validMoves = validMoves.filter((m) => m.captured);
+  else if (ckHasAnyCapture(board, currentColor)) validMoves = validMoves.filter((m) => m.captured);
+
   const move = validMoves.find((m) => m.row === to.row && m.col === to.col);
   if (!move) return;
 
@@ -1378,8 +1396,14 @@ function ckMakeMove(roomKey, playerId, from, to) {
     promoted = true;
   }
 
-  room.ckMustContinue = null;
-  room.ckTurn = currentColor === 'red' ? 'white' : 'red';
+  let mustContinue = null;
+  if (move.captured) {
+    const moreJumps = ckGetValidMoves(board, to.row, to.col, currentColor, true);
+    if (moreJumps.length > 0) mustContinue = { row: to.row, col: to.col };
+  }
+
+  room.ckMustContinue = mustContinue;
+  if (!mustContinue) room.ckTurn = currentColor === 'red' ? 'white' : 'red';
   ckStartTurnTimer(roomKey);
 
   broadcastToRoom(roomKey, {
@@ -1387,7 +1411,7 @@ function ckMakeMove(roomKey, playerId, from, to) {
     board: room.ckBoard,
     turn: room.ckTurn,
     lastMove: { from, to, captured: capturedInfo },
-    mustContinue: null,
+    mustContinue,
     promoted,
     timerMs: room.ckTimerMs || 0,
   });

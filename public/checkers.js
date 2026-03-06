@@ -86,7 +86,7 @@
 
   /* ── Move logic (client-side highlights; server is authoritative) ── */
 
-  function getValidMoves(board, row, col, color) {
+  function getValidMoves(board, row, col, color, capturesOnly) {
     const piece = board[row][col];
     if (!piece || piece.color !== color) return [];
 
@@ -94,7 +94,8 @@
       ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
       : color === 'red' ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
 
-    const results = [];
+    const jumps = [];
+    const steps = [];
 
     for (const [dr, dc] of dirs) {
       const mr = row + dr, mc = col + dc;
@@ -102,15 +103,27 @@
 
       if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 &&
           board[mr][mc] && board[mr][mc].color !== color && !board[jr][jc]) {
-        results.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
+        jumps.push({ row: jr, col: jc, captured: { row: mr, col: mc } });
       }
 
-      if (mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
-        results.push({ row: mr, col: mc });
+      if (!capturesOnly && mr >= 0 && mr < 8 && mc >= 0 && mc < 8 && !board[mr][mc]) {
+        steps.push({ row: mr, col: mc });
       }
     }
 
-    return results;
+    if (capturesOnly || jumps.length > 0) return jumps;
+    return steps;
+  }
+
+  function hasAnyCapture(board, color, fromRow, fromCol) {
+    for (var r = 0; r < 8; r++) {
+      for (var c = 0; c < 8; c++) {
+        if (fromRow != null && (r !== fromRow || c !== fromCol)) continue;
+        var moves = getValidMoves(board, r, c, color, true);
+        if (moves.length > 0) return true;
+      }
+    }
+    return false;
   }
 
   /* ── Style injection ── */
@@ -212,7 +225,7 @@
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
       '.ck-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
       '.ck-config-overlay.ck-hidden{display:none}' +
       '.ck-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
       '.ck-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
@@ -250,7 +263,7 @@
       '.ck-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
       '.ck-gameover-buttons button{flex:1}' +
       '.ck-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
       '.ck-gameover-overlay.ck-hidden{display:none}' +
       '.ck-gameover-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;padding:1.5rem;text-align:center;min-width:18rem}' +
       '.ck-gameover-title{font-size:.6rem;color:#c9b896;margin-bottom:1rem}' +
@@ -496,7 +509,8 @@
         if (vm) {
           cell.classList.add(vm.captured ? 'ck-valid-capture' : 'ck-valid-move');
           cell.classList.add('ck-clickable');
-        } else if (myTurn && piece && piece.color === ckMyColor) {
+        } else if (myTurn && piece && piece.color === ckMyColor &&
+            (!ckMustContinue || (ckMustContinue.row === r && ckMustContinue.col === c))) {
           cell.classList.add('ck-clickable');
         }
 
@@ -683,8 +697,13 @@
 
     var piece = ckBoard[row][col];
     if (piece && piece.color === ckMyColor) {
+      if (ckMustContinue && (ckMustContinue.row !== row || ckMustContinue.col !== col)) return;
+      var moves = getValidMoves(ckBoard, row, col, ckMyColor);
+      if (ckMustContinue) moves = moves.filter(function (m) { return m.captured; });
+      else if (hasAnyCapture(ckBoard, ckMyColor)) moves = moves.filter(function (m) { return m.captured; });
+      if (moves.length === 0) return;
       ckSelected = { row: row, col: col };
-      ckValidMoves = getValidMoves(ckBoard, row, col, ckMyColor);
+      ckValidMoves = moves;
       playSelectPieceSfx();
       renderBoard();
       return;
@@ -784,12 +803,13 @@
       case 'ckBoardUpdate':
         ckBoard = msg.board;
         ckTurn = msg.turn;
+        ckMustContinue = msg.mustContinue || null;
         ckSelected = null;
         ckValidMoves = [];
         var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
         var volNorm = (isNaN(vol) ? 80 : Math.max(0, Math.min(100, vol))) / 100;
         if (msg.lastMove && msg.lastMove.captured) {
-          var capturerColor = msg.turn === 'red' ? 'white' : 'red';
+          var capturerColor = ckMustContinue ? ckTurn : (ckTurn === 'red' ? 'white' : 'red');
           if (capturerColor === 'red') ckCapturesRed++; else ckCapturesWhite++;
         }
         if (msg.promoted) {
@@ -802,7 +822,7 @@
 
         var turnDisplay = ckTurn === 'red' ? 'Black' : 'White';
         if (ckTurn === ckMyColor) {
-          setStatus('Your turn!');
+          setStatus(ckMustContinue ? 'Continue jumping!' : 'Your turn!');
         } else {
           setStatus('Waiting for ' + turnDisplay + '...');
         }
