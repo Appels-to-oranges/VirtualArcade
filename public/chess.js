@@ -408,6 +408,8 @@
         'background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer;align-self:flex-start}' +
       '.ch-lock-btn.ch-locked{background:#1b4332;border:.125rem solid #40916c;color:#8b949e}' +
       '.ch-opponent-wager label{color:#666}' +
+      '.ch-opponent-locked{font-size:.35rem;color:#4ade80;margin-left:.25rem}' +
+      '.ch-opponent-locked.ch-hidden{display:none}' +
       '.ch-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
       '.ch-player-chips{color:#c9b896;font-size:.4rem;margin-left:.25rem}' +
       '.ch-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
@@ -487,7 +489,7 @@
               '<button type="button" id="ch-wager-lock-btn" class="ch-lock-btn">Lock In</button>' +
             '</div>' +
             '<div class="ch-config-wager-row ch-opponent-wager">' +
-              '<label>Opponent wager: $<span id="ch-opponent-wager-value">0</span></label>' +
+              '<label>Opponent wager: $<span id="ch-opponent-wager-value">0</span> <span id="ch-opponent-locked" class="ch-opponent-locked ch-hidden">Locked</span></label>' +
               '<div class="ch-opponent-slider-display" id="ch-opponent-slider-display"></div>' +
             '</div>' +
             '<div class="ch-config-wager-msg" id="ch-wager-mismatch-msg">Wagers must match</div>' +
@@ -783,6 +785,8 @@
     var oppLocked = otherIds.length ? chWagerLocked[otherIds[0]] : undefined;
     var oppWager = oppLocked !== undefined ? oppLocked : oppProp;
     if (oppValEl) oppValEl.textContent = oppWager;
+    var oppLockedEl = document.getElementById('ch-opponent-locked');
+    if (oppLockedEl) oppLockedEl.classList.toggle('ch-hidden', oppLocked === undefined);
     if (oppDisplay) {
       oppDisplay.style.background = 'linear-gradient(to right, #238636 0%, #238636 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #1a1a1a ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
     }

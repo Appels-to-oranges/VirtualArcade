@@ -247,6 +247,8 @@
         'background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer;align-self:flex-start}' +
       '.ck-lock-btn.ck-locked{background:#1b4332;border:.125rem solid #40916c;color:#8b949e}' +
       '.ck-opponent-wager label{color:#666}' +
+      '.ck-opponent-locked{font-size:.35rem;color:#4ade80;margin-left:.25rem}' +
+      '.ck-opponent-locked.ck-hidden{display:none}' +
       '.ck-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
       '.ck-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ck-config-wager-msg.ck-show{display:block}' +
@@ -334,7 +336,7 @@
               '<button type="button" id="ck-wager-lock-btn" class="ck-lock-btn">Lock In</button>' +
             '</div>' +
             '<div class="ck-config-wager-row ck-opponent-wager">' +
-              '<label>Opponent wager: $<span id="ck-opponent-wager-value">0</span></label>' +
+              '<label>Opponent wager: $<span id="ck-opponent-wager-value">0</span> <span id="ck-opponent-locked" class="ck-opponent-locked ck-hidden">Locked</span></label>' +
               '<div class="ck-opponent-slider-display" id="ck-opponent-slider-display"></div>' +
             '</div>' +
             '<div class="ck-config-wager-msg" id="ck-wager-mismatch-msg">Wagers must match</div>' +
@@ -629,6 +631,8 @@
     var oppLocked = otherIds.length ? ckWagerLocked[otherIds[0]] : undefined;
     var oppWager = oppLocked !== undefined ? oppLocked : oppProp;
     if (oppValEl) oppValEl.textContent = oppWager;
+    var oppLockedEl = document.getElementById('ck-opponent-locked');
+    if (oppLockedEl) oppLockedEl.classList.toggle('ck-hidden', oppLocked === undefined);
     if (oppDisplay) {
       oppDisplay.style.background = 'linear-gradient(to right, #238636 0%, #238636 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #1a1a1a ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
     }

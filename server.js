@@ -2240,7 +2240,11 @@ wss.on('connection', (ws) => {
             const locked = room.ckWagerLocked || {};
             const l1 = locked[ckPlayers[0].id];
             const l2 = locked[ckPlayers[1].id];
-            if (l1 !== undefined && l2 !== undefined && l1 !== l2) {
+            if (l1 === undefined || l2 === undefined) {
+              ws.send(JSON.stringify({ type: 'ckWagerMismatch', message: 'Both players must lock in their wager' }));
+              return;
+            }
+            if (l1 !== l2) {
               ws.send(JSON.stringify({ type: 'ckWagerMismatch', message: 'Wagers must match' }));
               return;
             }
@@ -2252,7 +2256,11 @@ wss.on('connection', (ws) => {
             const locked = room.chWagerLocked || {};
             const l1 = locked[chPlayers[0].id];
             const l2 = locked[chPlayers[1].id];
-            if (l1 !== undefined && l2 !== undefined && l1 !== l2) {
+            if (l1 === undefined || l2 === undefined) {
+              ws.send(JSON.stringify({ type: 'chWagerMismatch', message: 'Both players must lock in their wager' }));
+              return;
+            }
+            if (l1 !== l2) {
               ws.send(JSON.stringify({ type: 'chWagerMismatch', message: 'Wagers must match' }));
               return;
             }
