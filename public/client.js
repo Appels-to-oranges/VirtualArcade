@@ -461,6 +461,7 @@ const ambienceVolumeValue = document.getElementById('ambience-volume-value');
 const lobbyBgOpacitySlider = document.getElementById('lobby-bg-opacity');
 const lobbyBgOpacityValue = document.getElementById('lobby-bg-opacity-value');
 const sfxBitDepthSelect = document.getElementById('sfx-bitdepth');
+const chatDurationSelect = document.getElementById('chat-duration');
 const nowPlayingRadio = document.getElementById('now-playing-radio');
 const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
 const bjRadioBtn = document.getElementById('bj-radio-btn');
@@ -496,7 +497,15 @@ let currentGameType = 'holdem';
 let hasPlayedGame = false;
 let nextHandInterval = null;
 const NEXT_HAND_DELAY_S = 30;
-const CHAT_DURATION_MS = 5000;
+const CHAT_DURATION_KEY = 'arcade_chat_duration';
+
+function getChatDurationMs() {
+  const v = localStorage.getItem(CHAT_DURATION_KEY);
+  if (v === '0' || v === 'infinite') return Infinity;
+  const n = parseInt(v, 10);
+  if (n >= 5 && n <= 300) return n * 1000;
+  return 45000;
+}
 const playerChatMessages = {};
 const playerChatTimeouts = {};
 if (typeof window !== 'undefined') window.playerChatMessages = playerChatMessages;
@@ -1228,6 +1237,12 @@ function handleMessage(msg) {
 
     case 'themeChanged':
       applyTheme(msg.theme);
+      if (lobbyChatMessages && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
+        const nick = msg.nickname || 'Someone';
+        const themeName = (msg.theme || 'default').replace(/-/g, ' ');
+        const display = themeName.charAt(0).toUpperCase() + themeName.slice(1);
+        appendLobbyChatSystem(nick + ' changed the theme to ' + display);
+      }
       break;
 
     case 'chat':
@@ -1246,14 +1261,17 @@ function handleMessage(msg) {
         if (chChat) appendConfigChat(chChat, msg.playerId, msg.nickname, msg.text, myId);
         return;
       }
-      playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + CHAT_DURATION_MS };
+      const chatDur = getChatDurationMs();
+      playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: chatDur === Infinity ? Infinity : Date.now() + chatDur };
       if (playerChatTimeouts[msg.playerId]) clearTimeout(playerChatTimeouts[msg.playerId]);
-      playerChatTimeouts[msg.playerId] = setTimeout(() => {
-        delete playerChatMessages[msg.playerId];
-        delete playerChatTimeouts[msg.playerId];
-        renderTable();
-        if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
-      }, CHAT_DURATION_MS);
+      if (chatDur !== Infinity) {
+        playerChatTimeouts[msg.playerId] = setTimeout(() => {
+          delete playerChatMessages[msg.playerId];
+          delete playerChatTimeouts[msg.playerId];
+          renderTable();
+          if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
+        }, chatDur);
+      }
       renderTable();
       if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
       break;
@@ -2001,6 +2019,9 @@ function initRadioVolume() {
   const lobVal = isNaN(lobOpacity) ? 70 : Math.max(0, Math.min(100, lobOpacity));
   if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.value = lobVal;
   if (lobbyBgOpacityValue) lobbyBgOpacityValue.textContent = lobVal + '%';
+
+  const chatDur = localStorage.getItem(CHAT_DURATION_KEY);
+  if (chatDurationSelect) chatDurationSelect.value = (chatDur === '0' || chatDur === 'infinite') ? '0' : (chatDur || '45');
 }
 
 function searchRadioStations(query) {
@@ -2148,6 +2169,11 @@ if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.addEventListener('input', () => {
 
 if (sfxBitDepthSelect) sfxBitDepthSelect.addEventListener('change', () => {
   localStorage.setItem(SFX_BITDEPTH_KEY, sfxBitDepthSelect.value);
+});
+
+if (chatDurationSelect) chatDurationSelect.addEventListener('change', () => {
+  const v = chatDurationSelect.value;
+  localStorage.setItem(CHAT_DURATION_KEY, v === '0' ? '0' : v);
 });
 
 function sendChat() {

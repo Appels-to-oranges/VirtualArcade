@@ -2352,7 +2352,7 @@ wss.on('connection', (ws) => {
         const room = getRoom(data.roomKey);
         const theme = String(msg.theme || 'default').slice(0, 30);
         room.theme = theme === 'default' ? null : theme;
-        broadcastToRoom(data.roomKey, { type: 'themeChanged', theme });
+        broadcastToRoom(data.roomKey, { type: 'themeChanged', theme, nickname: data.nickname });
       } else if (type === 'rebuy') {
         const data = clients.get(ws);
         if (!data) return;
