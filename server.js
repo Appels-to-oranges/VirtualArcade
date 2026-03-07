@@ -2375,7 +2375,7 @@ wss.on('connection', (ws) => {
         });
       } else if (type === 'slotSpin') {
         const SLOTS_DENOMS = [5, 10, 20, 100];
-        const rawBet = msg.bet != null ? parseInt(msg.bet, 10) : 5;
+        const rawBet = typeof msg.bet === 'number' ? msg.bet : parseInt(String(msg.bet || 5), 10);
         const validBet = Number.isFinite(rawBet) && SLOTS_DENOMS.includes(rawBet) ? rawBet : 5;
         const SLOTS_SYMBOLS = ['crayfish', 'alligator', 'catfish', 'worm', 'hook'];
         const SLOTS_MULTIPLIERS = { crayfish: 10, alligator: 8, catfish: 50, worm: 4, hook: 3 };
@@ -2385,6 +2385,7 @@ wss.on('connection', (ws) => {
         const pIdx = room.players.findIndex((p) => p.ws === ws);
         if (pIdx < 0) return;
         const player = room.players[pIdx];
+        if ((player.currentView ?? 'lobby') !== 'slots') return;
         if ((player.chips || 0) < validBet) return;
         player.chips = (player.chips || 0) - validBet;
         broadcastToRoom(data.roomKey, {

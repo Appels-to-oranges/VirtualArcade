@@ -3,7 +3,7 @@
 
   const DENOMINATIONS = [5, 10, 20, 100];
   const DEFAULT_BET = 5;
-  const SYMBOL_HEIGHT = 2.5;
+  const SYMBOL_HEIGHT = 3;
   const SPIN_CYCLES = 8;
   const SPIN_DURATION_MS = 10000;
   const REEL_STAGGER_MS = 200;
@@ -212,6 +212,13 @@
     });
 
     updateChipsDisplay();
+  }
+
+  function setBet(amount) {
+    const val = parseInt(amount, 10);
+    if (![5, 10, 20, 100].includes(val)) return;
+    slotsBet = val;
+    renderMachines();
   }
 
   function updateChipsDisplay() {
