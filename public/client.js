@@ -829,15 +829,15 @@ function joinWithGameType(gameType) {
   };
 }
 
-function hideAllGameScreens() {
-  if (gameScreen) gameScreen.classList.add('hidden');
+function hideAllGameScreens(exceptGameType) {
+  if (gameScreen && exceptGameType !== 'holdem') gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
-  if (bjScreen) bjScreen.classList.add('hidden');
+  if (bjScreen && exceptGameType !== 'blackjack') bjScreen.classList.add('hidden');
   const slotsScreen = document.getElementById('slots-screen');
-  if (slotsScreen) slotsScreen.classList.add('hidden');
+  if (slotsScreen && exceptGameType !== 'slots') slotsScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
   if (window.chess) window.chess.hide();
-  if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
+  if (gameSelectScreen && exceptGameType !== 'lobby') gameSelectScreen.classList.add('hidden');
 }
 
 function handleMessage(msg) {
@@ -884,7 +884,7 @@ function handleMessage(msg) {
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
       if (joinScreen) joinScreen.classList.add('hidden');
-      hideAllGameScreens();
+      hideAllGameScreens(currentGameType);
       if (currentGameType === 'lobby') {
         lobbyPlayers = (players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         showGameSelectScreen(players, msg.chatHistory);
@@ -974,7 +974,18 @@ function handleMessage(msg) {
       gameState = msg.gameState;
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
-      hideAllGameScreens();
+      {
+        const gamePlayers = players.filter((p) => (p.currentView ?? 'lobby') === currentGameType);
+        if (currentGameType === 'slots') {
+          const me = players.find((p) => p.id === myId);
+          const slotsPlayersList = players.filter((p) => (p.currentView ?? 'lobby') === 'slots');
+          if (window.slots) {
+            window.slots.init(ws, myId, me?.chips ?? 0, slotsPlayersList);
+            window.slots.show();
+          }
+        }
+      }
+      hideAllGameScreens(currentGameType);
       {
         const gamePlayers = players.filter((p) => (p.currentView ?? 'lobby') === currentGameType);
         if (currentGameType === 'blackjack') {
@@ -999,12 +1010,6 @@ function handleMessage(msg) {
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
         } else if (currentGameType === 'slots') {
-          const me = players.find((p) => p.id === myId);
-          const slotsPlayersList = players.filter((p) => (p.currentView ?? 'lobby') === 'slots');
-          if (window.slots) {
-            window.slots.init(ws, myId, me?.chips ?? 0, slotsPlayersList);
-            window.slots.show();
-          }
           const slotsChat = document.getElementById('slots-chat-messages');
           if (slotsChat && msg.chatHistory) {
             slotsChat.innerHTML = '';

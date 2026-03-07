@@ -2611,10 +2611,18 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 /* ── Slots (pixel art, bayou theme) ── */
+/* Swamp palette: moss greens, teals, murky highlights */
 #slots-screen {
+  --swamp-muted: #8FB56F;
+  --swamp-text: #719A4B;
+  --swamp-highlight: #B4E8C2;
+  --swamp-bright: #8EC1CA;
+  --swamp-border: #2E4B3D;
+  --swamp-border-light: #3D6147;
+  --swamp-win: #5D803F;
   position: fixed;
   inset: 0;
-  background: url('/bayou_background.jpg') center / cover no-repeat;
+  background: #1a2820 url('/bayou_background.jpg') center / cover no-repeat;
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -2633,9 +2641,36 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  border-bottom: 0.1rem solid #4a3728;
+  background: rgba(30, 45, 40, 0.85);
+  border-bottom: 0.1rem solid var(--swamp-border);
   flex-shrink: 0;
+}
+
+#slots-screen .room-bar-chips {
+  color: var(--swamp-highlight);
+}
+
+#slots-screen .room-bar .btn-back-inline {
+  color: var(--swamp-muted);
+  border-color: var(--swamp-border);
+}
+
+#slots-screen .room-bar .btn-back-inline:hover {
+  color: var(--swamp-highlight);
+  border-color: var(--swamp-border-light);
+}
+
+#slots-screen .btn-bet,
+#slots-screen .slots-spin-btn {
+  color: var(--swamp-muted);
+  border-color: var(--swamp-border);
+}
+
+#slots-screen .btn-bet:hover:not(:disabled),
+#slots-screen .slots-spin-btn:hover:not(:disabled) {
+  background: rgba(46, 75, 61, 0.5);
+  border-color: var(--swamp-highlight);
+  color: var(--swamp-highlight);
 }
 
 .slots-container {
@@ -2664,10 +2699,10 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem;
-  background: rgba(75, 55, 40, 0.95);
-  border: 0.25rem solid #5c4532;
+  background: rgba(45, 61, 55, 0.95);
+  border: 0.25rem solid var(--swamp-border-light);
   border-radius: 0;
-  box-shadow: inset 0 0 1rem rgba(0,0,0,0.5), 0 0.5rem 1.5rem rgba(0,0,0,0.6);
+  box-shadow: inset 0 0 1rem rgba(0,0,0,0.5), 0 0.5rem 1.5rem rgba(0,0,0,0.5);
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -2678,8 +2713,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   display: flex;
   gap: 0.25rem;
   padding: 0.5rem;
-  background: #1a1510;
-  border: 0.2rem solid #3d2e20;
+  background: #1a2420;
+  border: 0.2rem solid var(--swamp-border);
   border-radius: 0;
   image-rendering: pixelated;
 }
@@ -2722,7 +2757,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 .slots-symbol-text {
   font-size: 0.9rem;
   font-weight: bold;
-  color: #e8c878;
+  color: var(--swamp-muted);
   font-family: 'Press Start 2P', monospace;
 }
 
@@ -2738,7 +2773,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 
 .slots-machine-label {
   font-size: 0.45rem;
-  color: #c9b896;
+  color: var(--swamp-muted);
   font-family: 'Press Start 2P', monospace;
   text-transform: uppercase;
 }
@@ -2762,21 +2797,21 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   font-size: 0.35rem;
   font-family: 'Press Start 2P', monospace;
   background: rgba(0,0,0,0.5);
-  border: 0.1rem solid #4a3728;
-  color: #c9b896;
+  border: 0.1rem solid var(--swamp-border);
+  color: var(--swamp-muted);
   border-radius: 0;
   cursor: pointer;
 }
 
 .slots-denom-btn:hover {
-  color: #e8c878;
+  color: var(--swamp-highlight);
   background: rgba(0,0,0,0.7);
 }
 
 .slots-denom-btn.active {
-  color: #ffd700;
-  border-color: #e8c878;
-  background: rgba(74,55,40,0.9);
+  color: var(--swamp-highlight);
+  border-color: var(--swamp-bright);
+  background: rgba(46, 75, 61, 0.9);
 }
 
 .slots-spin-row {
@@ -2798,23 +2833,31 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   align-items: center;
   justify-content: center;
   font-size: 0.7rem;
-  color: #c9b896;
+  color: var(--swamp-muted);
   background: rgba(0,0,0,0.5);
-  border: 0.1rem solid #4a3728;
+  border: 0.1rem solid var(--swamp-border);
   border-radius: 0.2rem;
   cursor: pointer;
 }
 
 .slots-info-btn:hover {
-  color: #e8c878;
+  color: var(--swamp-highlight);
   background: rgba(0,0,0,0.7);
 }
 
 .slots-payline {
+  width: 100%;
+  height: 0.15rem;
+  background: var(--swamp-bright);
+  border-radius: 0.1rem;
   image-rendering: pixelated;
 }
 
 .slots-payout-overlay {
+  --swamp-muted: #8FB56F;
+  --swamp-highlight: #B4E8C2;
+  --swamp-border: #2E4B3D;
+  --swamp-border-light: #3D6147;
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);
@@ -2830,8 +2873,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 .slots-payout-panel {
-  background: rgba(75, 55, 40, 0.98);
-  border: 0.25rem solid #5c4532;
+  background: rgba(45, 61, 55, 0.98);
+  border: 0.25rem solid var(--swamp-border-light);
   padding: 1.5rem;
   max-width: 18rem;
 }
@@ -2839,7 +2882,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 .slots-payout-panel h3 {
   margin: 0 0 0.75rem;
   font-size: 0.6rem;
-  color: #e8c878;
+  color: var(--swamp-highlight);
   font-family: 'Press Start 2P', monospace;
 }
 
@@ -2848,12 +2891,12 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   margin: 0 0 1rem;
   padding: 0;
   font-size: 0.45rem;
-  color: #c9b896;
+  color: var(--swamp-muted);
 }
 
 .slots-payout-list li {
   padding: 0.2rem 0;
-  border-bottom: 0.05rem solid rgba(74,55,40,0.5);
+  border-bottom: 0.05rem solid rgba(46, 75, 61, 0.5);
 }
 
 .slots-payout-list li:last-child {
@@ -2871,8 +2914,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   flex-direction: column;
   min-width: 10rem;
   max-width: 14rem;
-  background: rgba(0, 0, 0, 0.85);
-  border: 0.2rem solid #4a3728;
+  background: rgba(26, 36, 32, 0.9);
+  border: 0.2rem solid var(--swamp-border);
   border-radius: 0;
   overflow: hidden;
   flex-shrink: 0;
@@ -2881,7 +2924,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 .slots-chat-header {
   padding: 0.4rem 0.6rem;
   font-size: 0.5rem;
-  color: #c9b896;
+  color: var(--swamp-muted);
   text-transform: uppercase;
   letter-spacing: 0.1rem;
   border-bottom: 0.1rem solid #4a3728;
@@ -2908,34 +2951,30 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   display: flex;
   gap: 0.25rem;
   padding: 0.4rem;
-  border-top: 0.1rem solid #4a3728;
-  background: rgba(30, 25, 20, 0.95);
+  border-top: 0.1rem solid var(--swamp-border);
+  background: rgba(26, 36, 32, 0.95);
   flex-shrink: 0;
 }
 
-.slots-chat-input-panel .chat-input {
+#slots-screen .slots-chat-input-panel .chat-input {
   flex: 1;
   min-width: 0;
   font-size: 0.4rem;
   padding: 0.3rem;
-  background: #1a1510;
-  border: 0.1rem solid #4a3728;
-  color: #e8c878;
-}
-
-.slots-payline {
-  width: 100%;
-  height: 0.15rem;
-  background: #ffd700;
-  border-radius: 0.1rem;
-  opacity: 0.8;
+  background: #1a2420;
+  border: 0.1rem solid var(--swamp-border);
+  color: var(--swamp-muted);
 }
 
 .slots-result {
   font-size: 0.6rem;
-  color: #c9b896;
+  color: var(--swamp-muted);
   min-height: 1.2rem;
   text-align: center;
+}
+
+#slots-screen .slots-result.slots-result-win {
+  color: var(--swamp-highlight);
 }
 
 #slots-spin-btn {

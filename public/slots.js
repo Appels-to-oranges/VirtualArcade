@@ -297,7 +297,7 @@
         const resultEl = machine.querySelector('.slots-result');
         if (resultEl) {
           resultEl.textContent = 'Spinning...';
-          resultEl.style.color = '#c9b896';
+          resultEl.classList.remove('slots-result-win');
         }
       }
 
@@ -316,10 +316,10 @@
           if (resultEl) {
             if (payout > 0) {
               resultEl.textContent = pid === slotsMyId ? `You won $${payout}!` : `Won $${payout}!`;
-              resultEl.style.color = '#52b788';
+              resultEl.classList.add('slots-result-win');
             } else {
               resultEl.textContent = 'No win';
-              resultEl.style.color = '#c9b896';
+              resultEl.classList.remove('slots-result-win');
             }
           }
         }
