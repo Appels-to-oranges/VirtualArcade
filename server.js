@@ -2375,8 +2375,8 @@ wss.on('connection', (ws) => {
         });
       } else if (type === 'slotSpin') {
         const SLOTS_DENOMS = [5, 10, 20, 100];
-        const bet = Math.floor(Number(msg.bet)) || 5;
-        const validBet = SLOTS_DENOMS.includes(bet) ? bet : 5;
+        const rawBet = msg.bet != null ? parseInt(msg.bet, 10) : 5;
+        const validBet = Number.isFinite(rawBet) && SLOTS_DENOMS.includes(rawBet) ? rawBet : 5;
         const SLOTS_SYMBOLS = ['crayfish', 'alligator', 'catfish', 'worm', 'hook'];
         const SLOTS_MULTIPLIERS = { crayfish: 10, alligator: 8, catfish: 50, worm: 4, hook: 3 };
         const data = clients.get(ws);

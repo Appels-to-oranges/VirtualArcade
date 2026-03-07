@@ -26,6 +26,7 @@
   let slotsPlayers = [];
   let slotsSpinning = {};
   let slotsPendingResults = {};
+  let slotsLastBet = {};
 
   function el(id) {
     return document.getElementById(id);
@@ -256,12 +257,17 @@
       if (resultEl) resultEl.textContent = 'Spinning...';
     }
     updateChipsDisplay();
-    send({ type: 'slotSpin', bet: slotsBet });
+    const betVal = parseInt(slotsBet, 10);
+    const validBet = [5, 10, 20, 100].includes(betVal) ? betVal : 5;
+    slotsLastBet[slotsMyId] = validBet;
+    send({ type: 'slotSpin', bet: validBet });
   }
 
   function handleMessage(msg) {
     if (msg.type === 'slotSpinStarted') {
       const pid = msg.playerId;
+      const bet = parseInt(msg.bet, 10) || 5;
+      slotsLastBet[pid] = [5, 10, 20, 100].includes(bet) ? bet : 5;
       slotsSpinning[pid] = true;
       const machine = getMachineEl(pid);
       if (machine) {
@@ -276,6 +282,8 @@
         });
         const resultEl = machine.querySelector('.slots-result');
         if (resultEl) resultEl.textContent = 'Spinning...';
+        const betLabel = machine.querySelector('.slots-machine-bet-display');
+        if (betLabel) betLabel.textContent = 'Bet: $' + slotsLastBet[pid];
       }
     } else if (msg.type === 'slotResult') {
       const pid = msg.playerId;
@@ -339,6 +347,7 @@
     slotsPlayers = players || [];
     slotsSpinning = {};
     slotsPendingResults = {};
+    slotsLastBet = {};
     renderMachines();
 
     const overlay = el('slots-payout-overlay');
