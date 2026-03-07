@@ -1094,6 +1094,19 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   background: #222;
 }
 
+.btn-inline-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  object-fit: contain;
+  opacity: 0.85;
+  vertical-align: middle;
+  display: block;
+}
+.btn-radio:hover .btn-inline-icon,
+.btn-settings-inline:hover .btn-inline-icon {
+  opacity: 1;
+}
+
 .chat-input-wrap {
   display: flex;
   align-items: center;
@@ -1523,6 +1536,19 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   z-index: 5;
 }
 
+/* Boundary around community area - keeps bet chips from overlapping cards */
+.community-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.6rem 1rem;
+  border: 0.15rem solid rgba(139, 105, 20, 0.6);
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 0 0.5rem rgba(0, 0, 0, 0.3);
+}
+
 .table-pot {
   display: flex;
   align-items: center;
@@ -1762,7 +1788,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   left: 50%;
   width: 1.6rem;
   height: 1.6rem;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-50% - 0.25rem));
   background: url('/feuer-fire.gif') center / contain no-repeat;
   opacity: 0.85;
   pointer-events: none;

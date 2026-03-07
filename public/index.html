@@ -249,8 +249,8 @@
       <div class="chat-input-wrap">
         <input type="text" id="chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
       </div>
-      <button type="button" id="holdem-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>
-      <button type="button" id="radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
+      <button type="button" id="holdem-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="btn-inline-icon"></button>
+      <button type="button" id="radio-btn" class="btn-radio" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="btn-inline-icon"></button>
       <div class="now-playing-radio hidden" id="now-playing-radio">
         <span class="now-playing-label" id="now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="radio-stop" title="Stop radio">&#x25A0;</button>
@@ -259,17 +259,19 @@
     <div class="table-container">
       <div class="poker-table">
         <div class="community-area" id="community-area">
-          <div class="phase-label" id="phase-label"></div>
-          <div class="table-pot" id="table-pot">
-            <span class="table-pot-label">Pot</span>
-            <span class="table-pot-amount" id="table-pot-amount">$0</span>
-            <span class="table-pot-chips" id="table-pot-chips"></span>
-          </div>
-          <div class="board-cards" id="board-cards"></div>
-          <div class="winner-notification persistent" id="winner-notification"></div>
-          <div class="winning-hand-row hidden" id="winning-hand-row">
-            <span class="winning-hand-label">Winning hand</span>
-            <div class="winning-hand-cards" id="winning-hand-cards"></div>
+          <div class="community-boundary">
+            <div class="phase-label" id="phase-label"></div>
+            <div class="table-pot" id="table-pot">
+              <span class="table-pot-label">Pot</span>
+              <span class="table-pot-amount" id="table-pot-amount">$0</span>
+              <span class="table-pot-chips" id="table-pot-chips"></span>
+            </div>
+            <div class="board-cards" id="board-cards"></div>
+            <div class="winner-notification persistent" id="winner-notification"></div>
+            <div class="winning-hand-row hidden" id="winning-hand-row">
+              <span class="winning-hand-label">Winning hand</span>
+              <div class="winning-hand-cards" id="winning-hand-cards"></div>
+            </div>
           </div>
         </div>
         <div class="players-container" id="players-container"></div>
@@ -327,8 +329,8 @@
       <div class="chat-input-wrap">
         <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
       </div>
-      <button type="button" id="bj-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings">&#x2699;</button>
-      <button type="button" id="bj-radio-btn" class="btn-radio" title="Radio" aria-label="Radio">&#x1F4FB;</button>
+      <button type="button" id="bj-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="btn-inline-icon"></button>
+      <button type="button" id="bj-radio-btn" class="btn-radio" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="btn-inline-icon"></button>
       <div class="now-playing-radio hidden" id="bj-now-playing-radio">
         <span class="now-playing-label" id="bj-now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="bj-radio-stop" title="Stop radio">&#x25A0;</button>

@@ -1403,7 +1403,6 @@ function hideShowdown() {
 }
 
 function renderTable() {
-  document.querySelectorAll('.seat-chat-bubble').forEach((el) => el.remove());
   const pot = gameState?.pot ?? lastPot ?? 0;
   if (potInControls) {
     potInControls.innerHTML = '';
@@ -1484,7 +1483,7 @@ function renderTable() {
 
   const CX = 50, CY = 46;
   const RX = 42, RY = 36;
-  const BET_LERP = 0.75;
+  const BET_LERP = 0.55;
 
   function polyPositions(n) {
     const out = [];
@@ -1502,6 +1501,14 @@ function renderTable() {
   const positions = polyPositions(count);
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const rotateBy = myPosIdx > 0 ? myPosIdx : 0;
+
+  document.querySelectorAll('.seat-chat-bubble').forEach((el) => {
+    const pid = el.dataset.chatFor;
+    const inGame = pid && players.some((p) => p.id === pid);
+    const chatData = pid && playerChatMessages[pid];
+    const valid = chatData && chatData.expiresAt > Date.now() && chatData.text === el.textContent;
+    if (!inGame || !valid) el.remove();
+  });
 
   players.forEach((p, i) => {
     const seatSlot = (i - rotateBy + count) % count;
@@ -1532,11 +1539,18 @@ function renderTable() {
 
     const chatData = playerChatMessages[p.id];
     if (chatData && chatData.expiresAt > Date.now()) {
-      const chatBubble = document.createElement('div');
-      chatBubble.className = 'seat-chat-bubble';
-      chatBubble.textContent = chatData.text;
-      chatBubble.dataset.chatFor = p.id;
-      document.body.appendChild(chatBubble);
+      const existingBubble = document.querySelector(`.seat-chat-bubble[data-chat-for="${p.id}"]`);
+      let chatBubble;
+      if (existingBubble && existingBubble.textContent === chatData.text) {
+        chatBubble = existingBubble;
+      } else {
+        if (existingBubble) existingBubble.remove();
+        chatBubble = document.createElement('div');
+        chatBubble.className = 'seat-chat-bubble';
+        chatBubble.textContent = chatData.text;
+        chatBubble.dataset.chatFor = p.id;
+        document.body.appendChild(chatBubble);
+      }
       requestAnimationFrame(() => {
         const seatRect = seat.getBoundingClientRect();
         const bubbleRect = chatBubble.getBoundingClientRect();
