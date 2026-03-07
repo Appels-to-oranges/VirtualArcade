@@ -737,8 +737,42 @@ if (gameSelectBack) gameSelectBack.addEventListener('click', () => {
   showJoinScreen();
 });
 
+let brokeKickTimer = null;
+const BROKE_KICK_DELAY_MS = 5000;
+
+function cancelBrokeKickTimer() {
+  if (brokeKickTimer) {
+    clearTimeout(brokeKickTimer);
+    brokeKickTimer = null;
+  }
+}
+
+function scheduleBrokeKickToLobby() {
+  if (currentGameType === 'lobby') return;
+  if (brokeKickTimer) return;
+  showToast('Out of chips — returning to lobby in 5 seconds');
+  brokeKickTimer = setTimeout(() => {
+    brokeKickTimer = null;
+    goBackToLobby();
+  }, BROKE_KICK_DELAY_MS);
+}
+
+function checkBrokeAndKick() {
+  if (currentGameType === 'lobby') return;
+  const me = players.find((p) => p.id === myId);
+  const chips = me?.chips ?? 0;
+  if (chips === 0) scheduleBrokeKickToLobby();
+  else cancelBrokeKickTimer();
+}
+
+if (typeof window !== 'undefined') {
+  window.scheduleBrokeKickToLobby = scheduleBrokeKickToLobby;
+  window.cancelBrokeKickTimer = cancelBrokeKickTimer;
+}
+
 function goBackToLobby() {
   if (!ws || ws.readyState !== 1) return;
+  cancelBrokeKickTimer();
   ws.send(JSON.stringify({ type: 'backToLobby' }));
 }
 
@@ -897,6 +931,7 @@ function handleMessage(msg) {
       break;
 
     case 'gameSwitched':
+      cancelBrokeKickTimer();
       myId = msg.id;
       players = msg.players || [];
       gameState = msg.gameState;
@@ -980,6 +1015,7 @@ function handleMessage(msg) {
       break;
 
     case 'userRebuy':
+      cancelBrokeKickTimer();
       if (msg.players) {
         msg.players.forEach((p) => {
           const pl = players.find((x) => x.id === p.id);
@@ -1142,6 +1178,7 @@ function handleMessage(msg) {
       gameState = null;
       renderTable();
       updateControls();
+      checkBrokeAndKick();
       break;
     }
 
@@ -1181,6 +1218,7 @@ function handleMessage(msg) {
       }
       renderTable();
       updateControls();
+      checkBrokeAndKick();
       if (players.length >= 2) startNextHandTimer();
       break;
 
@@ -1240,6 +1278,7 @@ function handleMessage(msg) {
 
     case 'backToLobby':
       currentGameType = 'lobby';
+      cancelBrokeKickTimer();
       stopTurnTimer();
       stopNextHandTimer();
       turnStartedAt = 0;
@@ -1300,6 +1339,7 @@ function handleMessage(msg) {
 }
 
 function showJoinScreen() {
+  cancelBrokeKickTimer();
   if (joinScreen) joinScreen.classList.remove('hidden');
   hideAllGameScreens();
   if (window.blackjack) window.blackjack.hide();

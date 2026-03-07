@@ -884,6 +884,9 @@
           if (goAmount) goAmount.textContent = wager > 0 ? winnerName + ' won $' + wager : '';
           if (goLoser) goLoser.textContent = wager > 0 ? loserName + ' lost $' + wager : '';
         }
+        if ((ckWagerChips[ckMyId] || 0) === 0 && typeof window !== 'undefined' && window.scheduleBrokeKickToLobby) {
+          window.scheduleBrokeKickToLobby();
+        }
         renderAll();
         break;
       }

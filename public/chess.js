@@ -1035,6 +1035,9 @@
           if (goAmount) goAmount.textContent = (msg.reason !== 'stalemate' && wager > 0) ? winnerName + ' won $' + wager : '';
           if (goLoser) goLoser.textContent = (msg.reason !== 'stalemate' && wager > 0) ? loserName + ' lost $' + wager : '';
         }
+        if ((chWagerChips[chMyId] || 0) === 0 && typeof window !== 'undefined' && window.scheduleBrokeKickToLobby) {
+          window.scheduleBrokeKickToLobby();
+        }
         renderAll();
         break;
       }
