@@ -288,7 +288,6 @@
         updateChipsDisplay();
         if (pid === slotsMyId && typeof window !== 'undefined') {
           if (payout > 0 && window.playWinner) window.playWinner();
-          else if (payout === 0 && window.playYouLose) window.playYouLose();
         }
       }, totalDuration);
     }
