@@ -624,8 +624,11 @@ function showGameSelectScreen(players, chatHistory) {
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
   if (bjScreen) bjScreen.classList.add('hidden');
+  const slotsScreen = document.getElementById('slots-screen');
+  if (slotsScreen) slotsScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
   if (window.chess) window.chess.hide();
+  if (window.slots) window.slots.hide();
   stopAmbience();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
@@ -645,7 +648,7 @@ function showGameSelectScreen(players, chatHistory) {
   }
 }
 
-const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', lobby: 'Lobby' };
+const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Slot Machine', lobby: 'Lobby' };
 
 function renderParticipants() {
   if (!participantsList) return;
@@ -778,8 +781,10 @@ function goBackToLobby() {
 
 const holdemBackBtn = document.getElementById('holdem-back-btn');
 const bjBackBtn = document.getElementById('bj-back-btn');
+const slotsBackBtn = document.getElementById('slots-back-btn');
 if (holdemBackBtn) holdemBackBtn.addEventListener('click', goBackToLobby);
 if (bjBackBtn) bjBackBtn.addEventListener('click', goBackToLobby);
+if (slotsBackBtn) slotsBackBtn.addEventListener('click', goBackToLobby);
 
 document.querySelectorAll('.game-option-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -828,6 +833,8 @@ function hideAllGameScreens() {
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
   if (bjScreen) bjScreen.classList.add('hidden');
+  const slotsScreen = document.getElementById('slots-screen');
+  if (slotsScreen) slotsScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
   if (window.chess) window.chess.hide();
   if (gameSelectScreen) gameSelectScreen.classList.add('hidden');
@@ -851,6 +858,16 @@ function handleMessage(msg) {
   }
   if (msg.type && msg.type.startsWith('ch') && msg.type[2] >= 'A' && msg.type[2] <= 'Z') {
     if (window.chess) window.chess.handleMessage(msg);
+    return;
+  }
+  if (msg.type === 'slotResult') {
+    if (msg.chips !== undefined) {
+      const pl = players.find((p) => p.id === myId);
+      if (pl) pl.chips = msg.chips;
+      const lp = lobbyPlayers.find((p) => p.id === myId);
+      if (lp) lp.chips = msg.chips;
+    }
+    if (window.slots) window.slots.handleMessage(msg);
     return;
   }
   switch (msg.type) {
@@ -895,6 +912,14 @@ function handleMessage(msg) {
           if (window.chess) {
             window.chess.init(ws, myId, gamePlayers, msg.roomKey);
             window.chess.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else if (currentGameType === 'slots') {
+          const me = players.find((p) => p.id === myId);
+          if (window.slots) {
+            window.slots.init(ws, myId, me?.chips ?? 0);
+            window.slots.show();
           }
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
@@ -958,6 +983,14 @@ function handleMessage(msg) {
           if (window.chess) {
             window.chess.init(ws, myId, gamePlayers, msg.roomKey);
             window.chess.show();
+          }
+          try { startAmbience(); } catch (_) {}
+          initRadioVolume();
+        } else if (currentGameType === 'slots') {
+          const me = players.find((p) => p.id === myId);
+          if (window.slots) {
+            window.slots.init(ws, myId, me?.chips ?? 0);
+            window.slots.show();
           }
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
@@ -2051,6 +2084,10 @@ function playRadio(station) {
   if (nowPlayingRadioLabel) nowPlayingRadioLabel.textContent = label;
   if (bjNowPlayingRadio) bjNowPlayingRadio.classList.remove('hidden');
   if (bjNowPlayingRadioLabel) bjNowPlayingRadioLabel.textContent = label;
+  const slotsNowPlaying = document.getElementById('slots-now-playing-radio');
+  const slotsNowPlayingLabel = document.getElementById('slots-now-playing-radio-label');
+  if (slotsNowPlaying) slotsNowPlaying.classList.remove('hidden');
+  if (slotsNowPlayingLabel) slotsNowPlayingLabel.textContent = label;
   if (lobbyNowPlayingRadio) lobbyNowPlayingRadio.classList.remove('hidden');
   if (lobbyNowPlayingRadioLabel) lobbyNowPlayingRadioLabel.textContent = label;
   const ckNowPlaying = document.getElementById('ck-now-playing-radio');
@@ -2192,6 +2229,19 @@ if (bjRadioBtn) bjRadioBtn.addEventListener('click', () => {
   radioSearchInput?.focus();
 });
 
+const slotsRadioBtn = document.getElementById('slots-radio-btn');
+const slotsRadioStopBtn = document.getElementById('slots-radio-stop');
+if (slotsRadioBtn) slotsRadioBtn.addEventListener('click', () => {
+  initRadioVolume();
+  radioOverlay?.classList.remove('hidden');
+  radioSearchInput?.focus();
+});
+if (slotsRadioStopBtn) slotsRadioStopBtn.addEventListener('click', () => {
+  if (currentRadioName && ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'stopRadio' }));
+  }
+});
+
 if (bjRadioStopBtn) bjRadioStopBtn.addEventListener('click', () => {
   if (currentRadioName && ws && ws.readyState === 1) {
     ws.send(JSON.stringify({ type: 'stopRadio' }));
@@ -2331,8 +2381,10 @@ if (settingsClose) settingsClose.addEventListener('click', () => settingsOverlay
 
 const holdemSettingsBtn = document.getElementById('holdem-settings-btn');
 const bjSettingsBtn = document.getElementById('bj-settings-btn');
+const slotsSettingsBtn = document.getElementById('slots-settings-btn');
 if (holdemSettingsBtn) holdemSettingsBtn.addEventListener('click', openSettingsOverlay);
 if (bjSettingsBtn) bjSettingsBtn.addEventListener('click', openSettingsOverlay);
+if (slotsSettingsBtn) slotsSettingsBtn.addEventListener('click', openSettingsOverlay);
 
 if (themesOverlay) {
   themesOverlay.addEventListener('click', (e) => {

@@ -90,6 +90,13 @@
                   <span class="game-option-name">Blackjack</span>
                 </button>
               </div>
+              <div class="game-option-wrap">
+                <span class="game-option-cost">$10</span>
+                <button type="button" class="game-option-btn" data-game="slots">
+                  <img src="icon-slots.svg" alt="Slots" class="game-option-img">
+                  <span class="game-option-name">Slot Machine</span>
+                </button>
+              </div>
             </div>
           </div>
           <div class="game-select-category">
@@ -368,6 +375,33 @@
     </div>
   </div>
 
+  <div id="slots-screen" class="hidden">
+    <div class="game-scale-wrapper">
+    <div class="room-bar">
+      <button type="button" id="slots-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>
+      <span class="room-bar-chips" id="slots-chips-display">$0</span>
+      <button type="button" id="slots-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="btn-inline-icon"></button>
+      <button type="button" id="slots-radio-btn" class="btn-radio" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="btn-inline-icon"></button>
+      <div class="now-playing-radio hidden" id="slots-now-playing-radio">
+        <span class="now-playing-label" id="slots-now-playing-radio-label"></span>
+        <button type="button" class="now-playing-stop" id="slots-radio-stop" title="Stop radio">&#x25A0;</button>
+      </div>
+    </div>
+    <div class="slots-container">
+      <div class="slots-machine">
+        <div class="slots-reels" id="slots-reels">
+          <div class="slots-reel" id="slots-reel-0"></div>
+          <div class="slots-reel" id="slots-reel-1"></div>
+          <div class="slots-reel" id="slots-reel-2"></div>
+        </div>
+        <div class="slots-payline"></div>
+        <div class="slots-result" id="slots-result"></div>
+        <button type="button" id="slots-spin-btn" class="btn btn-bet">Spin $10</button>
+      </div>
+    </div>
+    </div>
+  </div>
+
   <div id="radio-overlay" class="radio-overlay hidden">
     <div class="radio-panel">
       <div class="radio-header">
@@ -386,6 +420,7 @@
   <script src="blackjack.js"></script>
   <script src="checkers.js"></script>
   <script src="chess.js"></script>
+  <script src="slots.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

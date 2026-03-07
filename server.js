@@ -86,7 +86,7 @@ const TURN_TIMEOUT_MS = 60 * 1000;
 
 const LOBBY_CHAT_MAX = 100;
 
-const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2 };
+const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2, slots: 999 };
 
 function getPlayersInGame(room, gameType) {
   return room.players.filter((p) => (p.currentView ?? 'lobby') === gameType);
@@ -1865,6 +1865,7 @@ wss.on('connection', (ws) => {
         else if (msg.gameType === 'blackjack') room.gameType = 'blackjack';
         else if (msg.gameType === 'checkers') room.gameType = 'checkers';
         else if (msg.gameType === 'chess') room.gameType = 'chess';
+        else if (msg.gameType === 'slots') room.gameType = 'slots';
 
         let targetGameType = msg.gameType === 'lobby' ? 'lobby' : (msg.gameType || 'lobby');
         let gameFull = false;
@@ -2032,7 +2033,7 @@ wss.on('connection', (ws) => {
         const pIdx = room.players.findIndex((p) => p.ws === ws);
         if (pIdx < 0) return;
         const newType = msg.gameType || 'holdem';
-        if (newType !== 'holdem' && newType !== 'blackjack' && newType !== 'checkers' && newType !== 'chess') return;
+        if (newType !== 'holdem' && newType !== 'blackjack' && newType !== 'checkers' && newType !== 'chess' && newType !== 'slots') return;
         const currentView = room.players[pIdx].currentView ?? 'lobby';
         if (currentView !== newType && isGameFull(room, newType)) {
           ws.send(JSON.stringify({ type: 'gameFull', gameType: newType }));
@@ -2371,6 +2372,36 @@ wss.on('connection', (ws) => {
           chips: 100,
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
         });
+      } else if (type === 'slotSpin') {
+        const SLOTS_COST = 10;
+        const SLOTS_SYMBOLS = ['seven', 'bar', 'diamond', 'star', 'heart', 'cherry', 'lemon', 'grapes', 'bell', 'clover'];
+        const SLOTS_PAYOUTS = { seven: 150, bar: 100, diamond: 80, star: 60, bell: 50, heart: 40, cherry: 30, grapes: 25, lemon: 20, clover: 15 };
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const pIdx = room.players.findIndex((p) => p.ws === ws);
+        if (pIdx < 0) return;
+        const player = room.players[pIdx];
+        if ((player.chips || 0) < SLOTS_COST) return;
+        player.chips = (player.chips || 0) - SLOTS_COST;
+        const reels = [
+          SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
+          SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
+          SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
+        ];
+        let payout = 0;
+        if (reels[0] === reels[1] && reels[1] === reels[2]) {
+          payout = SLOTS_PAYOUTS[reels[0]] || 0;
+        } else if ((reels[0] === 'cherry' && reels[1] === 'cherry') || (reels[1] === 'cherry' && reels[2] === 'cherry') || (reels[0] === 'cherry' && reels[2] === 'cherry')) {
+          payout = 5;
+        }
+        player.chips = (player.chips || 0) + payout;
+        ws.send(JSON.stringify({
+          type: 'slotResult',
+          reels,
+          payout,
+          chips: player.chips,
+        }));
       } else if (type === 'action') {
         const data = clients.get(ws);
         if (!data) return;
