@@ -860,12 +860,18 @@ function handleMessage(msg) {
     if (window.chess) window.chess.handleMessage(msg);
     return;
   }
+  if (msg.type === 'slotSpinStarted') {
+    if (window.slots) window.slots.handleMessage(msg);
+    return;
+  }
   if (msg.type === 'slotResult') {
-    if (msg.chips !== undefined) {
-      const pl = players.find((p) => p.id === myId);
+    if (msg.chips !== undefined && msg.playerId) {
+      const pl = players.find((p) => p.id === msg.playerId);
       if (pl) pl.chips = msg.chips;
-      const lp = lobbyPlayers.find((p) => p.id === myId);
-      if (lp) lp.chips = msg.chips;
+      if (msg.playerId === myId) {
+        const lp = lobbyPlayers.find((p) => p.id === myId);
+        if (lp) lp.chips = msg.chips;
+      }
     }
     if (window.slots) window.slots.handleMessage(msg);
     return;
@@ -917,8 +923,9 @@ function handleMessage(msg) {
           initRadioVolume();
         } else if (currentGameType === 'slots') {
           const me = players.find((p) => p.id === myId);
+          const slotsPlayersList = players.filter((p) => (p.currentView ?? 'lobby') === 'slots');
           if (window.slots) {
-            window.slots.init(ws, myId, me?.chips ?? 0);
+            window.slots.init(ws, myId, me?.chips ?? 0, slotsPlayersList);
             window.slots.show();
           }
           const slotsChat = document.getElementById('slots-chat-messages');
@@ -993,8 +1000,9 @@ function handleMessage(msg) {
           initRadioVolume();
         } else if (currentGameType === 'slots') {
           const me = players.find((p) => p.id === myId);
+          const slotsPlayersList = players.filter((p) => (p.currentView ?? 'lobby') === 'slots');
           if (window.slots) {
-            window.slots.init(ws, myId, me?.chips ?? 0);
+            window.slots.init(ws, myId, me?.chips ?? 0, slotsPlayersList);
             window.slots.show();
           }
           const slotsChat = document.getElementById('slots-chat-messages');
@@ -1315,6 +1323,9 @@ function handleMessage(msg) {
           const count = chNow.length;
           if (count > prevChessCount && typeof playPlayerJoinsGame === 'function') playPlayerJoinsGame();
           window.chess.handleMessage({ type: 'chPlayersUpdated', players: chNow });
+        } else if (currentGameType === 'slots' && window.slots) {
+          const slotsNow = players.filter((p) => (p.currentView ?? 'lobby') === 'slots');
+          window.slots.setPlayers(slotsNow);
         }
       }
       break;

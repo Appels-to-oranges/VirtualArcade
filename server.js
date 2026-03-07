@@ -214,12 +214,12 @@ function startTurnTimer(roomKey) {
   }, TURN_TIMEOUT_MS);
 }
 
-function broadcastToRoom(roomKey, message, excludeWs = null) {
+function broadcastToRoom(roomKey, message, excludeWs = null, filter = null) {
   const room = getRoom(roomKey);
   const payload = JSON.stringify(message);
   room.players.forEach((p) => {
     if (p.ws && p.ws !== excludeWs && p.ws.readyState === 1) {
-      p.ws.send(payload);
+      if (!filter || filter(p)) p.ws.send(payload);
     }
   });
 }
@@ -2376,7 +2376,7 @@ wss.on('connection', (ws) => {
       } else if (type === 'slotSpin') {
         const SLOTS_COST = 10;
         const SLOTS_SYMBOLS = ['crayfish', 'alligator', 'catfish', 'worm', 'hook'];
-        const SLOTS_PAYOUTS = { crayfish: 100, alligator: 80, catfish: 60, worm: 40, hook: 25 };
+        const SLOTS_PAYOUTS = { crayfish: 100, alligator: 80, catfish: 500, worm: 40, hook: 25 };
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
@@ -2385,6 +2385,11 @@ wss.on('connection', (ws) => {
         const player = room.players[pIdx];
         if ((player.chips || 0) < SLOTS_COST) return;
         player.chips = (player.chips || 0) - SLOTS_COST;
+        broadcastToRoom(data.roomKey, {
+          type: 'slotSpinStarted',
+          playerId: ws.id,
+          nickname: player.nickname,
+        }, null, (p) => (p.currentView ?? 'lobby') === 'slots');
         const reels = [
           SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
           SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
@@ -2397,12 +2402,22 @@ wss.on('connection', (ws) => {
           payout = 5;
         }
         player.chips = (player.chips || 0) + payout;
-        ws.send(JSON.stringify({
+        const isJackpot = payout === 500;
+        if (isJackpot) {
+          const chatMsg = { playerId: ws.id, nickname: player.nickname, text: (player.nickname || 'Someone') + ' won the jackpot!' };
+          if (!room.chatHistory) room.chatHistory = [];
+          room.chatHistory.push(chatMsg);
+          if (room.chatHistory.length > LOBBY_CHAT_MAX) room.chatHistory.shift();
+          broadcastToRoom(data.roomKey, { type: 'chat', ...chatMsg });
+        }
+        broadcastToRoom(data.roomKey, {
           type: 'slotResult',
+          playerId: ws.id,
+          nickname: player.nickname,
           reels,
           payout,
           chips: player.chips,
-        }));
+        }, null, (p) => (p.currentView ?? 'lobby') === 'slots');
       } else if (type === 'action') {
         const data = clients.get(ws);
         if (!data) return;

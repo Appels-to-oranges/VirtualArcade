@@ -4,7 +4,7 @@
   const SLOTS_COST = 10;
   const SYMBOL_HEIGHT = 4;
   const SPIN_CYCLES = 8;
-  const SPIN_DURATION_MS = 1800;
+  const SPIN_DURATION_MS = 10000;
   const REEL_STAGGER_MS = 200;
   const CYCLE_OFFSET = 2;
 
@@ -19,7 +19,9 @@
   let slotsWs = null;
   let slotsMyId = null;
   let slotsChips = 0;
-  let slotsSpinning = false;
+  let slotsPlayers = [];
+  let slotsSpinning = {};
+  let slotsPendingResults = {};
 
   function el(id) {
     return document.getElementById(id);
@@ -67,7 +69,7 @@
   function show() {
     const screen = el('slots-screen');
     if (screen) screen.classList.remove('hidden');
-    renderAll();
+    renderMachines();
   }
 
   function hide() {
@@ -75,9 +77,7 @@
     if (screen) screen.classList.add('hidden');
   }
 
-  function renderReel(reelIdx, symbolId, spinning) {
-    const reelEl = el('slots-reel-' + reelIdx);
-    if (!reelEl) return;
+  function renderReel(reelEl, reelIdx, symbolId, spinning) {
     let strip = reelEl.querySelector('.slots-reel-strip');
     if (!strip) strip = buildReelStrip(reelEl);
     strip.style.transition = 'none';
@@ -91,9 +91,7 @@
     }
   }
 
-  function animateReelToSymbol(reelIdx, symbolId, delayMs) {
-    const reelEl = el('slots-reel-' + reelIdx);
-    if (!reelEl) return;
+  function animateReelToSymbol(reelEl, symbolId, delayMs) {
     const strip = reelEl.querySelector('.slots-reel-strip');
     if (!strip) return;
     const idx = getSymbolIndex(symbolId);
@@ -107,78 +105,188 @@
     strip.offsetHeight;
 
     setTimeout(() => {
-      strip.style.transition = `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.12, 0.9, 0.28, 1)`;
+      strip.style.transition = `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.1, 0.8, 0.2, 1)`;
       strip.style.transform = `translateY(-${endOffset}rem)`;
     }, delayMs);
   }
 
-  function renderAll() {
+  function renderMachines() {
+    const grid = el('slots-machines-grid');
+    if (!grid) return;
+
+    const playersInSlots = slotsPlayers.filter((p) => (p.currentView ?? 'lobby') === 'slots').slice(0, 4);
+    grid.innerHTML = '';
+
+    playersInSlots.forEach((p) => {
+      const machine = document.createElement('div');
+      machine.className = 'slots-machine';
+      machine.dataset.playerId = p.id;
+
+      const label = document.createElement('div');
+      label.className = 'slots-machine-label';
+      label.textContent = (p.id === slotsMyId ? 'You' : (p.nickname || 'Player')) + (p.id === slotsMyId ? '' : ` ($${p.chips ?? 0})`);
+      machine.appendChild(label);
+
+      const reels = document.createElement('div');
+      reels.className = 'slots-reels';
+      for (let i = 0; i < 3; i++) {
+        const reel = document.createElement('div');
+        reel.className = 'slots-reel';
+        reel.dataset.reelIdx = String(i);
+        if (!reel.querySelector('.slots-reel-strip')) buildReelStrip(reel);
+        reels.appendChild(reel);
+      }
+      machine.appendChild(reels);
+
+      const payline = document.createElement('div');
+      payline.className = 'slots-payline';
+      machine.appendChild(payline);
+
+      const result = document.createElement('div');
+      result.className = 'slots-result';
+      result.id = `slots-result-${p.id}`;
+      machine.appendChild(result);
+
+      const ctrls = document.createElement('div');
+      ctrls.className = 'slots-machine-controls';
+      if (p.id === slotsMyId) {
+        const spinBtn = document.createElement('button');
+        spinBtn.type = 'button';
+        spinBtn.className = 'btn btn-bet slots-spin-btn';
+        spinBtn.textContent = `Spin $${SLOTS_COST}`;
+        spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < SLOTS_COST;
+        spinBtn.addEventListener('click', spin);
+        ctrls.appendChild(spinBtn);
+
+        const infoBtn = document.createElement('button');
+        infoBtn.type = 'button';
+        infoBtn.className = 'slots-info-btn';
+        infoBtn.innerHTML = '&#8505;';
+        infoBtn.title = 'Payout table';
+        infoBtn.setAttribute('aria-label', 'Payout table');
+        infoBtn.addEventListener('click', openPayoutOverlay);
+        ctrls.appendChild(infoBtn);
+      }
+      machine.appendChild(ctrls);
+
+      grid.appendChild(machine);
+    });
+
+    updateChipsDisplay();
+  }
+
+  function updateChipsDisplay() {
     const chipsEl = el('slots-chips-display');
     if (chipsEl) chipsEl.textContent = '$' + (slotsChips ?? 0);
 
-    const spinBtn = el('slots-spin-btn');
+    const spinBtn = document.querySelector('.slots-spin-btn');
     if (spinBtn) {
-      spinBtn.disabled = slotsSpinning || (slotsChips || 0) < SLOTS_COST;
-      spinBtn.textContent = 'Spin $' + SLOTS_COST;
+      spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < SLOTS_COST;
+      spinBtn.textContent = `Spin $${SLOTS_COST}`;
     }
   }
 
+  function getMachineEl(playerId) {
+    return document.querySelector(`.slots-machine[data-player-id="${playerId}"]`);
+  }
+
+  function openPayoutOverlay() {
+    const overlay = el('slots-payout-overlay');
+    if (overlay) overlay.classList.remove('hidden');
+  }
+
+  function closePayoutOverlay() {
+    const overlay = el('slots-payout-overlay');
+    if (overlay) overlay.classList.add('hidden');
+  }
+
   function spin() {
-    if (slotsSpinning || (slotsChips || 0) < SLOTS_COST) return;
-    slotsSpinning = true;
-    for (let i = 0; i < 3; i++) {
-      renderReel(i, null, true);
-      const reelEl = el('slots-reel-' + i);
-      if (reelEl) {
-        const strip = reelEl.querySelector('.slots-reel-strip');
+    if (slotsSpinning[slotsMyId] || (slotsChips || 0) < SLOTS_COST) return;
+    slotsSpinning[slotsMyId] = true;
+    const machine = getMachineEl(slotsMyId);
+    if (machine) {
+      const reels = machine.querySelectorAll('.slots-reel');
+      reels.forEach((reel, i) => {
+        renderReel(reel, i, null, true);
+        const strip = reel.querySelector('.slots-reel-strip');
         if (strip) {
-          strip.style.transition = `transform 80ms linear`;
+          strip.style.transition = 'transform 80ms linear';
           strip.style.transform = `translateY(-${SYMBOL_HEIGHT * SYMBOLS.length * 3}rem)`;
         }
-      }
+      });
+      const resultEl = machine.querySelector('.slots-result');
+      if (resultEl) resultEl.textContent = 'Spinning...';
     }
-    const resultEl = el('slots-result');
-    if (resultEl) resultEl.textContent = 'Spinning...';
-    renderAll();
+    updateChipsDisplay();
     send({ type: 'slotSpin' });
   }
 
   function handleMessage(msg) {
-    if (msg.type === 'slotResult') {
+    if (msg.type === 'slotSpinStarted') {
+      const pid = msg.playerId;
+      slotsSpinning[pid] = true;
+      const machine = getMachineEl(pid);
+      if (machine) {
+        const reels = machine.querySelectorAll('.slots-reel');
+        reels.forEach((reel, i) => {
+          renderReel(reel, i, null, true);
+          const strip = reel.querySelector('.slots-reel-strip');
+          if (strip) {
+            strip.style.transition = 'transform 80ms linear';
+            strip.style.transform = `translateY(-${SYMBOL_HEIGHT * SYMBOLS.length * 3}rem)`;
+          }
+        });
+        const resultEl = machine.querySelector('.slots-result');
+        if (resultEl) resultEl.textContent = 'Spinning...';
+      }
+    } else if (msg.type === 'slotResult') {
+      const pid = msg.playerId;
       const reels = msg.reels || [];
       const payout = msg.payout ?? 0;
-      const chips = msg.chips ?? slotsChips;
+      const chips = msg.chips ?? 0;
 
-      for (let i = 0; i < 3; i++) {
-        const symbolId = reels[i] || '';
-        animateReelToSymbol(i, symbolId, i * REEL_STAGGER_MS);
-      }
+      if (pid === slotsMyId) slotsChips = chips;
+      const p = slotsPlayers.find((x) => x.id === pid);
+      if (p) p.chips = chips;
 
-      slotsChips = chips;
-      const resultEl = el('slots-result');
-      if (resultEl) {
-        resultEl.textContent = 'Spinning...';
-        resultEl.style.color = '#c9b896';
+      const machine = getMachineEl(pid);
+      if (machine) {
+        const reelEls = machine.querySelectorAll('.slots-reel');
+        for (let i = 0; i < 3; i++) {
+          const symbolId = reels[i] || '';
+          animateReelToSymbol(reelEls[i], symbolId, i * REEL_STAGGER_MS);
+        }
+        const resultEl = machine.querySelector('.slots-result');
+        if (resultEl) {
+          resultEl.textContent = 'Spinning...';
+          resultEl.style.color = '#c9b896';
+        }
       }
-      renderAll();
 
       const totalDuration = 2 * REEL_STAGGER_MS + SPIN_DURATION_MS;
+      slotsPendingResults[pid] = { reels, payout, totalDuration };
       setTimeout(() => {
-        slotsSpinning = false;
-        for (let i = 0; i < 3; i++) {
-          renderReel(i, reels[i] || '', false);
-        }
-        if (resultEl) {
-          if (payout > 0) {
-            resultEl.textContent = 'You won $' + payout + '!';
-            resultEl.style.color = '#52b788';
-          } else {
-            resultEl.textContent = 'No win';
-            resultEl.style.color = '#c9b896';
+        slotsSpinning[pid] = false;
+        delete slotsPendingResults[pid];
+        const m = getMachineEl(pid);
+        if (m) {
+          const reelEls = m.querySelectorAll('.slots-reel');
+          for (let i = 0; i < 3; i++) {
+            renderReel(reelEls[i], i, reels[i] || '', false);
+          }
+          const resultEl = m.querySelector('.slots-result');
+          if (resultEl) {
+            if (payout > 0) {
+              resultEl.textContent = pid === slotsMyId ? `You won $${payout}!` : `Won $${payout}!`;
+              resultEl.style.color = '#52b788';
+            } else {
+              resultEl.textContent = 'No win';
+              resultEl.style.color = '#c9b896';
+            }
           }
         }
-        renderAll();
-        if (typeof window !== 'undefined') {
+        updateChipsDisplay();
+        if (pid === slotsMyId && typeof window !== 'undefined') {
           if (payout > 0 && window.playWinner) window.playWinner();
           else if (payout === 0 && window.playYouLose) window.playYouLose();
         }
@@ -186,36 +294,38 @@
     }
   }
 
-  function init(ws, myId, chips) {
+  function init(ws, myId, chips, players) {
     slotsWs = ws;
     slotsMyId = myId;
     slotsChips = chips ?? 0;
-    for (let i = 0; i < 3; i++) {
-      const reelEl = el('slots-reel-' + i);
-      if (reelEl && !reelEl.querySelector('.slots-reel-strip')) {
-        buildReelStrip(reelEl);
-      }
-      renderReel(i, '', false);
+    slotsPlayers = players || [];
+    slotsSpinning = {};
+    slotsPendingResults = {};
+    renderMachines();
+
+    const overlay = el('slots-payout-overlay');
+    const closeBtn = el('slots-payout-close');
+    if (closeBtn && !closeBtn.dataset.slotsBound) {
+      closeBtn.dataset.slotsBound = '1';
+      closeBtn.addEventListener('click', closePayoutOverlay);
     }
-    const resultEl = el('slots-result');
-    if (resultEl) {
-      resultEl.textContent = '';
-      resultEl.style.color = '#c9b896';
+    if (overlay && !overlay.dataset.slotsBound) {
+      overlay.dataset.slotsBound = '1';
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) closePayoutOverlay(); });
     }
-    renderAll();
   }
 
   function setChips(chips) {
     slotsChips = chips ?? 0;
-    renderAll();
+    updateChipsDisplay();
   }
 
-  function bindEvents() {
-    const spinBtn = el('slots-spin-btn');
-    if (spinBtn) spinBtn.addEventListener('click', spin);
+  function setPlayers(players) {
+    slotsPlayers = players || [];
+    if (document.querySelector('.slots-machine')) {
+      renderMachines();
+    }
   }
-
-  bindEvents();
 
   window.slots = {
     init,
@@ -223,5 +333,6 @@
     hide,
     handleMessage,
     setChips,
+    setPlayers,
   };
 })();
