@@ -41,6 +41,7 @@
   let ckTimerSeconds = 0;
   let ckTurnDeadline = 0;
   let ckTimerInterval = null;
+  let ckTimeLowAlertPlayed = false;
   let ckCapturesRed = 0;
   let ckCapturesWhite = 0;
   let ckWagerProposals = {};
@@ -152,6 +153,7 @@
         'cursor:pointer;text-transform:uppercase;letter-spacing:.05rem}' +
       '#ck-screen .btn-start{background:#238636;color:#fff}' +
       '#ck-screen .btn-start:hover{background:#2ea043}' +
+      '#ck-screen .btn-start:disabled{background:#2a2a2a;border-color:#444;color:#555;cursor:not-allowed}' +
       '#ck-screen .btn-restart{background:#1b4332;color:#ddd;border:.125rem solid #40916c}' +
       '#ck-screen .btn-restart:hover{background:#2d6a4f}' +
 
@@ -659,6 +661,7 @@
   function startCkTimer(deadline) {
     stopCkTimer();
     ckTurnDeadline = deadline;
+    ckTimeLowAlertPlayed = false;
     if (!deadline) return;
     updateCkTimerDisplay();
     ckTimerInterval = setInterval(updateCkTimerDisplay, 200);
@@ -677,7 +680,11 @@
     var remaining = Math.max(0, Math.ceil((ckTurnDeadline - Date.now()) / 1000));
     el.textContent = remaining + 's';
     el.classList.remove('hidden');
-    el.classList.toggle('ck-timer-urgent', remaining <= 3);
+    el.classList.toggle('ck-timer-urgent', remaining <= 5);
+    if (remaining <= 5 && ckTurn === ckMyColor && !ckTimeLowAlertPlayed) {
+      ckTimeLowAlertPlayed = true;
+      if (typeof playTimeLowAlert === 'function') playTimeLowAlert();
+    }
     if (remaining <= 0) stopCkTimer();
   }
 
@@ -744,6 +751,7 @@
           var me = ckPlayers.find(function (p) { return p.id === ckMyId; });
           if (me) ckMyColor = me.color;
         }
+        if (ckTurn === ckMyColor && typeof playYourTurn === 'function') playYourTurn();
         var turnDisplay = ckTurn === 'red' ? 'Black' : 'White';
         setStatus(ckTurn === ckMyColor ? 'Your turn!' : 'Waiting for ' + turnDisplay + '...');
         if (msg.timerMs > 0) {
@@ -804,10 +812,12 @@
         renderAll();
         break;
 
-      case 'ckBoardUpdate':
+      case 'ckBoardUpdate': {
+        var prevCkTurn = ckTurn;
         ckBoard = msg.board;
         ckTurn = msg.turn;
         ckMustContinue = msg.mustContinue || null;
+        if (ckTurn === ckMyColor && prevCkTurn !== ckMyColor && typeof playYourTurn === 'function') playYourTurn();
         ckSelected = null;
         ckValidMoves = [];
         var vol = parseInt(localStorage.getItem('poker_card_fx_volume'), 10);
@@ -837,6 +847,7 @@
         }
         renderAll();
         break;
+      }
 
       case 'ckGameOver': {
         ckGameState = 'over';

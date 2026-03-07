@@ -26,6 +26,7 @@
   var chTimerSeconds = 0;
   var chTurnDeadline = 0;
   var chTimerInterval = null;
+  var chTimeLowAlertPlayed = false;
   var chCapturesWhite = 0;
   var chWagerProposals = {};
   var chWagerReady = {};
@@ -306,6 +307,7 @@
         'cursor:pointer;text-transform:uppercase;letter-spacing:.05rem}' +
       '#ch-screen .btn-start{background:#238636;color:#fff}' +
       '#ch-screen .btn-start:hover{background:#2ea043}' +
+      '#ch-screen .btn-start:disabled{background:#2a2a2a;border-color:#444;color:#555;cursor:not-allowed}' +
       '#ch-screen .btn-restart{background:#1b4332;color:#ddd;border:.125rem solid #40916c}' +
       '#ch-screen .btn-restart:hover{background:#2d6a4f}' +
 
@@ -813,6 +815,7 @@
   function startChTimer(deadline) {
     stopChTimer();
     chTurnDeadline = deadline;
+    chTimeLowAlertPlayed = false;
     if (!deadline) return;
     updateChTimerDisplay();
     chTimerInterval = setInterval(updateChTimerDisplay, 200);
@@ -896,6 +899,7 @@
           var me = chPlayers.find(function (p) { return p.id === chMyId; });
           if (me) chMyColor = me.color;
         }
+        if (chTurn === chMyColor && typeof playYourTurn === 'function') playYourTurn();
         setStatus(chTurn === chMyColor ? 'Your turn!' : 'Waiting for opponent...');
         if (msg.timerMs > 0) startChTimer(Date.now() + msg.timerMs);
         else stopChTimer();
@@ -973,6 +977,7 @@
           playChessPiecePlaceSfx();
         }
 
+        if (chTurn === chMyColor && prevChTurn !== chMyColor && typeof playYourTurn === 'function') playYourTurn();
         if (chInCheck) {
           playCheckAlert();
           setStatus(chTurn === chMyColor ? 'Check! Your turn!' : 'Check!');
@@ -986,6 +991,7 @@
         else stopChTimer();
         renderAll();
         break;
+      }
 
       case 'chGameOver': {
         chGameState = 'over';

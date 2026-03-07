@@ -30,6 +30,7 @@ const SOUND_FILES = {
   playerJoinsGame: ['player or bot joins game.wav'],
   rebuy: ['re-buy.wav'],
   sendMessage: ['send message.wav'],
+  timeLowAlert: ['time_low_alert.wav'],
 };
 
 function createSoundAudio(keys) {
@@ -74,6 +75,7 @@ const soundPlayerJoinRoom = createSoundAudio(SOUND_FILES.playerJoinRoom);
 const soundPlayerJoinsGame = createSoundAudio(SOUND_FILES.playerJoinsGame);
 const soundRebuy = createSoundAudio(SOUND_FILES.rebuy);
 const soundSendMessage = createSoundAudio(SOUND_FILES.sendMessage);
+const soundTimeLowAlert = createSoundAudio(SOUND_FILES.timeLowAlert);
 
 let audioCtx = null;
 const SFX_BITDEPTH_KEY = 'arcade_sfx_bitdepth';
@@ -278,6 +280,10 @@ function playRebuy() {
 
 function playSendMessage() {
   playSound(soundSendMessage, CARD_FX_VOLUME_KEY);
+}
+
+function playTimeLowAlert() {
+  playSound(soundTimeLowAlert, CARD_FX_VOLUME_KEY);
 }
 
 const AMBIENCE_FX_KEY = 'arcade_ambience_fx';
@@ -1694,6 +1700,7 @@ function startTurnTimer() {
   }
   turnTimerInterval = setInterval(() => {
     remaining--;
+    if (remaining === 5) playTimeLowAlert();
     if (turnTimerEl) turnTimerEl.textContent = `${remaining}s`;
     if (remaining <= 0) stopTurnTimer();
   }, 1000);
