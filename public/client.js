@@ -575,8 +575,11 @@ function connectLobby() {
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
   if (bjScreen) bjScreen.classList.add('hidden');
+  const slotsScreen = document.getElementById('slots-screen');
+  if (slotsScreen) slotsScreen.classList.add('hidden');
   if (window.checkers) window.checkers.hide();
   if (window.chess) window.chess.hide();
+  if (window.slots) window.slots.hide();
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 Connecting...`;
   if (participantsList) participantsList.innerHTML = '';
@@ -648,7 +651,7 @@ function showGameSelectScreen(players, chatHistory) {
   }
 }
 
-const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Slot Machine', lobby: 'Lobby' };
+const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Swamp Slots', lobby: 'Lobby' };
 
 function renderParticipants() {
   if (!participantsList) return;
@@ -1409,6 +1412,7 @@ function showJoinScreen() {
   if (window.blackjack) window.blackjack.hide();
   if (window.checkers) window.checkers.hide();
   if (window.chess) window.chess.hide();
+  if (window.slots) window.slots.hide();
   stopAmbience();
   stopNextHandTimer();
   hasPlayedGame = false;

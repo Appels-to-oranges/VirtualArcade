@@ -2623,7 +2623,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   position: fixed;
   inset: 0;
   background: #1a2820 url('/bayou_background.jpg') center / cover no-repeat;
-  z-index: 1;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   overflow: hidden;

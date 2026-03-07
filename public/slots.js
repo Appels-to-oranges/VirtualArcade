@@ -219,8 +219,8 @@
 
     const spinBtn = document.querySelector('.slots-spin-btn');
     if (spinBtn) {
-      spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < SLOTS_COST;
-      spinBtn.textContent = `Spin $${SLOTS_COST}`;
+      spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < slotsBet;
+      spinBtn.textContent = `Spin $${slotsBet}`;
     }
   }
 
