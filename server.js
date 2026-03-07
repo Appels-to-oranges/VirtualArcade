@@ -2374,35 +2374,39 @@ wss.on('connection', (ws) => {
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
         });
       } else if (type === 'slotSpin') {
-        const SLOTS_COST = 10;
+        const SLOTS_DENOMS = [5, 10, 20, 100];
+        const bet = Math.floor(Number(msg.bet)) || 5;
+        const validBet = SLOTS_DENOMS.includes(bet) ? bet : 5;
         const SLOTS_SYMBOLS = ['crayfish', 'alligator', 'catfish', 'worm', 'hook'];
-        const SLOTS_PAYOUTS = { crayfish: 100, alligator: 80, catfish: 500, worm: 40, hook: 25 };
+        const SLOTS_MULTIPLIERS = { crayfish: 10, alligator: 8, catfish: 50, worm: 4, hook: 3 };
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
         const pIdx = room.players.findIndex((p) => p.ws === ws);
         if (pIdx < 0) return;
         const player = room.players[pIdx];
-        if ((player.chips || 0) < SLOTS_COST) return;
-        player.chips = (player.chips || 0) - SLOTS_COST;
+        if ((player.chips || 0) < validBet) return;
+        player.chips = (player.chips || 0) - validBet;
         broadcastToRoom(data.roomKey, {
           type: 'slotSpinStarted',
           playerId: ws.id,
           nickname: player.nickname,
+          bet: validBet,
         }, null, (p) => (p.currentView ?? 'lobby') === 'slots');
         const reels = [
           SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
           SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
           SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
         ];
-        let payout = 0;
+        let multiplier = 0;
         if (reels[0] === reels[1] && reels[1] === reels[2]) {
-          payout = SLOTS_PAYOUTS[reels[0]] || 0;
+          multiplier = SLOTS_MULTIPLIERS[reels[0]] || 0;
         } else if ((reels[0] === 'worm' && reels[1] === 'worm') || (reels[1] === 'worm' && reels[2] === 'worm') || (reels[0] === 'worm' && reels[2] === 'worm')) {
-          payout = 5;
+          multiplier = 1;
         }
+        const payout = validBet * multiplier;
         player.chips = (player.chips || 0) + payout;
-        const isJackpot = payout === 500;
+        const isJackpot = multiplier === 50;
         if (isJackpot) {
           const chatMsg = { playerId: ws.id, nickname: player.nickname, text: (player.nickname || 'Someone') + ' won the jackpot!' };
           if (!room.chatHistory) room.chatHistory = [];
@@ -2416,6 +2420,8 @@ wss.on('connection', (ws) => {
           nickname: player.nickname,
           reels,
           payout,
+          bet: validBet,
+          multiplier,
           chips: player.chips,
         }, null, (p) => (p.currentView ?? 'lobby') === 'slots');
       } else if (type === 'action') {

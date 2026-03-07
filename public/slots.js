@@ -1,8 +1,9 @@
 (function () {
   'use strict';
 
-  const SLOTS_COST = 10;
-  const SYMBOL_HEIGHT = 4;
+  const DENOMINATIONS = [5, 10, 20, 100];
+  const DEFAULT_BET = 5;
+  const SYMBOL_HEIGHT = 2.5;
   const SPIN_CYCLES = 8;
   const SPIN_DURATION_MS = 10000;
   const REEL_STAGGER_MS = 200;
@@ -16,9 +17,12 @@
     { id: 'hook', label: '', img: '/slot-assets/fishing-hook-1.png' },
   ];
 
+  const SYMBOL_MAP = Object.fromEntries(SYMBOLS.map((s, i) => [s.id, s]));
+
   let slotsWs = null;
   let slotsMyId = null;
   let slotsChips = 0;
+  let slotsBet = DEFAULT_BET;
   let slotsPlayers = [];
   let slotsSpinning = {};
   let slotsPendingResults = {};
@@ -31,6 +35,15 @@
     if (slotsWs && slotsWs.readyState === 1) {
       slotsWs.send(JSON.stringify(msg));
     }
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 
   function createSymbolEl(sym) {
@@ -49,21 +62,28 @@
     return span;
   }
 
-  function buildReelStrip(reelEl) {
+  function buildReelStrip(reelEl, symbolOrder) {
     reelEl.innerHTML = '';
+    const order = symbolOrder || shuffle(SYMBOLS.map((s) => s.id));
+    reelEl.dataset.symbolOrder = JSON.stringify(order);
     const strip = document.createElement('div');
     strip.className = 'slots-reel-strip';
     for (let cycle = 0; cycle < SPIN_CYCLES + 2; cycle++) {
-      for (let i = 0; i < SYMBOLS.length; i++) {
-        strip.appendChild(createSymbolEl(SYMBOLS[i]));
+      for (let i = 0; i < order.length; i++) {
+        strip.appendChild(createSymbolEl(SYMBOL_MAP[order[i]] || SYMBOLS[i]));
       }
     }
     reelEl.appendChild(strip);
     return strip;
   }
 
-  function getSymbolIndex(symbolId) {
-    return SYMBOLS.findIndex((s) => s.id === symbolId);
+  function getSymbolIndexInReel(reelEl, symbolId) {
+    try {
+      const order = JSON.parse(reelEl.dataset.symbolOrder || '[]');
+      return order.indexOf(symbolId);
+    } catch (_) {
+      return SYMBOLS.findIndex((s) => s.id === symbolId);
+    }
   }
 
   function show() {
@@ -83,9 +103,10 @@
     strip.style.transition = 'none';
     reelEl.classList.toggle('slots-reel-spinning', !!spinning);
     if (!spinning && symbolId) {
-      const idx = getSymbolIndex(symbolId);
+      const idx = getSymbolIndexInReel(reelEl, symbolId);
+      const len = 5;
       if (idx >= 0) {
-        const offset = SYMBOL_HEIGHT * (idx + CYCLE_OFFSET * SYMBOLS.length);
+        const offset = SYMBOL_HEIGHT * (idx + CYCLE_OFFSET * len);
         strip.style.transform = `translateY(-${offset}rem)`;
       }
     }
@@ -94,11 +115,12 @@
   function animateReelToSymbol(reelEl, symbolId, delayMs) {
     const strip = reelEl.querySelector('.slots-reel-strip');
     if (!strip) return;
-    const idx = getSymbolIndex(symbolId);
+    const idx = getSymbolIndexInReel(reelEl, symbolId);
+    const len = 5;
     if (idx < 0) return;
 
-    const endOffset = SYMBOL_HEIGHT * (idx + CYCLE_OFFSET * SYMBOLS.length);
-    const startOffset = SYMBOL_HEIGHT * (idx + (CYCLE_OFFSET + 6) * SYMBOLS.length);
+    const endOffset = SYMBOL_HEIGHT * (idx + CYCLE_OFFSET * len);
+    const startOffset = SYMBOL_HEIGHT * (idx + (CYCLE_OFFSET + 6) * len);
 
     strip.style.transition = 'none';
     strip.style.transform = `translateY(-${startOffset}rem)`;
@@ -150,13 +172,28 @@
       const ctrls = document.createElement('div');
       ctrls.className = 'slots-machine-controls';
       if (p.id === slotsMyId) {
+        const denomWrap = document.createElement('div');
+        denomWrap.className = 'slots-denom-buttons';
+        DENOMINATIONS.forEach((d) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'slots-denom-btn' + (d === slotsBet ? ' active' : '');
+          btn.textContent = '$' + d;
+          btn.dataset.bet = String(d);
+          btn.addEventListener('click', () => setBet(d));
+          denomWrap.appendChild(btn);
+        });
+        ctrls.appendChild(denomWrap);
+
+        const spinRow = document.createElement('div');
+        spinRow.className = 'slots-spin-row';
         const spinBtn = document.createElement('button');
         spinBtn.type = 'button';
         spinBtn.className = 'btn btn-bet slots-spin-btn';
-        spinBtn.textContent = `Spin $${SLOTS_COST}`;
-        spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < SLOTS_COST;
+        spinBtn.textContent = `Spin $${slotsBet}`;
+        spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < slotsBet;
         spinBtn.addEventListener('click', spin);
-        ctrls.appendChild(spinBtn);
+        spinRow.appendChild(spinBtn);
 
         const infoBtn = document.createElement('button');
         infoBtn.type = 'button';
@@ -165,7 +202,8 @@
         infoBtn.title = 'Payout table';
         infoBtn.setAttribute('aria-label', 'Payout table');
         infoBtn.addEventListener('click', openPayoutOverlay);
-        ctrls.appendChild(infoBtn);
+        spinRow.appendChild(infoBtn);
+        ctrls.appendChild(spinRow);
       }
       machine.appendChild(ctrls);
 
@@ -201,7 +239,7 @@
   }
 
   function spin() {
-    if (slotsSpinning[slotsMyId] || (slotsChips || 0) < SLOTS_COST) return;
+    if (slotsSpinning[slotsMyId] || (slotsChips || 0) < slotsBet) return;
     slotsSpinning[slotsMyId] = true;
     const machine = getMachineEl(slotsMyId);
     if (machine) {
@@ -218,7 +256,7 @@
       if (resultEl) resultEl.textContent = 'Spinning...';
     }
     updateChipsDisplay();
-    send({ type: 'slotSpin' });
+    send({ type: 'slotSpin', bet: slotsBet });
   }
 
   function handleMessage(msg) {
@@ -297,6 +335,7 @@
     slotsWs = ws;
     slotsMyId = myId;
     slotsChips = chips ?? 0;
+    slotsBet = DEFAULT_BET;
     slotsPlayers = players || [];
     slotsSpinning = {};
     slotsPendingResults = {};

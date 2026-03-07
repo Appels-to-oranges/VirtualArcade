@@ -2685,8 +2685,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 .slots-reel {
-  width: 3.5rem;
-  height: 4rem;
+  width: 2.5rem;
+  height: 2.5rem;
   background: #0d0a08;
   border-radius: 0;
   overflow: hidden;
@@ -2702,8 +2702,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 .slots-symbol {
-  width: 3.5rem;
-  height: 4rem;
+  width: 2.5rem;
+  height: 2.5rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -2711,8 +2711,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 .slots-symbol-img {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 1.8rem;
+  height: 1.8rem;
   object-fit: contain;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
@@ -2744,6 +2744,42 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 .slots-machine-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.slots-denom-buttons {
+  display: flex;
+  gap: 0.15rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.slots-denom-btn {
+  padding: 0.2rem 0.35rem;
+  font-size: 0.35rem;
+  font-family: 'Press Start 2P', monospace;
+  background: rgba(0,0,0,0.5);
+  border: 0.1rem solid #4a3728;
+  color: #c9b896;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.slots-denom-btn:hover {
+  color: #e8c878;
+  background: rgba(0,0,0,0.7);
+}
+
+.slots-denom-btn.active {
+  color: #ffd700;
+  border-color: #e8c878;
+  background: rgba(74,55,40,0.9);
+}
+
+.slots-spin-row {
   display: flex;
   gap: 0.25rem;
   align-items: center;
