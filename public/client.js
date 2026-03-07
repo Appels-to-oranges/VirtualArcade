@@ -635,7 +635,7 @@ function showGameSelectScreen(players, chatHistory) {
   updateGameCounts();
   if (chatHistory && lobbyChatMessages) {
     lobbyChatMessages.innerHTML = '';
-    chatHistory.forEach((m) => appendLobbyChat(m.playerId, m.nickname, m.text));
+    chatHistory.forEach((m) => appendLobbyChat(m.playerId, m.nickname, m.text, false));
     lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
   }
   if (currentRadioName && lobbyNowPlayingRadio) {
@@ -673,7 +673,7 @@ function updateGameCounts() {
   });
 }
 
-function appendLobbyChat(playerId, nick, text) {
+function appendLobbyChat(playerId, nick, text, applyDuration) {
   if (!lobbyChatMessages) return;
   const el = document.createElement('div');
   el.className = 'chat-message';
@@ -684,15 +684,30 @@ function appendLobbyChat(playerId, nick, text) {
   el.appendChild(document.createTextNode(' ' + text));
   lobbyChatMessages.appendChild(el);
   lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
+  if (applyDuration) {
+    const chatDur = getChatDurationMs();
+    if (chatDur !== Infinity) {
+      setTimeout(() => {
+        if (el.parentNode) el.remove();
+      }, chatDur);
+    }
+  }
 }
 
 function appendLobbyChatSystem(text) {
   if (!lobbyChatMessages) return;
   const el = document.createElement('div');
   el.className = 'chat-message system';
+  el.dataset.chatAt = String(Date.now());
   el.textContent = text;
   lobbyChatMessages.appendChild(el);
   lobbyChatMessages.scrollTop = lobbyChatMessages.scrollHeight;
+  const chatDur = getChatDurationMs();
+  if (chatDur !== Infinity) {
+    setTimeout(() => {
+      if (el.parentNode) el.remove();
+    }, chatDur);
+  }
 }
 
 function appendConfigChat(container, playerId, nick, text, myId) {
@@ -1241,14 +1256,14 @@ function handleMessage(msg) {
         const nick = msg.nickname || 'Someone';
         const themeName = (msg.theme || 'default').replace(/-/g, ' ');
         const display = themeName.charAt(0).toUpperCase() + themeName.slice(1);
-        appendLobbyChatSystem(nick + ' changed the theme to ' + display);
+        appendLobbyChatSystem(nick + ' changed the theme to ' + display, true);
       }
       break;
 
     case 'chat':
       if (msg.playerId !== myId) playMessageNotification();
       if (currentGameType === 'lobby' && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
-        appendLobbyChat(msg.playerId, msg.nickname, msg.text);
+        appendLobbyChat(msg.playerId, msg.nickname, msg.text, true);
         return;
       }
       if (currentGameType === 'checkers') {
@@ -1261,17 +1276,15 @@ function handleMessage(msg) {
         if (chChat) appendConfigChat(chChat, msg.playerId, msg.nickname, msg.text, myId);
         return;
       }
-      const chatDur = getChatDurationMs();
-      playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: chatDur === Infinity ? Infinity : Date.now() + chatDur };
+      const BUBBLE_DURATION_MS = 5000;
+      playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + BUBBLE_DURATION_MS };
       if (playerChatTimeouts[msg.playerId]) clearTimeout(playerChatTimeouts[msg.playerId]);
-      if (chatDur !== Infinity) {
-        playerChatTimeouts[msg.playerId] = setTimeout(() => {
-          delete playerChatMessages[msg.playerId];
-          delete playerChatTimeouts[msg.playerId];
-          renderTable();
-          if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
-        }, chatDur);
-      }
+      playerChatTimeouts[msg.playerId] = setTimeout(() => {
+        delete playerChatMessages[msg.playerId];
+        delete playerChatTimeouts[msg.playerId];
+        renderTable();
+        if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
+      }, BUBBLE_DURATION_MS);
       renderTable();
       if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
       break;
