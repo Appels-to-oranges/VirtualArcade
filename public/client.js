@@ -1495,23 +1495,34 @@ function renderTable() {
   if (count === 0) return;
 
   const CX = 50, CY = 46;
-  const RX = 42, RY = 36;
   const BET_LERP = 0.55;
 
-  function polyPositions(n) {
+  function sidePositions(n) {
     const out = [];
-    for (let i = 0; i < n; i++) {
-      const angle = (i / n) * Math.PI * 2 + Math.PI / 2;
-      const sx = CX + RX * Math.cos(angle);
-      const sy = Math.max(10, Math.min(84, CY + RY * Math.sin(angle)));
-      const bx = sx + (CX - sx) * BET_LERP;
+    out.push({ seat: [50, 88], bet: [50, 72] });
+    const others = n - 1;
+    const leftCount = Math.ceil(others / 2);
+    const rightCount = others - leftCount;
+    const leftX = 14, rightX = 86;
+    const yMin = 52, yMax = 82;
+    for (let i = 0; i < leftCount; i++) {
+      const t = leftCount === 1 ? 0.5 : i / (leftCount - 1);
+      const sy = yMin + (yMax - yMin) * t;
+      const bx = leftX + (CX - leftX) * BET_LERP;
       const by = sy + (CY - sy) * BET_LERP;
-      out.push({ seat: [sx, sy], bet: [bx, by] });
+      out.push({ seat: [leftX, sy], bet: [bx, by] });
+    }
+    for (let i = 0; i < rightCount; i++) {
+      const t = rightCount === 1 ? 0.5 : i / (rightCount - 1);
+      const sy = yMin + (yMax - yMin) * t;
+      const bx = rightX + (CX - rightX) * BET_LERP;
+      const by = sy + (CY - sy) * BET_LERP;
+      out.push({ seat: [rightX, sy], bet: [bx, by] });
     }
     return out;
   }
 
-  const positions = polyPositions(count);
+  const positions = sidePositions(count);
   const myPosIdx = players.findIndex((p) => p.id === myId);
   const rotateBy = myPosIdx > 0 ? myPosIdx : 0;
 
