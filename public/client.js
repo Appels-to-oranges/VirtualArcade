@@ -1534,17 +1534,17 @@ function renderTable() {
   const count = players.length;
   if (count === 0) return;
 
-  const CX = 50, CY = 46;
+  const CX = 50, CY = 36;
   const BET_LERP = 0.55;
 
   function sidePositions(n) {
     const out = [];
-    out.push({ seat: [50, 88], bet: [50, 72] });
+    out.push({ seat: [50, 78], bet: [50, 62] });
     const others = n - 1;
     const leftCount = Math.ceil(others / 2);
     const rightCount = others - leftCount;
     const leftX = 14, rightX = 86;
-    const yMin = 52, yMax = 82;
+    const yMin = 42, yMax = 72;
     for (let i = 0; i < leftCount; i++) {
       const t = leftCount === 1 ? 0.5 : i / (leftCount - 1);
       const sy = yMin + (yMax - yMin) * t;

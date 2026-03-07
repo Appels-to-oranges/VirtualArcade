@@ -1524,7 +1524,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 /* Community area: pot + board + winning hand - centered on table */
 .community-area {
   position: absolute;
-  top: 46%;
+  top: 36%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
