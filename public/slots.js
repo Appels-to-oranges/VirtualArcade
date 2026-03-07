@@ -9,16 +9,11 @@
   const CYCLE_OFFSET = 2;
 
   const SYMBOLS = [
-    { id: 'seven', label: '7', img: null },
-    { id: 'bar', label: 'BAR', img: null },
-    { id: 'diamond', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f48e.svg' },
-    { id: 'star', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2b50.svg' },
-    { id: 'heart', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/2764.svg' },
-    { id: 'cherry', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f352.svg' },
-    { id: 'lemon', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f34b.svg' },
-    { id: 'grapes', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f347.svg' },
-    { id: 'bell', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f514.svg' },
-    { id: 'clover', label: '', img: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f340.svg' },
+    { id: 'crayfish', label: '', img: '/slot-assets/blue-crayfish.png' },
+    { id: 'alligator', label: '', img: '/slot-assets/Copy of american-alligator.png' },
+    { id: 'catfish', label: '', img: '/slot-assets/Copy of catfish-image.png' },
+    { id: 'worm', label: '', img: '/slot-assets/Copy of worm-bait.png' },
+    { id: 'hook', label: '', img: '/slot-assets/fishing-hook-1.png' },
   ];
 
   let slotsWs = null;

@@ -921,6 +921,11 @@ function handleMessage(msg) {
             window.slots.init(ws, myId, me?.chips ?? 0);
             window.slots.show();
           }
+          const slotsChat = document.getElementById('slots-chat-messages');
+          if (slotsChat && msg.chatHistory) {
+            slotsChat.innerHTML = '';
+            msg.chatHistory.forEach((m) => appendConfigChat(slotsChat, m.playerId, m.nickname, m.text, myId));
+          }
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
         } else {
@@ -991,6 +996,11 @@ function handleMessage(msg) {
           if (window.slots) {
             window.slots.init(ws, myId, me?.chips ?? 0);
             window.slots.show();
+          }
+          const slotsChat = document.getElementById('slots-chat-messages');
+          if (slotsChat && msg.chatHistory) {
+            slotsChat.innerHTML = '';
+            msg.chatHistory.forEach((m) => appendConfigChat(slotsChat, m.playerId, m.nickname, m.text, myId));
           }
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
@@ -1346,6 +1356,11 @@ function handleMessage(msg) {
       if (currentGameType === 'chess') {
         const chChat = document.getElementById('ch-config-chat-messages');
         if (chChat) appendConfigChat(chChat, msg.playerId, msg.nickname, msg.text, myId);
+        return;
+      }
+      if (currentGameType === 'slots') {
+        const slotsChat = document.getElementById('slots-chat-messages');
+        if (slotsChat) appendConfigChat(slotsChat, msg.playerId, msg.nickname, msg.text, myId);
         return;
       }
       const BUBBLE_DURATION_MS = 5000;
@@ -2458,6 +2473,26 @@ const bjChatInput = document.getElementById('bj-chat-input');
 if (bjChatInput) {
   bjChatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); sendBjChat(); }
+  });
+}
+
+function sendSlotsChat() {
+  const input = document.getElementById('slots-chat-input');
+  const text = input?.value?.trim();
+  if (!text || !ws || ws.readyState !== 1) return;
+  try {
+    playSendMessage();
+    ws.send(JSON.stringify({ type: 'chat', text }));
+    input.value = '';
+  } catch (e) {
+    showToast('Failed to send message');
+  }
+}
+
+const slotsChatInput = document.getElementById('slots-chat-input');
+if (slotsChatInput) {
+  slotsChatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); sendSlotsChat(); }
   });
 }
 

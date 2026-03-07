@@ -2083,6 +2083,7 @@ wss.on('connection', (ws) => {
             dealerIdx: room.dealerIdx,
           },
           radio: room.radio,
+          chatHistory: (room.chatHistory || []).slice(-LOBBY_CHAT_MAX),
         }));
       } else if (type === 'ckWagerProposal') {
         const data = clients.get(ws);
@@ -2374,8 +2375,8 @@ wss.on('connection', (ws) => {
         });
       } else if (type === 'slotSpin') {
         const SLOTS_COST = 10;
-        const SLOTS_SYMBOLS = ['seven', 'bar', 'diamond', 'star', 'heart', 'cherry', 'lemon', 'grapes', 'bell', 'clover'];
-        const SLOTS_PAYOUTS = { seven: 150, bar: 100, diamond: 80, star: 60, bell: 50, heart: 40, cherry: 30, grapes: 25, lemon: 20, clover: 15 };
+        const SLOTS_SYMBOLS = ['crayfish', 'alligator', 'catfish', 'worm', 'hook'];
+        const SLOTS_PAYOUTS = { crayfish: 100, alligator: 80, catfish: 60, worm: 40, hook: 25 };
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
@@ -2392,7 +2393,7 @@ wss.on('connection', (ws) => {
         let payout = 0;
         if (reels[0] === reels[1] && reels[1] === reels[2]) {
           payout = SLOTS_PAYOUTS[reels[0]] || 0;
-        } else if ((reels[0] === 'cherry' && reels[1] === 'cherry') || (reels[1] === 'cherry' && reels[2] === 'cherry') || (reels[0] === 'cherry' && reels[2] === 'cherry')) {
+        } else if ((reels[0] === 'worm' && reels[1] === 'worm') || (reels[1] === 'worm' && reels[2] === 'worm') || (reels[0] === 'worm' && reels[2] === 'worm')) {
           payout = 5;
         }
         player.chips = (player.chips || 0) + payout;

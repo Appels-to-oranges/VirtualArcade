@@ -2610,14 +2610,32 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   margin-left: 0.3rem;
 }
 
-/* ── Slots ── */
+/* ── Slots (pixel art, bayou theme) ── */
+#slots-screen {
+  position: fixed;
+  inset: 0;
+  background: url('/bayou_background.jpg') center / cover no-repeat;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#slots-screen .game-scale-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 #slots-screen .room-bar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.5rem;
-  background: #111;
-  border-bottom: 0.1rem solid #333;
+  background: rgba(0, 0, 0, 0.7);
+  border-bottom: 0.1rem solid #4a3728;
+  flex-shrink: 0;
 }
 
 .slots-container {
@@ -2625,6 +2643,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
   padding: 1rem;
   min-height: 0;
 }
@@ -2635,34 +2654,41 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem;
-  background: linear-gradient(180deg, #8b6914 0%, #6b5010 100%);
-  border: 0.3rem solid #c9b896;
-  border-radius: 0.5rem;
-  box-shadow: inset 0 0 1rem rgba(0,0,0,0.4), 0 0.5rem 1.5rem rgba(0,0,0,0.5);
+  background: rgba(75, 55, 40, 0.95);
+  border: 0.25rem solid #5c4532;
+  border-radius: 0;
+  box-shadow: inset 0 0 1rem rgba(0,0,0,0.5), 0 0.5rem 1.5rem rgba(0,0,0,0.6);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  flex-shrink: 0;
 }
 
 .slots-reels {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.25rem;
   padding: 0.5rem;
-  background: #1a1a1a;
-  border: 0.2rem solid #333;
-  border-radius: 0.3rem;
+  background: #1a1510;
+  border: 0.2rem solid #3d2e20;
+  border-radius: 0;
+  image-rendering: pixelated;
 }
 
 .slots-reel {
   width: 3.5rem;
   height: 4rem;
-  background: #0d0d0d;
-  border-radius: 0.2rem;
+  background: #0d0a08;
+  border-radius: 0;
   overflow: hidden;
   position: relative;
+  image-rendering: pixelated;
 }
 
 .slots-reel-strip {
   display: flex;
   flex-direction: column;
   will-change: transform;
+  image-rendering: pixelated;
 }
 
 .slots-symbol {
@@ -2675,15 +2701,18 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 }
 
 .slots-symbol-img {
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .slots-symbol-text {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: bold;
-  color: #ffd700;
+  color: #e8c878;
   font-family: 'Press Start 2P', monospace;
 }
 
@@ -2695,6 +2724,72 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   0% { filter: brightness(1); }
   50% { filter: brightness(1.3); }
   100% { filter: brightness(1); }
+}
+
+.slots-payline {
+  image-rendering: pixelated;
+}
+
+#slots-spin-btn {
+  image-rendering: pixelated;
+  border-radius: 0;
+}
+
+.slots-chat-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 10rem;
+  max-width: 14rem;
+  background: rgba(0, 0, 0, 0.85);
+  border: 0.2rem solid #4a3728;
+  border-radius: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.slots-chat-header {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.5rem;
+  color: #c9b896;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  border-bottom: 0.1rem solid #4a3728;
+  background: rgba(50, 40, 30, 0.9);
+}
+
+.slots-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 6rem;
+  font-size: 0.4rem;
+}
+
+.slots-chat-messages .chat-message,
+.slots-chat-messages .ck-chat-msg {
+  font-size: 0.4rem;
+}
+
+.slots-chat-input-panel {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  border-top: 0.1rem solid #4a3728;
+  background: rgba(30, 25, 20, 0.95);
+  flex-shrink: 0;
+}
+
+.slots-chat-input-panel .chat-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.4rem;
+  padding: 0.3rem;
+  background: #1a1510;
+  border: 0.1rem solid #4a3728;
+  color: #e8c878;
 }
 
 .slots-payline {
