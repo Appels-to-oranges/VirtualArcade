@@ -838,8 +838,8 @@ function hideAllGameScreens(exceptGameType) {
   if (bjScreen && exceptGameType !== 'blackjack') bjScreen.classList.add('hidden');
   const slotsScreen = document.getElementById('slots-screen');
   if (slotsScreen && exceptGameType !== 'slots') slotsScreen.classList.add('hidden');
-  if (window.checkers) window.checkers.hide();
-  if (window.chess) window.chess.hide();
+  if (window.checkers && exceptGameType !== 'checkers') window.checkers.hide();
+  if (window.chess && exceptGameType !== 'chess') window.chess.hide();
   if (gameSelectScreen && exceptGameType !== 'lobby') gameSelectScreen.classList.add('hidden');
 }
 

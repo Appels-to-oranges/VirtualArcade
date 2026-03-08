@@ -3388,6 +3388,17 @@ body.lobby-retro .bj-chat-bubble {
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
 }
 
+/* ── Chess screen (ensure visibility when shown) ── */
+#ch-screen {
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* ── Checkers / Chess (inline-style overrides) ── */
 body.lobby-retro #ck-screen .btn-start,
 body.lobby-retro #ck-screen .btn-restart {

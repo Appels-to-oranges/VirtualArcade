@@ -290,7 +290,7 @@
     var s = document.createElement('style');
     s.id = 'ch-styles';
     s.textContent =
-      '#ch-screen{position:fixed;inset:0;background:#0a0a0a;z-index:1;' +
+      '#ch-screen{position:fixed;inset:0;background:#0a0a0a;z-index:50;' +
         'display:flex;flex-direction:column;align-items:center;' +
         "font-family:'Press Start 2P',monospace;color:#ddd;overflow:hidden}" +
 
@@ -956,7 +956,8 @@
         renderAll();
         break;
 
-      case 'chBoardUpdate':
+      case 'chBoardUpdate': {
+        var prevChTurn = chTurn;
         chBoard = msg.board;
         chTurn = msg.turn;
         chSelected = null;
