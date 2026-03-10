@@ -36,7 +36,13 @@ $files = @(
     @{ src = "player join room.wav"; dest = "player join room.wav" },
     @{ src = "player or bot joins game.wav"; dest = "player or bot joins game.wav" },
     @{ src = "re-buy.wav"; dest = "re-buy.wav" },
-    @{ src = "send message.wav"; dest = "send message.wav" }
+    @{ src = "send message.wav"; dest = "send message.wav" },
+    @{ src = "SWAMP_AMBIENCE.wav"; dest = "SWAMP_AMBIENCE.wav" },
+    @{ src = "SWAMP_AMBIENCE.mp3"; dest = "SWAMP_AMBIENCE.mp3" },
+    @{ src = "swamp_jackpot.wav"; dest = "swamp_jackpot.wav" },
+    @{ src = "swamp_jackpot.mp3"; dest = "swamp_jackpot.mp3" },
+    @{ src = "slots_lose.wav"; dest = "slots_lose.wav" },
+    @{ src = "slots_lose.mp3"; dest = "slots_lose.mp3" }
 )
 
 foreach ($f in $files) {

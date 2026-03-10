@@ -296,6 +296,7 @@
       const pid = msg.playerId;
       const reels = msg.reels || [];
       const payout = msg.payout ?? 0;
+      const multiplier = msg.multiplier ?? 0;
       const chips = msg.chips ?? 0;
 
       if (pid === slotsMyId) slotsChips = chips;
@@ -317,7 +318,7 @@
       }
 
       const totalDuration = 2 * REEL_STAGGER_MS + SPIN_DURATION_MS;
-      slotsPendingResults[pid] = { reels, payout, totalDuration };
+      slotsPendingResults[pid] = { reels, payout, multiplier, totalDuration };
       setTimeout(() => {
         slotsSpinning[pid] = false;
         delete slotsPendingResults[pid];
@@ -339,8 +340,14 @@
           }
         }
         updateChipsDisplay();
-        if (pid === slotsMyId && typeof window !== 'undefined') {
+        if (multiplier === 50 && typeof window !== 'undefined' && window.playSwampJackpot) {
+          window.playSwampJackpot();
+        } else if (pid === slotsMyId && typeof window !== 'undefined') {
           if (payout > 0 && window.playWinner) window.playWinner();
+          else if (window.playSlotsLose) window.playSlotsLose();
+        }
+        if (multiplier === 50 && typeof window !== 'undefined' && window.onSlotsJackpotReelsStopped) {
+          window.onSlotsJackpotReelsStopped(pid);
         }
       }, totalDuration);
     }

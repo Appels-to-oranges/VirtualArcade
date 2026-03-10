@@ -9,6 +9,9 @@ const SOUND_FILES = {
   ambience: ['BACKGROUND_CASINO_AMBIENCE.wav', 'BACKGROUND_CASINO_AMBIENCE.mp3'],
   ambienceFireplace: ['fireplace.wav'],
   ambienceRain: ['RAIN_AMBIENCE.wav'],
+  ambienceSwamp: ['SWAMP_AMBIENCE.wav', 'SWAMP_AMBIENCE.mp3'],
+  swampJackpot: ['swamp_jackpot.wav', 'swamp_jackpot.mp3'],
+  slotsLose: ['slots_lose.wav', 'slots_lose.mp3'],
   winner: ['winner.wav', 'winner together.wav', 'winner sound.wav', 'winner.mp3'],
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
   betting: ['chips_betting.wav', 'chips_betting.mp3'],
@@ -54,6 +57,9 @@ const soundCardPutDown = createSoundAudio(SOUND_FILES.cardPutDown);
 const soundAmbience = createSoundAudio(SOUND_FILES.ambience);
 const soundAmbienceFireplace = createSoundAudio(SOUND_FILES.ambienceFireplace);
 const soundAmbienceRain = createSoundAudio(SOUND_FILES.ambienceRain);
+const soundAmbienceSwamp = createSoundAudio(SOUND_FILES.ambienceSwamp);
+const soundSwampJackpot = createSoundAudio(SOUND_FILES.swampJackpot);
+const soundSlotsLose = createSoundAudio(SOUND_FILES.slotsLose);
 const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 const soundBetting = createSoundAudio(SOUND_FILES.betting);
@@ -238,6 +244,14 @@ function playWinCheckersChess() {
   playSound(soundWinCheckersChess, CARD_FX_VOLUME_KEY);
 }
 
+function playSwampJackpot() {
+  playSound(soundSwampJackpot, CARD_FX_VOLUME_KEY);
+}
+
+function playSlotsLose() {
+  playSound(soundSlotsLose, CARD_FX_VOLUME_KEY);
+}
+
 function playLoseCheckersChess() {
   playSound(soundLoseCheckersChess, CARD_FX_VOLUME_KEY);
 }
@@ -289,6 +303,7 @@ function playTimeLowAlert() {
 const AMBIENCE_FX_KEY = 'arcade_ambience_fx';
 
 function getAmbienceAudio() {
+  if (currentGameType === 'slots') return soundAmbienceSwamp;
   const fx = localStorage.getItem(AMBIENCE_FX_KEY) || 'casino';
   if (fx === 'fireplace') return soundAmbienceFireplace;
   if (fx === 'rain') return soundAmbienceRain;
@@ -302,7 +317,7 @@ function startAmbience() {
 }
 
 function stopAmbience() {
-  [soundAmbience, soundAmbienceFireplace, soundAmbienceRain].forEach(a => {
+  [soundAmbience, soundAmbienceFireplace, soundAmbienceRain, soundAmbienceSwamp].forEach(a => {
     a.pause();
     a.currentTime = 0;
   });
@@ -509,6 +524,16 @@ function getChatDurationMs() {
 const playerChatMessages = {};
 const playerChatTimeouts = {};
 if (typeof window !== 'undefined') window.playerChatMessages = playerChatMessages;
+
+window.onSlotsJackpotReelsStopped = (playerId) => {
+  const pending = window.slotsPendingJackpotChat && window.slotsPendingJackpotChat[playerId];
+  if (pending) {
+    const slotsChat = document.getElementById('slots-chat-messages');
+    if (slotsChat) appendConfigChat(slotsChat, pending.playerId, pending.nickname, pending.text, myId);
+    if (playerId !== myId) playMessageNotification();
+    delete window.slotsPendingJackpotChat[playerId];
+  }
+};
 
 const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
 const radioAudio = new Audio();
@@ -1361,7 +1386,13 @@ function handleMessage(msg) {
       }
       break;
 
-    case 'chat':
+    case 'chat': {
+      const isJackpotChat = currentGameType === 'slots' && msg.text && msg.text.includes('won the jackpot');
+      if (isJackpotChat) {
+        if (!window.slotsPendingJackpotChat) window.slotsPendingJackpotChat = {};
+        window.slotsPendingJackpotChat[msg.playerId] = { playerId: msg.playerId, nickname: msg.nickname, text: msg.text };
+        break;
+      }
       if (msg.playerId !== myId) playMessageNotification();
       if (currentGameType === 'lobby' && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
         appendLobbyChat(msg.playerId, msg.nickname, msg.text, true);
