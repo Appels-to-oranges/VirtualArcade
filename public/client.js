@@ -1976,12 +1976,6 @@ function updateControls() {
   const holdemChipsEl = document.getElementById('holdem-chips-display');
   if (holdemChipsEl) holdemChipsEl.textContent = '$' + (me?.chips ?? 0);
 
-  const canRebuy = !gameState && myChips <= 0;
-  if (btnRebuy) {
-    btnRebuy.classList.toggle('hidden', !canRebuy);
-    btnRebuy.disabled = !canRebuy;
-  }
-
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
   btnCall.disabled = !isMyTurn || folded || toCall <= 0;
@@ -2042,13 +2036,6 @@ const addBotBtnEl = document.getElementById('add-bot-btn');
 if (addBotBtnEl) {
   addBotBtnEl.addEventListener('click', () => {
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'addBot' }));
-  });
-}
-
-const btnRebuy = document.getElementById('btn-rebuy');
-if (btnRebuy) {
-  btnRebuy.addEventListener('click', () => {
-    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'rebuy' }));
   });
 }
 
