@@ -298,7 +298,7 @@
       }
     }
 
-    if (player && player.chips === 0 && typeof window !== 'undefined' && window.scheduleBrokeKickToLobby) {
+    if (player && player.chips === 0 && bjGameState === 'lobby' && typeof window !== 'undefined' && window.scheduleBrokeKickToLobby) {
       window.scheduleBrokeKickToLobby();
     } else if (typeof window !== 'undefined' && window.cancelBrokeKickTimer) {
       window.cancelBrokeKickTimer();
