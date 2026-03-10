@@ -1425,6 +1425,7 @@ function handleMessage(msg) {
       renderTable();
       if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
       break;
+    }
 
     case 'error':
       if (msg.message && msg.message.includes('Game in progress') && ws) {
