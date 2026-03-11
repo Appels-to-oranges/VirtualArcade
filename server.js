@@ -12,6 +12,9 @@ const authRouter = require('./auth');
 const PORT = process.env.PORT || 3000;
 const app = express();
 
+// Trust proxy so req.protocol is correct behind Railway/nginx (fixes OAuth redirect_uri using http instead of https)
+app.set('trust proxy', 1);
+
 const sessionMiddleware = session({
   store: new PgSession({ pool, tableName: 'session', createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || 'virtual-arcade-dev-secret-change-me',
