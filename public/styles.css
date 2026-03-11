@@ -746,6 +746,98 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   color: #0a0a0a;
 }
 
+/* ── Auth screen ── */
+#auth-screen {
+  --join-accent: #c9b896;
+  --join-btn-bg: #238636;
+  --join-btn-hover: #2ea043;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+#auth-screen.splash-waterfront { --join-accent: #d4a55c; --join-btn-bg: #8a6a30; --join-btn-hover: #a07838; }
+#auth-screen.splash-buildings { --join-accent: #7a8a9e; --join-btn-bg: #3e4e62; --join-btn-hover: #4e5e72; }
+#auth-screen.splash-apartments { --join-accent: #d4a060; --join-btn-bg: #8a6828; --join-btn-hover: #a07830; }
+#auth-screen.splash-fireflies { --join-accent: #5ca882; --join-btn-bg: #2e6e4e; --join-btn-hover: #3e7e5e; }
+#auth-screen.splash-snowy-lot { --join-accent: #8a92b8; --join-btn-bg: #4a4e6a; --join-btn-hover: #5a5e7a; }
+#auth-screen.splash-rolling-fog { --join-accent: #7a9a6e; --join-btn-bg: #3d4a35; --join-btn-hover: #4d5a45; }
+
+#auth-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 0;
+}
+
+#auth-screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card {
+  max-width: 22rem;
+}
+
+.auth-status {
+  text-align: center;
+  font-size: 0.45rem;
+  min-height: 1.2em;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.auth-status.error {
+  color: #f85149;
+}
+
+.auth-toggle {
+  text-align: center;
+  font-size: 0.42rem;
+  color: #8b949e;
+  margin-top: 1rem;
+}
+
+.auth-toggle a {
+  color: var(--join-accent, #c9b896);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.auth-toggle a:hover {
+  text-decoration: underline;
+}
+
+.auth-logout-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  font-size: 0.4rem;
+  font-family: 'Press Start 2P', monospace;
+  color: #8b949e;
+  background: transparent;
+  border: 0.0625rem solid #30363d;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.auth-logout-btn:hover {
+  color: #f85149;
+  border-color: #f85149;
+}
+
 /* ── Join screen ── */
 #join-screen {
   --join-accent: #c9b896;
@@ -3039,10 +3131,15 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
    ══════════════════════════════════════════ */
 
 /* ── Join / splash screen ── */
-body.lobby-retro .join-card {
+body.lobby-retro .join-card,
+body.lobby-retro .auth-card {
   border-radius: 0;
   border-width: 2px;
   box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7);
+}
+
+body.lobby-retro .auth-logout-btn {
+  border-radius: 0;
 }
 
 body.lobby-retro .join-form .form-control {

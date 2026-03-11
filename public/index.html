@@ -9,34 +9,73 @@
 </head>
 <body>
   <div class="message-toast" id="message-toast"></div>
-  <div id="join-screen">
-    <div class="join-card">
+
+  <div id="auth-screen">
+    <div class="join-card auth-card">
       <h1>VIRTUAL ARCADE</h1>
       <p class="tagline">Room-based games with friends</p>
+      <div id="auth-status" class="auth-status"></div>
+
+      <div id="auth-login-form" class="join-form">
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" class="form-control" placeholder="Enter email" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" class="form-control" placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button type="button" id="auth-login-btn" class="btn-join">Log In</button>
+        <p class="auth-toggle">Don't have an account? <a href="#" id="auth-show-register">Sign up</a></p>
+      </div>
+
+      <div id="auth-register-form" class="join-form hidden">
+        <div class="form-group">
+          <label for="auth-reg-username">Username</label>
+          <input type="text" id="auth-reg-username" class="form-control" placeholder="Choose a username" maxlength="20" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="auth-reg-email">Email</label>
+          <input type="email" id="auth-reg-email" class="form-control" placeholder="Enter email" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="auth-reg-password">Password</label>
+          <input type="password" id="auth-reg-password" class="form-control" placeholder="Min 6 characters" autocomplete="new-password">
+        </div>
+        <button type="button" id="auth-register-btn" class="btn-join">Create Account</button>
+        <p class="auth-toggle">Already have an account? <a href="#" id="auth-show-login">Log in</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="join-screen" class="hidden">
+    <div class="join-card">
+      <h1>VIRTUAL ARCADE</h1>
+      <p class="tagline">Welcome back, <span id="join-welcome-name"></span></p>
       <div id="join-form" class="join-form">
         <div class="form-group">
           <label for="room-key">Room key</label>
           <input type="text" id="room-key" class="form-control" placeholder="Enter room key" maxlength="32" autocomplete="off">
         </div>
-        <div class="form-group">
-          <label for="nickname">Alias</label>
-          <input type="text" id="nickname" class="form-control" placeholder="Enter alias" maxlength="20" autocomplete="off">
-        </div>
         <button type="button" id="join-btn" class="btn-join">Enter Room</button>
       </div>
       <p class="hint">Share the same room key to play together.</p>
+      <button type="button" id="auth-logout-btn" class="auth-logout-btn">Log Out</button>
     </div>
   </div>
   <script>
     (function() {
       var themes = ['waterfront', 'buildings', 'apartments', 'fireflies', 'snowy-lot', 'rolling-fog'];
       var pick = themes[Math.floor(Math.random() * themes.length)];
-      var el = document.getElementById('join-screen');
-      el.classList.add('splash-' + pick);
-      var img = new Image();
-      var ext = '.gif';
-      img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + ext + ')'; };
-      img.src = '/images/themes/' + pick + ext;
+      ['auth-screen', 'join-screen'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add('splash-' + pick);
+        var img = new Image();
+        var ext = '.gif';
+        img.onload = function() { el.style.backgroundImage = 'url(/images/themes/' + pick + ext + ')'; };
+        img.src = '/images/themes/' + pick + ext;
+      });
       if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');
     })();
   </script>

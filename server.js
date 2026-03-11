@@ -1,19 +1,36 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
 const { WebSocketServer } = require('ws');
 const Hand = require('pokersolver').Hand;
 const { decideAction, getPosition } = require('./bot_decide');
+const pool = require('./db');
+const authRouter = require('./auth');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 
-// Serve static files from public
+const sessionMiddleware = session({
+  store: new PgSession({ pool, tableName: 'session', createTableIfMissing: true }),
+  secret: process.env.SESSION_SECRET || 'virtual-arcade-dev-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  },
+});
+
+app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/auth', authRouter);
 
 app.get('/health', (req, res) => res.send('ok'));
 
-// Serve card assets - use ./public/cards if bundled, else ../cards (Desktop)
 const cardsPath = path.join(__dirname, 'public', 'cards');
 const cardsPathAlt = path.join(__dirname, '..', 'cards');
 if (fs.existsSync(cardsPath)) {
@@ -24,10 +41,28 @@ if (fs.existsSync(cardsPath)) {
 
 const HOST = process.env.HOST || '0.0.0.0';
 const server = app.listen(PORT, HOST, () => {
-  console.log(`Poker running at http://${HOST}:${PORT}`);
+  console.log(`Virtual Arcade running at http://${HOST}:${PORT}`);
 });
 
 const wss = new WebSocketServer({ server });
+
+async function saveUserChips(userId, chips) {
+  if (!userId) return;
+  try {
+    await pool.query('UPDATE users SET chips = $1 WHERE id = $2', [chips, userId]);
+  } catch (err) {
+    console.error('Failed to save chips:', err.message);
+  }
+}
+
+function parseSessionFromWs(ws, req) {
+  return new Promise((resolve) => {
+    sessionMiddleware(req, {}, () => {
+      ws._userId = req.session?.userId || null;
+      resolve(ws._userId);
+    });
+  });
+}
 
 const rooms = new Map();
 const clients = new Map();
@@ -518,6 +553,10 @@ function showdown(roomKey) {
   room.gameState = null;
   room.holdemPlayers = null;
   clearTurnTimer(room);
+
+  players.forEach((p) => {
+    if (p.dbUserId) saveUserChips(p.dbUserId, p.chips);
+  });
 
   const hasBrokeBots = room.players.some((p) => p.isBot && p.chips <= 0);
 
@@ -1130,6 +1169,10 @@ function bjCalculateResults(roomKey) {
     players: results,
   });
 
+  bjPl.forEach((p) => {
+    if (p.dbUserId) saveUserChips(p.dbUserId, p.chips);
+  });
+
   room.bjPhase = 'lobby';
   room.phase = 'lobby';
 }
@@ -1444,6 +1487,7 @@ function ckMakeMove(roomKey, playerId, from, to) {
         winnerNickname: winnerP?.nickname || 'Winner',
         loserNickname: loserP?.nickname || 'Opponent',
       });
+      room.ckPlayersList?.forEach((p) => { if (p.dbUserId) saveUserChips(p.dbUserId, p.chips); });
     }
   }
 }
@@ -1841,11 +1885,13 @@ function chMakeMove(roomKey, playerId, from, to) {
       winnerNickname: winnerP?.nickname || 'Winner',
       loserNickname: loserP?.nickname || 'Opponent',
     });
+    room.chPlayersList?.forEach((p) => { if (p.dbUserId) saveUserChips(p.dbUserId, p.chips); });
   }
 }
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   ws.id = crypto.randomUUID();
+  parseSessionFromWs(ws, req);
 
   ws.on('message', (raw) => {
     try {
@@ -1874,6 +1920,8 @@ wss.on('connection', (ws) => {
           gameFull = true;
         }
 
+        const startingChips = msg._dbChips ?? 100;
+
         const existing = room.players.find((p) => p.ws === ws);
         if (existing) {
           existing.nickname = safeNick;
@@ -1882,7 +1930,7 @@ wss.on('connection', (ws) => {
             id: ws.id,
             ws,
             nickname: safeNick,
-            chips: 100,
+            chips: startingChips,
             hand: null,
             betThisRound: 0,
             totalBet: 0,
@@ -1891,6 +1939,7 @@ wss.on('connection', (ws) => {
             winStreak: 0,
             maxWinStreak: 0,
             currentView: targetGameType,
+            dbUserId: ws._userId || null,
           });
         }
         if (existing) existing.currentView = targetGameType;
@@ -1928,7 +1977,7 @@ wss.on('connection', (ws) => {
           type: 'userJoined',
           id: ws.id,
           nickname: safeNick,
-          chips: 100,
+          chips: startingChips,
           winStreak: 0,
           maxWinStreak: 0,
           currentView: targetGameType,
@@ -2365,6 +2414,7 @@ wss.on('connection', (ws) => {
         if (player.chips > 0) return;
         if (room.phase !== 'lobby') return;
         player.chips = 100;
+        if (player.dbUserId) saveUserChips(player.dbUserId, 100);
         ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 100 }));
         broadcastToRoom(data.roomKey, {
           type: 'userRebuy',
@@ -2407,6 +2457,7 @@ wss.on('connection', (ws) => {
         }
         const payout = validBet * multiplier;
         player.chips = (player.chips || 0) + payout;
+        if (player.dbUserId) saveUserChips(player.dbUserId, player.chips);
         const isJackpot = multiplier === 50;
         if (isJackpot) {
           const chatMsg = { playerId: ws.id, nickname: player.nickname, text: (player.nickname || 'Someone') + ' won the jackpot!' };

@@ -419,10 +419,12 @@ function evaluateHand(holeCards, communityCards) {
   }
 }
 
+const authScreen = document.getElementById('auth-screen');
 const joinScreen = document.getElementById('join-screen');
 const gameScreen = document.getElementById('game-screen');
 const roomKeyInput = document.getElementById('room-key');
-const nicknameInput = document.getElementById('nickname');
+
+let authUser = null;
 const playersContainer = document.getElementById('players-container');
 const communityAreaEl = document.getElementById('community-area');
 const boardCardsEl = document.getElementById('board-cards');
@@ -583,19 +585,146 @@ function applyTheme(theme) {
 
 let lobbyPlayers = [];
 
+// ── Auth system ──
+
+function showAuthError(text) {
+  const el = document.getElementById('auth-status');
+  if (el) { el.textContent = text; el.className = 'auth-status error'; }
+}
+
+function clearAuthError() {
+  const el = document.getElementById('auth-status');
+  if (el) { el.textContent = ''; el.className = 'auth-status'; }
+}
+
+function showAuthScreen() {
+  if (authScreen) authScreen.classList.remove('hidden');
+  if (joinScreen) joinScreen.classList.add('hidden');
+  hideAllGameScreens();
+}
+
+function showJoinScreenAuth() {
+  if (authScreen) authScreen.classList.add('hidden');
+  if (joinScreen) joinScreen.classList.remove('hidden');
+  hideAllGameScreens();
+  const welcomeName = document.getElementById('join-welcome-name');
+  if (welcomeName && authUser) welcomeName.textContent = authUser.username;
+}
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/auth/me');
+    if (res.ok) {
+      authUser = await res.json();
+      nickname = authUser.username;
+      showJoinScreenAuth();
+    } else {
+      authUser = null;
+      showAuthScreen();
+    }
+  } catch {
+    authUser = null;
+    showAuthScreen();
+  }
+}
+
+async function doLogin() {
+  clearAuthError();
+  const email = document.getElementById('auth-email')?.value?.trim();
+  const password = document.getElementById('auth-password')?.value;
+  if (!email || !password) { showAuthError('Email and password are required'); return; }
+  try {
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error || 'Login failed'); return; }
+    authUser = data;
+    nickname = authUser.username;
+    showJoinScreenAuth();
+  } catch {
+    showAuthError('Connection failed');
+  }
+}
+
+async function doRegister() {
+  clearAuthError();
+  const username = document.getElementById('auth-reg-username')?.value?.trim();
+  const email = document.getElementById('auth-reg-email')?.value?.trim();
+  const password = document.getElementById('auth-reg-password')?.value;
+  if (!username || !email || !password) { showAuthError('All fields are required'); return; }
+  try {
+    const res = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error || 'Registration failed'); return; }
+    authUser = data;
+    nickname = authUser.username;
+    showJoinScreenAuth();
+  } catch {
+    showAuthError('Connection failed');
+  }
+}
+
+async function doLogout() {
+  try { await fetch('/auth/logout', { method: 'POST' }); } catch {}
+  authUser = null;
+  nickname = '';
+  if (ws) { ws.close(); ws = null; }
+  showAuthScreen();
+}
+
+const authLoginBtn = document.getElementById('auth-login-btn');
+const authRegisterBtn = document.getElementById('auth-register-btn');
+const authShowRegister = document.getElementById('auth-show-register');
+const authShowLogin = document.getElementById('auth-show-login');
+const authLogoutBtn = document.getElementById('auth-logout-btn');
+
+if (authLoginBtn) authLoginBtn.addEventListener('click', doLogin);
+if (authRegisterBtn) authRegisterBtn.addEventListener('click', doRegister);
+if (authLogoutBtn) authLogoutBtn.addEventListener('click', doLogout);
+
+if (authShowRegister) authShowRegister.addEventListener('click', (e) => {
+  e.preventDefault();
+  clearAuthError();
+  document.getElementById('auth-login-form')?.classList.add('hidden');
+  document.getElementById('auth-register-form')?.classList.remove('hidden');
+});
+
+if (authShowLogin) authShowLogin.addEventListener('click', (e) => {
+  e.preventDefault();
+  clearAuthError();
+  document.getElementById('auth-register-form')?.classList.add('hidden');
+  document.getElementById('auth-login-form')?.classList.remove('hidden');
+});
+
+document.getElementById('auth-email')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('auth-password')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('auth-reg-username')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRegister(); });
+document.getElementById('auth-reg-email')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRegister(); });
+document.getElementById('auth-reg-password')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRegister(); });
+
+// ── Join flow ──
+
 function doJoin() {
+  if (!authUser) { showAuthScreen(); return; }
   const key = (roomKeyInput && roomKeyInput.value || '').trim();
-  const nick = (nicknameInput && nicknameInput.value || '').trim();
-  if (!key || !nick) {
-    if (messageToast) { messageToast.textContent = 'Enter room key and nickname'; messageToast.classList.add('show'); setTimeout(() => messageToast.classList.remove('show'), 3000); }
+  if (!key) {
+    if (messageToast) { messageToast.textContent = 'Enter a room key'; messageToast.classList.add('show'); setTimeout(() => messageToast.classList.remove('show'), 3000); }
     return;
   }
   roomKey = key;
-  nickname = nick;
+  nickname = authUser.username;
   connectLobby();
 }
 
 function connectLobby() {
+  if (authScreen) authScreen.classList.add('hidden');
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -614,7 +743,7 @@ function connectLobby() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}`);
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: 'lobby' }));
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: 'lobby', _dbChips: authUser?.chips ?? 100 }));
   };
   ws.onmessage = (ev) => {
     try {
@@ -648,6 +777,7 @@ function showGameSelectScreen(players, chatHistory) {
   const opacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
   const opacityVal = isNaN(opacity) ? 70 : Math.max(0, Math.min(100, opacity));
   if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (opacityVal / 100).toFixed(2));
+  if (authScreen) authScreen.classList.add('hidden');
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -761,7 +891,6 @@ const joinBtn = document.getElementById('join-btn');
 if (joinBtn) joinBtn.addEventListener('click', (e) => { e.preventDefault(); doJoin(); });
 
 if (roomKeyInput) roomKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
-if (nicknameInput) nicknameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
 
 if (gameSelectBack) gameSelectBack.addEventListener('click', () => {
   if (ws) { ws.close(); ws = null; }
@@ -833,7 +962,7 @@ function joinWithGameType(gameType) {
   ws = new WebSocket(`${protocol}//${location.host}`);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType }));
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType, _dbChips: authUser?.chips ?? 100 }));
     if (window.bjSetWs) window.bjSetWs(ws);
     if (window.ckSetWs) window.ckSetWs(ws);
     if (window.chSetWs) window.chSetWs(ws);
@@ -1439,7 +1568,6 @@ function handleMessage(msg) {
 
 function showJoinScreen() {
   cancelBrokeKickTimer();
-  if (joinScreen) joinScreen.classList.remove('hidden');
   hideAllGameScreens();
   if (window.blackjack) window.blackjack.hide();
   if (window.checkers) window.checkers.hide();
@@ -1455,6 +1583,11 @@ function showJoinScreen() {
   Object.keys(playerChatMessages).forEach((k) => delete playerChatMessages[k]);
   if (ws) ws.close();
   ws = null;
+  if (authUser) {
+    showJoinScreenAuth();
+  } else {
+    showAuthScreen();
+  }
 }
 
 function showGameScreen() {
@@ -2537,9 +2670,9 @@ if (slotsChatInput) {
 
 const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');
-if (roomParam) {
+if (roomParam && roomKeyInput) {
   roomKeyInput.value = roomParam;
-  nicknameInput.focus();
 }
 
+checkAuth();
 initRadioVolume();
