@@ -1892,9 +1892,9 @@ function chMakeMove(roomKey, playerId, from, to) {
   }
 }
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
   ws.id = crypto.randomUUID();
-  parseSessionFromWs(ws, req);
+  await parseSessionFromWs(ws, req);
 
   ws.on('message', async (raw) => {
     try {
