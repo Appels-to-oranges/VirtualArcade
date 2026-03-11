@@ -272,6 +272,7 @@
 
   function handleMessage(msg) {
     if (msg.type === 'slotSpinStarted') {
+      if (typeof window !== 'undefined' && window.playSlotsSpin) window.playSlotsSpin();
       const pid = msg.playerId;
       const bet = parseInt(msg.bet, 10) || 5;
       slotsLastBet[pid] = [5, 10, 20, 100].includes(bet) ? bet : 5;

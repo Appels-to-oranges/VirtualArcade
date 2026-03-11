@@ -264,9 +264,42 @@ function broadcastToRoom(roomKey, message, excludeWs = null, filter = null) {
 
 function startGame(roomKey, resetStreaks = false, resetChips = false) {
   const room = getRoom(roomKey);
-  const holdemPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'holdem');
+  let holdemPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'holdem');
+
+  // Kick out anyone with $0 before starting
+  holdemPlayers.forEach((p) => {
+    if (p.chips <= 0) {
+      if (p.isBot) {
+        room.players = room.players.filter((x) => x.id !== p.id);
+        broadcastToRoom(roomKey, { type: 'userLeft', id: p.id, botEliminated: true });
+      } else {
+        p.currentView = 'lobby';
+        if (p.ws) {
+          const data = clients.get(p.ws);
+          if (data) clients.set(p.ws, { ...data, gameType: 'lobby' });
+        }
+        if (p.ws && p.ws.readyState === 1) {
+          p.ws.send(JSON.stringify({ type: 'holdemBusted', reason: 'No chips' }));
+        }
+      }
+    }
+  });
+  holdemPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'holdem' && p.chips > 0);
+
   if (holdemPlayers.length < 2 || holdemPlayers.length > 6) return;
   room.holdemPlayers = holdemPlayers;
+
+  broadcastToRoom(roomKey, {
+    type: 'playerViewChanged',
+    players: room.players.map((p) => ({
+      id: p.id,
+      nickname: p.nickname,
+      chips: p.chips,
+      winStreak: p.winStreak ?? 0,
+      maxWinStreak: p.maxWinStreak ?? 0,
+      currentView: p.currentView ?? 'lobby',
+    })),
+  });
 
   if (resetChips) {
     holdemPlayers.forEach((p) => { p.chips = 100; });

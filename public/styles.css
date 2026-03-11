@@ -2922,13 +2922,7 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-reel-spinning .slots-reel-strip {
-  animation: slots-spin-blur 0.1s linear infinite;
-}
-
-@keyframes slots-spin-blur {
-  0% { filter: brightness(1); }
-  50% { filter: brightness(1.3); }
-  100% { filter: brightness(1); }
+  /* No animation – keep icons solid while spinning */
 }
 
 .slots-machine-label {

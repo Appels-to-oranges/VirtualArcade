@@ -12,6 +12,7 @@ const SOUND_FILES = {
   ambienceSwamp: ['SWAMP_AMBIENCE.wav', 'SWAMP_AMBIENCE.mp3'],
   swampJackpot: ['swamp_jackpot.wav', 'swamp_jackpot.mp3'],
   slotsLose: ['slots_lose.wav', 'slots_lose.mp3'],
+  slotsSpin: ['SLOT_SPIN_SOUND.wav'],
   winner: ['winner.wav', 'winner together.wav', 'winner sound.wav', 'winner.mp3'],
   yourTurn: ['your_turn.wav', 'your turn.wav', 'your_turn.mp3'],
   betting: ['chips_betting.wav', 'chips_betting.mp3'],
@@ -60,6 +61,7 @@ const soundAmbienceRain = createSoundAudio(SOUND_FILES.ambienceRain);
 const soundAmbienceSwamp = createSoundAudio(SOUND_FILES.ambienceSwamp);
 const soundSwampJackpot = createSoundAudio(SOUND_FILES.swampJackpot);
 const soundSlotsLose = createSoundAudio(SOUND_FILES.slotsLose);
+const soundSlotsSpin = createSoundAudio(SOUND_FILES.slotsSpin);
 const soundWinner = createSoundAudio(SOUND_FILES.winner);
 const soundYourTurn = createSoundAudio(SOUND_FILES.yourTurn);
 const soundBetting = createSoundAudio(SOUND_FILES.betting);
@@ -179,7 +181,8 @@ function playSound(audio, volumeKey) {
   let vol = 0.25;
   if (volumeKey) {
     const raw = parseInt(localStorage.getItem(volumeKey), 10);
-    vol = (isNaN(raw) ? 80 : Math.max(0, Math.min(100, raw))) / 100;
+    const fallback = volumeKey === 'poker_ambience_volume' ? 50 : volumeKey === 'poker_radio_volume' ? 25 : 33;
+    vol = (isNaN(raw) ? fallback : Math.max(0, Math.min(100, raw))) / 100;
   }
   vol = Math.max(0, Math.min(1, vol));
   const bitDepth = getSfxBitDepth();
@@ -250,6 +253,10 @@ function playSwampJackpot() {
 
 function playSlotsLose() {
   playSound(soundSlotsLose, CARD_FX_VOLUME_KEY);
+}
+
+function playSlotsSpin() {
+  playSound(soundSlotsSpin, CARD_FX_VOLUME_KEY);
 }
 
 function playLoseCheckersChess() {
@@ -1135,6 +1142,14 @@ function handleMessage(msg) {
           initRadioVolume();
         }
       }
+      break;
+
+    case 'holdemBusted':
+      currentGameType = 'lobby';
+      hideAllGameScreens('lobby');
+      if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
+      showToast('Removed from table (no chips). Rebuy to rejoin.');
+      stopNextHandTimer();
       break;
 
     case 'gameFull': {
@@ -2182,7 +2197,7 @@ function updateControls() {
 }
 
 startBtn.addEventListener('click', () => {
-  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: true, resetChips: true }));
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: true, resetChips: false }));
 });
 
 const restartBtnEl = document.getElementById('restart-btn');
@@ -2323,18 +2338,18 @@ function stopRadio() {
 
 function initRadioVolume() {
   const saved = parseInt(localStorage.getItem(RADIO_VOLUME_KEY), 10);
-  const vol = isNaN(saved) ? 80 : Math.max(0, Math.min(100, saved));
+  const vol = isNaN(saved) ? 25 : Math.max(0, Math.min(100, saved));
   radioAudio.volume = vol / 100;
   if (radioVolumeSlider) radioVolumeSlider.value = vol;
   if (radioVolumeValue) radioVolumeValue.textContent = vol + '%';
 
   const cardFx = parseInt(localStorage.getItem(CARD_FX_VOLUME_KEY), 10);
-  const cardFxVol = isNaN(cardFx) ? 80 : Math.max(0, Math.min(100, cardFx));
+  const cardFxVol = isNaN(cardFx) ? 33 : Math.max(0, Math.min(100, cardFx));
   if (cardFxVolumeSlider) cardFxVolumeSlider.value = cardFxVol;
   if (cardFxVolumeValue) cardFxVolumeValue.textContent = cardFxVol + '%';
 
   const amb = parseInt(localStorage.getItem(AMBIENCE_VOLUME_KEY), 10);
-  const ambVol = isNaN(amb) ? 25 : Math.max(0, Math.min(100, amb));
+  const ambVol = isNaN(amb) ? 50 : Math.max(0, Math.min(100, amb));
   if (ambienceVolumeSlider) ambienceVolumeSlider.value = ambVol;
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = ambVol + '%';
 
