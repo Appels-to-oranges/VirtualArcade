@@ -419,10 +419,10 @@ function evaluateHand(holeCards, communityCards) {
   }
 }
 
-const authScreen = document.getElementById('auth-screen');
 const joinScreen = document.getElementById('join-screen');
 const gameScreen = document.getElementById('game-screen');
 const roomKeyInput = document.getElementById('room-key');
+const nicknameInput = document.getElementById('nickname');
 
 let authUser = null;
 const playersContainer = document.getElementById('players-container');
@@ -597,18 +597,34 @@ function clearAuthError() {
   if (el) { el.textContent = ''; el.className = 'auth-status'; }
 }
 
-function showAuthScreen() {
-  if (authScreen) authScreen.classList.remove('hidden');
-  if (joinScreen) joinScreen.classList.add('hidden');
-  hideAllGameScreens();
+function showPanel(panelId) {
+  clearAuthError();
+  ['join-panel', 'login-panel', 'register-panel'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', id !== panelId);
+  });
 }
 
-function showJoinScreenAuth() {
-  if (authScreen) authScreen.classList.add('hidden');
-  if (joinScreen) joinScreen.classList.remove('hidden');
-  hideAllGameScreens();
+function updateJoinUI() {
+  const nicknameGroup = document.getElementById('nickname-group');
+  const welcomeGroup = document.getElementById('welcome-group');
   const welcomeName = document.getElementById('join-welcome-name');
-  if (welcomeName && authUser) welcomeName.textContent = authUser.username;
+  const authPrompt = document.getElementById('auth-prompt');
+  const logoutBtn = document.getElementById('auth-logout-btn');
+
+  if (authUser) {
+    if (nicknameGroup) nicknameGroup.classList.add('hidden');
+    if (welcomeGroup) welcomeGroup.classList.remove('hidden');
+    if (welcomeName) welcomeName.textContent = authUser.username;
+    if (authPrompt) authPrompt.classList.add('hidden');
+    if (logoutBtn) logoutBtn.classList.remove('hidden');
+  } else {
+    if (nicknameGroup) nicknameGroup.classList.remove('hidden');
+    if (welcomeGroup) welcomeGroup.classList.add('hidden');
+    if (authPrompt) authPrompt.classList.remove('hidden');
+    if (logoutBtn) logoutBtn.classList.add('hidden');
+  }
+  showPanel('join-panel');
 }
 
 async function checkAuth() {
@@ -617,15 +633,30 @@ async function checkAuth() {
     if (res.ok) {
       authUser = await res.json();
       nickname = authUser.username;
-      showJoinScreenAuth();
     } else {
       authUser = null;
-      showAuthScreen();
     }
   } catch {
     authUser = null;
-    showAuthScreen();
   }
+  updateJoinUI();
+
+  try {
+    const pRes = await fetch('/auth/providers');
+    if (pRes.ok) {
+      const providers = await pRes.json();
+      const oauthBtns = document.querySelector('.auth-oauth-buttons');
+      const oauthDivider = document.querySelector('.auth-divider');
+      const googleBtn = document.querySelector('.oauth-google');
+      const discordBtn = document.querySelector('.oauth-discord');
+      if (googleBtn && !providers.google) googleBtn.style.display = 'none';
+      if (discordBtn && !providers.discord) discordBtn.style.display = 'none';
+      if (!providers.google && !providers.discord) {
+        if (oauthBtns) oauthBtns.style.display = 'none';
+        if (oauthDivider) oauthDivider.style.display = 'none';
+      }
+    }
+  } catch {}
 }
 
 async function doLogin() {
@@ -643,7 +674,7 @@ async function doLogin() {
     if (!res.ok) { showAuthError(data.error || 'Login failed'); return; }
     authUser = data;
     nickname = authUser.username;
-    showJoinScreenAuth();
+    updateJoinUI();
   } catch {
     showAuthError('Connection failed');
   }
@@ -665,7 +696,7 @@ async function doRegister() {
     if (!res.ok) { showAuthError(data.error || 'Registration failed'); return; }
     authUser = data;
     nickname = authUser.username;
-    showJoinScreenAuth();
+    updateJoinUI();
   } catch {
     showAuthError('Connection failed');
   }
@@ -676,32 +707,24 @@ async function doLogout() {
   authUser = null;
   nickname = '';
   if (ws) { ws.close(); ws = null; }
-  showAuthScreen();
+  updateJoinUI();
+  if (joinScreen) joinScreen.classList.remove('hidden');
 }
 
 const authLoginBtn = document.getElementById('auth-login-btn');
 const authRegisterBtn = document.getElementById('auth-register-btn');
-const authShowRegister = document.getElementById('auth-show-register');
-const authShowLogin = document.getElementById('auth-show-login');
 const authLogoutBtn = document.getElementById('auth-logout-btn');
 
 if (authLoginBtn) authLoginBtn.addEventListener('click', doLogin);
 if (authRegisterBtn) authRegisterBtn.addEventListener('click', doRegister);
 if (authLogoutBtn) authLogoutBtn.addEventListener('click', doLogout);
 
-if (authShowRegister) authShowRegister.addEventListener('click', (e) => {
-  e.preventDefault();
-  clearAuthError();
-  document.getElementById('auth-login-form')?.classList.add('hidden');
-  document.getElementById('auth-register-form')?.classList.remove('hidden');
-});
-
-if (authShowLogin) authShowLogin.addEventListener('click', (e) => {
-  e.preventDefault();
-  clearAuthError();
-  document.getElementById('auth-register-form')?.classList.add('hidden');
-  document.getElementById('auth-login-form')?.classList.remove('hidden');
-});
+document.getElementById('show-login')?.addEventListener('click', (e) => { e.preventDefault(); showPanel('login-panel'); });
+document.getElementById('show-register')?.addEventListener('click', (e) => { e.preventDefault(); showPanel('register-panel'); });
+document.getElementById('auth-show-register')?.addEventListener('click', (e) => { e.preventDefault(); showPanel('register-panel'); });
+document.getElementById('auth-show-login')?.addEventListener('click', (e) => { e.preventDefault(); showPanel('login-panel'); });
+document.getElementById('back-to-guest-login')?.addEventListener('click', (e) => { e.preventDefault(); showPanel('join-panel'); });
+document.getElementById('back-to-guest-register')?.addEventListener('click', (e) => { e.preventDefault(); showPanel('join-panel'); });
 
 document.getElementById('auth-email')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('auth-password')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
@@ -712,19 +735,26 @@ document.getElementById('auth-reg-password')?.addEventListener('keydown', (e) =>
 // ── Join flow ──
 
 function doJoin() {
-  if (!authUser) { showAuthScreen(); return; }
   const key = (roomKeyInput && roomKeyInput.value || '').trim();
   if (!key) {
-    if (messageToast) { messageToast.textContent = 'Enter a room key'; messageToast.classList.add('show'); setTimeout(() => messageToast.classList.remove('show'), 3000); }
+    showToast('Enter a room key');
     return;
   }
+  if (authUser) {
+    nickname = authUser.username;
+  } else {
+    const nick = (nicknameInput && nicknameInput.value || '').trim();
+    if (!nick) {
+      showToast('Enter an alias');
+      return;
+    }
+    nickname = nick;
+  }
   roomKey = key;
-  nickname = authUser.username;
   connectLobby();
 }
 
 function connectLobby() {
-  if (authScreen) authScreen.classList.add('hidden');
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -743,7 +773,7 @@ function connectLobby() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}`);
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: 'lobby', _dbChips: authUser?.chips ?? 100 }));
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType: 'lobby' }));
   };
   ws.onmessage = (ev) => {
     try {
@@ -777,7 +807,6 @@ function showGameSelectScreen(players, chatHistory) {
   const opacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
   const opacityVal = isNaN(opacity) ? 70 : Math.max(0, Math.min(100, opacity));
   if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (opacityVal / 100).toFixed(2));
-  if (authScreen) authScreen.classList.add('hidden');
   if (joinScreen) joinScreen.classList.add('hidden');
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -891,6 +920,7 @@ const joinBtn = document.getElementById('join-btn');
 if (joinBtn) joinBtn.addEventListener('click', (e) => { e.preventDefault(); doJoin(); });
 
 if (roomKeyInput) roomKeyInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
+if (nicknameInput) nicknameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doJoin(); } });
 
 if (gameSelectBack) gameSelectBack.addEventListener('click', () => {
   if (ws) { ws.close(); ws = null; }
@@ -962,7 +992,7 @@ function joinWithGameType(gameType) {
   ws = new WebSocket(`${protocol}//${location.host}`);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType, _dbChips: authUser?.chips ?? 100 }));
+    ws.send(JSON.stringify({ type: 'join', roomKey, nickname, gameType }));
     if (window.bjSetWs) window.bjSetWs(ws);
     if (window.ckSetWs) window.ckSetWs(ws);
     if (window.chSetWs) window.chSetWs(ws);
@@ -1583,11 +1613,8 @@ function showJoinScreen() {
   Object.keys(playerChatMessages).forEach((k) => delete playerChatMessages[k]);
   if (ws) ws.close();
   ws = null;
-  if (authUser) {
-    showJoinScreenAuth();
-  } else {
-    showAuthScreen();
-  }
+  if (joinScreen) joinScreen.classList.remove('hidden');
+  updateJoinUI();
 }
 
 function showGameScreen() {
@@ -2672,6 +2699,9 @@ const params = new URLSearchParams(window.location.search);
 const roomParam = params.get('room');
 if (roomParam && roomKeyInput) {
   roomKeyInput.value = roomParam;
+}
+if (params.has('authed')) {
+  window.history.replaceState({}, '', window.location.pathname + (roomParam ? '?room=' + encodeURIComponent(roomParam) : ''));
 }
 
 checkAuth();

@@ -746,43 +746,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
   color: #0a0a0a;
 }
 
-/* ── Auth screen ── */
-#auth-screen {
-  --join-accent: #c9b896;
-  --join-btn-bg: #238636;
-  --join-btn-hover: #2ea043;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  position: relative;
-}
-
-#auth-screen.splash-waterfront { --join-accent: #d4a55c; --join-btn-bg: #8a6a30; --join-btn-hover: #a07838; }
-#auth-screen.splash-buildings { --join-accent: #7a8a9e; --join-btn-bg: #3e4e62; --join-btn-hover: #4e5e72; }
-#auth-screen.splash-apartments { --join-accent: #d4a060; --join-btn-bg: #8a6828; --join-btn-hover: #a07830; }
-#auth-screen.splash-fireflies { --join-accent: #5ca882; --join-btn-bg: #2e6e4e; --join-btn-hover: #3e7e5e; }
-#auth-screen.splash-snowy-lot { --join-accent: #8a92b8; --join-btn-bg: #4a4e6a; --join-btn-hover: #5a5e7a; }
-#auth-screen.splash-rolling-fog { --join-accent: #7a9a6e; --join-btn-bg: #3d4a35; --join-btn-hover: #4d5a45; }
-
-#auth-screen::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 0;
-}
-
-#auth-screen > * {
-  position: relative;
-  z-index: 1;
-}
-
+/* ── Auth card ── */
 .auth-card {
   max-width: 22rem;
 }
@@ -836,6 +800,100 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; }
 .auth-logout-btn:hover {
   color: #f85149;
   border-color: #f85149;
+}
+
+/* ── Welcome badge ── */
+.welcome-badge {
+  text-align: center;
+  font-size: 0.42rem;
+  color: #c9d1d9;
+  background: rgba(201, 184, 150, 0.08);
+  border: 0.0625rem solid rgba(201, 184, 150, 0.25);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  letter-spacing: 0.03rem;
+}
+
+.welcome-badge strong {
+  color: var(--join-accent, #c9b896);
+}
+
+/* ── OAuth buttons ── */
+.auth-oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.38rem;
+  font-family: 'Press Start 2P', monospace;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-transform: none;
+  letter-spacing: 0.02rem;
+  transition: filter 0.2s, transform 0.1s;
+}
+
+.oauth-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.oauth-btn:active {
+  transform: translateY(0);
+}
+
+.oauth-btn svg {
+  flex-shrink: 0;
+}
+
+.oauth-google {
+  background: #fff;
+  color: #3c4043;
+}
+
+.oauth-discord {
+  background: #5865F2;
+  color: #fff;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  color: #484f58;
+  font-size: 0.32rem;
+  font-family: 'Press Start 2P', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #30363d;
+}
+
+/* Retro overrides for OAuth */
+body.lobby-retro .oauth-btn {
+  border-radius: 0;
+}
+
+body.lobby-retro .welcome-badge {
+  border-radius: 0;
 }
 
 /* ── Join screen ── */

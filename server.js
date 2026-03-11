@@ -1893,7 +1893,7 @@ wss.on('connection', (ws, req) => {
   ws.id = crypto.randomUUID();
   parseSessionFromWs(ws, req);
 
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     try {
       const msg = JSON.parse(raw.toString());
       const { type } = msg;
@@ -1920,7 +1920,15 @@ wss.on('connection', (ws, req) => {
           gameFull = true;
         }
 
-        const startingChips = msg._dbChips ?? 100;
+        let startingChips = 100;
+        if (ws._userId) {
+          try {
+            const dbResult = await pool.query('SELECT chips FROM users WHERE id = $1', [ws._userId]);
+            if (dbResult.rows.length > 0) startingChips = dbResult.rows[0].chips;
+          } catch (e) {
+            console.error('Failed to load user chips:', e.message);
+          }
+        }
 
         const existing = room.players.find((p) => p.ws === ws);
         if (existing) {
