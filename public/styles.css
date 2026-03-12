@@ -1542,19 +1542,19 @@ body.lobby-retro .welcome-badge {
 
 .chat-emoji-btn {
   flex-shrink: 0;
-  padding: 0.2rem 0.35rem;
+  padding: 0.25rem 0.4rem;
   background: transparent;
-  border: 0.0625rem solid var(--lobby-border, #30363d);
-  border-radius: 0.35rem;
-  font-size: 0.9rem;
+  border: 0.125rem solid var(--lobby-accent);
+  border-radius: 0.5rem;
+  font-size: 1rem;
   cursor: pointer;
   line-height: 1;
+  color: var(--lobby-accent);
   opacity: 0.85;
   transition: opacity 0.15s, border-color 0.15s;
 }
 .chat-emoji-btn:hover {
   opacity: 1;
-  border-color: var(--lobby-accent, #c9b896);
 }
 
 .emoji-picker-popover {
@@ -2994,23 +2994,25 @@ body.lobby-retro .welcome-badge {
   margin-left: 0.3rem;
 }
 
-/* ── Slots (pixel art, bayou theme) ── */
-/* Swamp palette: moss greens, teals, murky highlights */
+/* ── Slots (retro arcade / pixel art) ── */
 #slots-screen {
-  --swamp-muted: #8FB56F;
-  --swamp-text: #719A4B;
-  --swamp-highlight: #B4E8C2;
-  --swamp-bright: #8EC1CA;
-  --swamp-border: #2E4B3D;
-  --swamp-border-light: #3D6147;
-  --swamp-win: #5D803F;
+  --swamp-muted: var(--lobby-accent);
+  --swamp-text: var(--lobby-accent);
+  --swamp-highlight: var(--lobby-accent);
+  --swamp-bright: var(--lobby-accent);
+  --swamp-border: var(--lobby-border);
+  --swamp-border-light: var(--lobby-accent);
+  --swamp-win: var(--lobby-accent);
   position: fixed;
   inset: 0;
-  background: #1a2820 url('/bayou_background.jpg') center / cover no-repeat;
+  background: #0a0a0a url('/bayou_background.jpg') center / cover no-repeat;
   z-index: 50;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 #slots-screen .game-scale-wrapper {
@@ -3025,9 +3027,10 @@ body.lobby-retro .welcome-badge {
   align-items: center;
   gap: 0.5rem;
   padding: 0.25rem 0.5rem;
-  background: rgba(30, 45, 40, 0.85);
-  border-bottom: 0.1rem solid var(--swamp-border);
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 0.2rem solid var(--swamp-border);
   flex-shrink: 0;
+  image-rendering: pixelated;
 }
 
 #slots-screen .room-bar-chips {
@@ -3070,7 +3073,7 @@ body.lobby-retro .welcome-badge {
 .slots-machines-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: stretch;
   justify-content: center;
   flex: 1;
@@ -3081,16 +3084,20 @@ body.lobby-retro .welcome-badge {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  padding: 2.5rem;
-  width: 25rem;
-  min-width: 25rem;
-  max-width: 25rem;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  width: 16rem;
+  min-width: 16rem;
+  max-width: 16rem;
   box-sizing: border-box;
-  background: rgba(45, 61, 55, 0.95);
-  border: 0.25rem solid var(--swamp-border-light);
+  background: rgba(20, 20, 20, 0.95);
+  border: 0.25rem solid var(--swamp-border);
   border-radius: 0;
-  box-shadow: inset 0 0 1rem rgba(0,0,0,0.5), 0 0.5rem 1.5rem rgba(0,0,0,0.5);
+  box-shadow:
+    inset 0.2rem 0.2rem 0 rgba(0,0,0,0.9),
+    inset -0.2rem -0.2rem 0 rgba(255,255,255,0.05),
+    0 0 0 0.2rem var(--swamp-border),
+    0.4rem 0.4rem 0 rgba(0,0,0,0.6);
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -3098,29 +3105,31 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-machine-bet-display {
-  font-size: 0.8rem;
+  font-size: 0.45rem;
   color: var(--swamp-muted);
   font-family: 'Press Start 2P', monospace;
 }
 
 .slots-reels {
   display: flex;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: #1a2420;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #080808;
   border: 0.2rem solid var(--swamp-border);
   border-radius: 0;
   image-rendering: pixelated;
+  box-shadow: inset 0 0 0.5rem rgba(0,0,0,0.8);
 }
 
 .slots-reel {
-  width: 6rem;
-  height: 6rem;
-  background: #0d0a08;
+  width: 4rem;
+  height: 4rem;
+  background: #050505;
   border-radius: 0;
   overflow: hidden;
   position: relative;
   image-rendering: pixelated;
+  border: 0.1rem solid var(--swamp-border);
 }
 
 .slots-reel-strip {
@@ -3131,8 +3140,8 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-symbol {
-  width: 6rem;
-  height: 6rem;
+  width: 4rem;
+  height: 4rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -3140,8 +3149,8 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-symbol-img {
-  width: 4.4rem;
-  height: 4.4rem;
+  width: 2.8rem;
+  height: 2.8rem;
   object-fit: contain;
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
@@ -3149,7 +3158,7 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-symbol-text {
-  font-size: 1.8rem;
+  font-size: 1.2rem;
   font-weight: bold;
   color: var(--swamp-muted);
   font-family: 'Press Start 2P', monospace;
@@ -3160,46 +3169,49 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-machine-label {
-  font-size: 0.9rem;
+  font-size: 0.5rem;
   color: var(--swamp-muted);
   font-family: 'Press Start 2P', monospace;
   text-transform: uppercase;
+  letter-spacing: 0.05rem;
 }
 
 .slots-machine-controls {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
 }
 
 .slots-denom-buttons {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.2rem;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .slots-denom-btn {
-  padding: 0.4rem 0.7rem;
-  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.45rem;
   font-family: 'Press Start 2P', monospace;
   background: rgba(0,0,0,0.5);
-  border: 0.1rem solid var(--swamp-border);
+  border: 0.15rem solid var(--swamp-border);
   color: var(--swamp-muted);
   border-radius: 0;
   cursor: pointer;
+  image-rendering: pixelated;
 }
 
 .slots-denom-btn:hover {
   color: var(--swamp-highlight);
   background: rgba(0,0,0,0.7);
+  border-color: var(--swamp-highlight);
 }
 
 .slots-denom-btn.active {
-  color: var(--swamp-highlight);
-  border-color: var(--swamp-bright);
-  background: rgba(46, 75, 61, 0.9);
+  color: #000;
+  border-color: var(--swamp-highlight);
+  background: var(--swamp-highlight);
 }
 
 .slots-denom-btn:disabled {
@@ -3210,53 +3222,51 @@ body.lobby-retro .welcome-badge {
 
 .slots-spin-row {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   align-items: center;
 }
 
 .slots-spin-btn {
   image-rendering: pixelated;
   border-radius: 0;
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.55rem;
+  border-width: 0.15rem;
 }
 
 .slots-info-btn {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 1.8rem;
+  height: 1.8rem;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.5rem;
   color: var(--swamp-muted);
   background: rgba(0,0,0,0.5);
-  border: 0.1rem solid var(--swamp-border);
-  border-radius: 0.2rem;
+  border: 0.15rem solid var(--swamp-border);
+  border-radius: 0;
   cursor: pointer;
 }
 
 .slots-info-btn:hover {
   color: var(--swamp-highlight);
   background: rgba(0,0,0,0.7);
+  border-color: var(--swamp-highlight);
 }
 
 .slots-payline {
   width: 100%;
-  height: 0.3rem;
+  height: 0.2rem;
   background: var(--swamp-bright);
-  border-radius: 0.1rem;
+  border-radius: 0;
   image-rendering: pixelated;
 }
 
 .slots-payout-overlay {
-  --swamp-muted: #8FB56F;
-  --swamp-highlight: #B4E8C2;
-  --swamp-border: #2E4B3D;
-  --swamp-border-light: #3D6147;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.8);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -3269,30 +3279,32 @@ body.lobby-retro .welcome-badge {
 }
 
 .slots-payout-panel {
-  background: rgba(45, 61, 55, 0.98);
-  border: 0.25rem solid var(--swamp-border-light);
-  padding: 1.5rem;
-  max-width: 18rem;
+  background: rgba(20, 20, 20, 0.98);
+  border: 0.25rem solid var(--lobby-accent);
+  padding: 1rem;
+  max-width: 16rem;
+  border-radius: 0;
+  box-shadow: 0 0 0 0.2rem var(--lobby-border), 0.4rem 0.4rem 0 rgba(0,0,0,0.6);
 }
 
 .slots-payout-panel h3 {
-  margin: 0 0 0.75rem;
-  font-size: 0.6rem;
-  color: var(--swamp-highlight);
+  margin: 0 0 0.5rem;
+  font-size: 0.5rem;
+  color: var(--lobby-accent);
   font-family: 'Press Start 2P', monospace;
 }
 
 .slots-payout-list {
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   padding: 0;
-  font-size: 0.45rem;
-  color: var(--swamp-muted);
+  font-size: 0.4rem;
+  color: var(--lobby-accent);
 }
 
 .slots-payout-list li {
   padding: 0.2rem 0;
-  border-bottom: 0.05rem solid rgba(46, 75, 61, 0.5);
+  border-bottom: 0.1rem solid var(--lobby-border);
 }
 
 .slots-payout-list li:last-child {
@@ -3301,76 +3313,79 @@ body.lobby-retro .welcome-badge {
 
 .slots-payout-close {
   width: 100%;
-  padding: 0.4rem;
-  font-size: 0.45rem;
+  padding: 0.35rem;
+  font-size: 0.4rem;
+  border-radius: 0;
 }
 
 .slots-chat-card {
   display: flex;
   flex-direction: column;
-  width: 12.5rem;
-  min-width: 12.5rem;
-  max-width: 12.5rem;
-  min-height: 14rem;
+  width: 11rem;
+  min-width: 11rem;
+  max-width: 11rem;
+  min-height: 12rem;
   align-self: stretch;
   box-sizing: border-box;
-  background: rgba(26, 36, 32, 0.9);
-  border: 0.25rem solid var(--swamp-border-light);
+  background: rgba(15, 15, 15, 0.95);
+  border: 0.2rem solid var(--swamp-border);
   border-radius: 0;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: inset 0.1rem 0.1rem 0 rgba(0,0,0,0.9), 0.2rem 0.2rem 0 rgba(0,0,0,0.5);
 }
 
 .slots-chat-header {
-  padding: 0.4rem 0.6rem;
-  font-size: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.4rem;
   color: var(--swamp-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1rem;
-  border-bottom: 0.1rem solid #4a3728;
-  background: rgba(50, 40, 30, 0.9);
+  letter-spacing: 0.08rem;
+  border-bottom: 0.15rem solid var(--swamp-border);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .slots-chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 0.4rem;
+  padding: 0.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  min-height: 6rem;
-  font-size: 0.4rem;
+  gap: 0.25rem;
+  min-height: 5rem;
+  font-size: 0.35rem;
 }
 
 .slots-chat-messages .chat-message,
 .slots-chat-messages .ck-chat-msg {
-  font-size: 0.4rem;
+  font-size: 0.35rem;
 }
 
 .slots-chat-input-panel {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.4rem;
-  border-top: 0.1rem solid var(--swamp-border);
-  background: rgba(26, 36, 32, 0.95);
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border-top: 0.15rem solid var(--swamp-border);
+  background: rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
 }
 
 #slots-screen .slots-chat-input-panel .chat-input {
   flex: 1;
   min-width: 0;
-  font-size: 0.4rem;
-  padding: 0.3rem;
-  background: #1a2420;
-  border: 0.1rem solid var(--swamp-border);
+  font-size: 0.35rem;
+  padding: 0.25rem;
+  background: #0a0a0a;
+  border: 0.15rem solid var(--swamp-border);
   color: var(--swamp-muted);
 }
 
 .slots-result {
-  font-size: 1.2rem;
+  font-size: 0.6rem;
   color: var(--swamp-muted);
-  min-height: 2.4rem;
+  min-height: 1.5rem;
   text-align: center;
+  font-family: 'Press Start 2P', monospace;
 }
 
 #slots-screen .slots-result.slots-result-win {

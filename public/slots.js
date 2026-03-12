@@ -3,7 +3,7 @@
 
   const DENOMINATIONS = [5, 10, 20, 100];
   const DEFAULT_BET = 5;
-  const SYMBOL_HEIGHT = 6;
+  const SYMBOL_HEIGHT = 4;
   const SPIN_CYCLES = 8;
   const SPIN_DURATION_MS = 10000;
   const REEL_STAGGER_MS = 200;
