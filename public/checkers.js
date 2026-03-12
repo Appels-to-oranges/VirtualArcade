@@ -459,6 +459,8 @@
     });
     var ckRadioBtn = document.getElementById('ck-radio-btn');
     if (ckRadioBtn) ckRadioBtn.addEventListener('click', function () {
+      if (typeof initRadioVolume === 'function') initRadioVolume();
+      if (typeof loadFavorites === 'function') loadFavorites();
       var overlay = document.getElementById('radio-overlay');
       var searchInput = document.getElementById('radio-search');
       if (overlay) overlay.classList.remove('hidden');

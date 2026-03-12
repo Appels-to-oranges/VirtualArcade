@@ -227,4 +227,68 @@ router.get('/me', async (req, res) => {
   }
 });
 
+// ── Favorite Radio Stations ──
+
+router.get('/radio/favorites', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  try {
+    const result = await pool.query(
+      'SELECT id, station_name, station_url, favicon, country, tags FROM favorite_stations WHERE user_id = $1 ORDER BY created_at DESC',
+      [req.session.userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get favorites error:', err);
+    res.status(500).json({ error: 'Failed to load favorites' });
+  }
+});
+
+router.post('/radio/favorites', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  const { name, url, favicon, country, tags } = req.body;
+  if (!name || !url) {
+    return res.status(400).json({ error: 'Station name and url are required' });
+  }
+  try {
+    const result = await pool.query(
+      `INSERT INTO favorite_stations (user_id, station_name, station_url, favicon, country, tags)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (user_id, station_url) DO NOTHING
+       RETURNING id, station_name, station_url, favicon, country, tags`,
+      [req.session.userId, String(name).slice(0, 255), url, favicon || '', country || '', tags || '']
+    );
+    if (result.rows.length === 0) {
+      return res.json({ ok: true, duplicate: true });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Add favorite error:', err);
+    res.status(500).json({ error: 'Failed to add favorite' });
+  }
+});
+
+router.delete('/radio/favorites', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: 'Station url is required' });
+  }
+  try {
+    await pool.query(
+      'DELETE FROM favorite_stations WHERE user_id = $1 AND station_url = $2',
+      [req.session.userId, url]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Remove favorite error:', err);
+    res.status(500).json({ error: 'Failed to remove favorite' });
+  }
+});
+
 module.exports = router;

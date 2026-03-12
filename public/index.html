@@ -214,6 +214,20 @@
             <button type="button" class="theme-opt" data-theme="rolling-fog">Rolling Fog</button>
           </div>
         </div>
+        <div class="theme-group">
+          <label>Lobby Style</label>
+          <div class="lobby-style-toggle">
+            <button type="button" class="lobby-style-btn active" data-style="modern">Modern</button>
+            <button type="button" class="lobby-style-btn" data-style="retro">Retro</button>
+          </div>
+        </div>
+        <div class="theme-group">
+          <label>Lobby Background Opacity</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="lobby-bg-opacity" min="0" max="100" value="70">
+            <span id="lobby-bg-opacity-value">70%</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -226,55 +240,6 @@
       </div>
       <div class="lobby-overlay-body">
         <div class="theme-group">
-          <label>Radio Volume</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="radio-volume" min="0" max="100" value="80">
-            <span id="radio-volume-value">80%</span>
-          </div>
-        </div>
-        <div class="theme-group">
-          <label>Card FX &amp; Sounds</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="card-fx-volume" min="0" max="100" value="80">
-            <span id="card-fx-volume-value">80%</span>
-          </div>
-        </div>
-        <div class="theme-group">
-          <label>Ambience FX</label>
-          <div class="ambience-fx-wrap">
-            <select id="ambience-fx" class="ambience-fx-select">
-              <option value="casino">Casino</option>
-              <option value="fireplace">Fireplace</option>
-              <option value="rain">Rain</option>
-            </select>
-          </div>
-        </div>
-        <div class="theme-group">
-          <label>Ambience Volume</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="ambience-volume" min="0" max="100" value="25">
-            <span id="ambience-volume-value">25%</span>
-          </div>
-        </div>
-        <div class="theme-group">
-          <label>SFX Bit Depth</label>
-          <div class="radio-volume-wrap">
-            <select id="sfx-bitdepth" class="sfx-bitdepth-select">
-              <option value="8">8-bit</option>
-              <option value="12">12-bit</option>
-              <option value="16">16-bit</option>
-              <option value="0" selected>Max / Original</option>
-            </select>
-          </div>
-        </div>
-        <div class="theme-group">
-          <label>Lobby Background Opacity</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="lobby-bg-opacity" min="0" max="100" value="70">
-            <span id="lobby-bg-opacity-value">70%</span>
-          </div>
-        </div>
-        <div class="theme-group">
           <label>Lobby Chat Duration</label>
           <div class="chat-duration-wrap">
             <select id="chat-duration" class="chat-duration-select">
@@ -284,13 +249,6 @@
               <option value="45" selected>45 seconds</option>
               <option value="0">Infinite</option>
             </select>
-          </div>
-        </div>
-        <div class="theme-group">
-          <label>Lobby Style</label>
-          <div class="lobby-style-toggle">
-            <button type="button" class="lobby-style-btn active" data-style="modern">Modern</button>
-            <button type="button" class="lobby-style-btn" data-style="retro">Retro</button>
           </div>
         </div>
       </div>
@@ -472,14 +430,66 @@
   <div id="radio-overlay" class="radio-overlay hidden">
     <div class="radio-panel">
       <div class="radio-header">
-        <h2>Radio</h2>
+        <h2>Radio &amp; Audio</h2>
         <button type="button" class="radio-close" id="radio-close" aria-label="Close">&#xD7;</button>
       </div>
       <div class="radio-search-wrap">
         <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
         <button type="button" id="radio-search-btn">Search</button>
       </div>
+      <div class="radio-favorites" id="radio-favorites"></div>
       <div class="radio-results" id="radio-results"></div>
+      <div class="radio-audio-settings">
+        <div class="theme-group">
+          <label>Master Volume</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="master-volume" min="0" max="100" value="100">
+            <span id="master-volume-value">100%</span>
+          </div>
+        </div>
+        <div class="theme-group">
+          <label>Radio Volume</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="radio-volume" min="0" max="100" value="80">
+            <span id="radio-volume-value">80%</span>
+          </div>
+        </div>
+        <div class="theme-group">
+          <label>Card FX &amp; Sounds</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="card-fx-volume" min="0" max="100" value="80">
+            <span id="card-fx-volume-value">80%</span>
+          </div>
+        </div>
+        <div class="theme-group">
+          <label>Ambience FX</label>
+          <div class="ambience-fx-wrap">
+            <select id="ambience-fx" class="ambience-fx-select">
+              <option value="casino">Casino</option>
+              <option value="fireplace">Fireplace</option>
+              <option value="rain">Rain</option>
+            </select>
+          </div>
+        </div>
+        <div class="theme-group">
+          <label>Ambience Volume</label>
+          <div class="radio-volume-wrap">
+            <input type="range" id="ambience-volume" min="0" max="100" value="25">
+            <span id="ambience-volume-value">25%</span>
+          </div>
+        </div>
+        <div class="theme-group">
+          <label>SFX Bit Depth</label>
+          <div class="radio-volume-wrap">
+            <select id="sfx-bitdepth" class="sfx-bitdepth-select">
+              <option value="8">8-bit</option>
+              <option value="12">12-bit</option>
+              <option value="16">16-bit</option>
+              <option value="0" selected>Max / Original</option>
+            </select>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

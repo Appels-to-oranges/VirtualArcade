@@ -177,6 +177,11 @@ function playSfx(audio, vol) {
   audio.play().catch(() => {});
 }
 
+function getMasterVolume() {
+  const raw = parseInt(localStorage.getItem(MASTER_VOLUME_KEY), 10);
+  return (isNaN(raw) ? 100 : Math.max(0, Math.min(100, raw))) / 100;
+}
+
 function playSound(audio, volumeKey) {
   let vol = 0.25;
   if (volumeKey) {
@@ -184,7 +189,7 @@ function playSound(audio, volumeKey) {
     const fallback = volumeKey === 'poker_ambience_volume' ? 50 : volumeKey === 'poker_radio_volume' ? 25 : 33;
     vol = (isNaN(raw) ? fallback : Math.max(0, Math.min(100, raw))) / 100;
   }
-  vol = Math.max(0, Math.min(1, vol));
+  vol = Math.max(0, Math.min(1, vol * getMasterVolume()));
   const bitDepth = getSfxBitDepth();
   if (bitDepth > 0 && volumeKey !== AMBIENCE_VOLUME_KEY && volumeKey !== RADIO_VOLUME_KEY) {
     playSoundBitCrushed(audio, vol, bitDepth);
@@ -475,6 +480,8 @@ const radioSearchInput = document.getElementById('radio-search');
 const radioSearchBtn = document.getElementById('radio-search-btn');
 const radioResults = document.getElementById('radio-results');
 const radioStopBtn = document.getElementById('radio-stop');
+const masterVolumeSlider = document.getElementById('master-volume');
+const masterVolumeValue = document.getElementById('master-volume-value');
 const radioVolumeSlider = document.getElementById('radio-volume');
 const radioVolumeValue = document.getElementById('radio-volume-value');
 const cardFxVolumeSlider = document.getElementById('card-fx-volume');
@@ -547,6 +554,9 @@ window.onSlotsJackpotReelsStopped = (playerId) => {
 const RADIO_API = 'https://de1.api.radio-browser.info/json/stations/search';
 const radioAudio = new Audio();
 let currentRadioName = '';
+const RADIO_FAVORITES_KEY = 'arcade_radio_favorites';
+let radioFavorites = [];
+const MASTER_VOLUME_KEY = 'arcade_master_volume';
 const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
@@ -2337,9 +2347,14 @@ function stopRadio() {
 }
 
 function initRadioVolume() {
+  const master = getMasterVolume();
+  const masterPct = Math.round(master * 100);
+  if (masterVolumeSlider) masterVolumeSlider.value = masterPct;
+  if (masterVolumeValue) masterVolumeValue.textContent = masterPct + '%';
+
   const saved = parseInt(localStorage.getItem(RADIO_VOLUME_KEY), 10);
   const vol = isNaN(saved) ? 25 : Math.max(0, Math.min(100, saved));
-  radioAudio.volume = vol / 100;
+  radioAudio.volume = (vol / 100) * master;
   if (radioVolumeSlider) radioVolumeSlider.value = vol;
   if (radioVolumeValue) radioVolumeValue.textContent = vol + '%';
 
@@ -2358,14 +2373,146 @@ function initRadioVolume() {
 
   const ambFx = localStorage.getItem(AMBIENCE_FX_KEY) || 'casino';
   if (ambienceFxSelect) ambienceFxSelect.value = ambFx;
+}
 
+function initSettingsOverlay() {
+  const chatDur = localStorage.getItem(CHAT_DURATION_KEY);
+  if (chatDurationSelect) chatDurationSelect.value = (chatDur === '0' || chatDur === 'infinite') ? '0' : (chatDur || '45');
+}
+
+function initThemesOverlay() {
   const lobOpacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
   const lobVal = isNaN(lobOpacity) ? 70 : Math.max(0, Math.min(100, lobOpacity));
   if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.value = lobVal;
   if (lobbyBgOpacityValue) lobbyBgOpacityValue.textContent = lobVal + '%';
+}
 
-  const chatDur = localStorage.getItem(CHAT_DURATION_KEY);
-  if (chatDurationSelect) chatDurationSelect.value = (chatDur === '0' || chatDur === 'infinite') ? '0' : (chatDur || '45');
+/* ---------- Radio Favorites ---------- */
+const radioFavoritesContainer = document.getElementById('radio-favorites');
+
+function getLocalFavorites() {
+  try { return JSON.parse(localStorage.getItem(RADIO_FAVORITES_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveLocalFavorites(favs) {
+  localStorage.setItem(RADIO_FAVORITES_KEY, JSON.stringify(favs));
+}
+
+function isFavorite(url) {
+  return radioFavorites.some((f) => f.station_url === url || f.url === url);
+}
+
+async function loadFavorites() {
+  if (authUser) {
+    try {
+      const res = await fetch('/auth/radio/favorites');
+      if (res.ok) { radioFavorites = await res.json(); }
+    } catch { /* fall through to local */ }
+  }
+  if (!radioFavorites.length) {
+    radioFavorites = getLocalFavorites();
+  }
+  renderFavorites();
+}
+
+async function addFavorite(station) {
+  const entry = {
+    station_name: station.name, station_url: station.url,
+    favicon: station.favicon || '', country: station.country || '', tags: station.tags || ''
+  };
+  if (isFavorite(entry.station_url)) return;
+  if (authUser) {
+    try {
+      await fetch('/auth/radio/favorites', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: entry.station_name, url: entry.station_url, favicon: entry.favicon, country: entry.country, tags: entry.tags })
+      });
+    } catch {}
+  }
+  radioFavorites.unshift(entry);
+  saveLocalFavorites(radioFavorites);
+  renderFavorites();
+  updateFavButtons();
+}
+
+async function removeFavorite(url) {
+  if (authUser) {
+    try {
+      await fetch('/auth/radio/favorites', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+    } catch {}
+  }
+  radioFavorites = radioFavorites.filter((f) => (f.station_url || f.url) !== url);
+  saveLocalFavorites(radioFavorites);
+  renderFavorites();
+  updateFavButtons();
+}
+
+function renderFavorites() {
+  if (!radioFavoritesContainer) return;
+  radioFavoritesContainer.innerHTML = '';
+  if (!radioFavorites.length) return;
+
+  const label = document.createElement('div');
+  label.className = 'radio-favorites-label';
+  label.textContent = 'Favorites';
+  radioFavoritesContainer.appendChild(label);
+
+  const list = document.createElement('div');
+  list.className = 'radio-fav-list';
+
+  radioFavorites.forEach((fav) => {
+    const url = fav.station_url || fav.url;
+    const name = fav.station_name || fav.name;
+
+    const row = document.createElement('div');
+    row.className = 'radio-fav-row';
+
+    const icon = document.createElement('img');
+    icon.className = 'radio-fav-icon';
+    icon.src = fav.favicon || '';
+    icon.alt = '';
+    icon.onerror = () => { icon.style.display = 'none'; };
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'radio-fav-name';
+    nameEl.textContent = name;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'radio-fav-remove';
+    removeBtn.title = 'Remove favorite';
+    removeBtn.innerHTML = '&#x2715;';
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeFavorite(url);
+    });
+
+    row.appendChild(icon);
+    row.appendChild(nameEl);
+    row.appendChild(removeBtn);
+
+    row.addEventListener('click', () => {
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'changeRadio', station: { name, url } }));
+      }
+      radioOverlay?.classList.add('hidden');
+    });
+
+    list.appendChild(row);
+  });
+
+  radioFavoritesContainer.appendChild(list);
+}
+
+function updateFavButtons() {
+  document.querySelectorAll('.radio-station-fav').forEach((btn) => {
+    btn.classList.toggle('is-fav', isFavorite(btn.dataset.url));
+    btn.innerHTML = isFavorite(btn.dataset.url) ? '&#x2605;' : '&#x2606;';
+  });
 }
 
 function searchRadioStations(query) {
@@ -2405,8 +2552,25 @@ function searchRadioStations(query) {
         meta.textContent = [st.country, st.tags].filter(Boolean).join(' \u00B7 ');
         info.appendChild(name);
         info.appendChild(meta);
+
+        const favBtn = document.createElement('button');
+        favBtn.type = 'button';
+        favBtn.className = 'radio-station-fav' + (isFavorite(url) ? ' is-fav' : '');
+        favBtn.dataset.url = url;
+        favBtn.innerHTML = isFavorite(url) ? '&#x2605;' : '&#x2606;';
+        favBtn.title = 'Favorite';
+        favBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (isFavorite(url)) {
+            removeFavorite(url);
+          } else {
+            addFavorite({ name: st.name, url, favicon: st.favicon || '', country: st.country || '', tags: st.tags || '' });
+          }
+        });
+
         row.appendChild(icon);
         row.appendChild(info);
+        row.appendChild(favBtn);
         row.addEventListener('click', () => {
           if (ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ type: 'changeRadio', station: { name: st.name, url } }));
@@ -2423,7 +2587,8 @@ function searchRadioStations(query) {
 
 if (radioBtn) radioBtn.addEventListener('click', () => {
   initRadioVolume();
-  radioOverlay?.classList.remove('hidden');
+  loadFavorites();
+  radioOverlay?.classList.remove('hidden');    
   radioSearchInput?.focus();
 });
 
@@ -2454,6 +2619,7 @@ if (radioStopBtn) radioStopBtn.addEventListener('click', () => {
 
 if (bjRadioBtn) bjRadioBtn.addEventListener('click', () => {
   initRadioVolume();
+  loadFavorites();
   radioOverlay?.classList.remove('hidden');
   radioSearchInput?.focus();
 });
@@ -2462,6 +2628,7 @@ const slotsRadioBtn = document.getElementById('slots-radio-btn');
 const slotsRadioStopBtn = document.getElementById('slots-radio-stop');
 if (slotsRadioBtn) slotsRadioBtn.addEventListener('click', () => {
   initRadioVolume();
+  loadFavorites();
   radioOverlay?.classList.remove('hidden');
   radioSearchInput?.focus();
 });
@@ -2479,6 +2646,7 @@ if (bjRadioStopBtn) bjRadioStopBtn.addEventListener('click', () => {
 
 if (lobbyRadioBtn) lobbyRadioBtn.addEventListener('click', () => {
   initRadioVolume();
+  loadFavorites();
   radioOverlay?.classList.remove('hidden');
   radioSearchInput?.focus();
 });
@@ -2489,9 +2657,21 @@ if (lobbyRadioStopBtn) lobbyRadioStopBtn.addEventListener('click', () => {
   }
 });
 
+if (masterVolumeSlider) masterVolumeSlider.addEventListener('input', () => {
+  const v = parseInt(masterVolumeSlider.value, 10);
+  localStorage.setItem(MASTER_VOLUME_KEY, v);
+  if (masterVolumeValue) masterVolumeValue.textContent = v + '%';
+  const master = v / 100;
+  const radioVol = parseInt(radioVolumeSlider?.value || localStorage.getItem(RADIO_VOLUME_KEY), 10) || 25;
+  radioAudio.volume = (radioVol / 100) * master;
+  const ambAudio = getAmbienceAudio();
+  const ambVol = parseInt(ambienceVolumeSlider?.value || localStorage.getItem(AMBIENCE_VOLUME_KEY), 10) || 50;
+  ambAudio.volume = (ambVol / 100) * master;
+});
+
 if (radioVolumeSlider) radioVolumeSlider.addEventListener('input', () => {
   const v = parseInt(radioVolumeSlider.value, 10);
-  radioAudio.volume = v / 100;
+  radioAudio.volume = (v / 100) * getMasterVolume();
   localStorage.setItem(RADIO_VOLUME_KEY, v);
   if (radioVolumeValue) radioVolumeValue.textContent = v + '%';
 });
@@ -2512,7 +2692,7 @@ if (ambienceFxSelect) ambienceFxSelect.addEventListener('change', () => {
 if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   const v = parseInt(ambienceVolumeSlider.value, 10);
   const audio = getAmbienceAudio();
-  audio.volume = v / 100;
+  audio.volume = (v / 100) * getMasterVolume();
   localStorage.setItem(AMBIENCE_VOLUME_KEY, v);
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });
@@ -2599,13 +2779,13 @@ function toggleOverlay(overlay) {
 }
 
 function openSettingsOverlay() {
-  initRadioVolume();
+  initSettingsOverlay();
   if (settingsOverlay) settingsOverlay.classList.remove('hidden');
 }
 
-if (themesBtn) themesBtn.addEventListener('click', () => toggleOverlay(themesOverlay));
+if (themesBtn) themesBtn.addEventListener('click', () => { initThemesOverlay(); toggleOverlay(themesOverlay); });
 if (themesClose) themesClose.addEventListener('click', () => themesOverlay.classList.add('hidden'));
-if (settingsBtn) settingsBtn.addEventListener('click', () => toggleOverlay(settingsOverlay));
+if (settingsBtn) settingsBtn.addEventListener('click', () => { initSettingsOverlay(); toggleOverlay(settingsOverlay); });
 if (settingsClose) settingsClose.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
 
 const holdemSettingsBtn = document.getElementById('holdem-settings-btn');

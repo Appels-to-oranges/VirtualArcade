@@ -1362,6 +1362,8 @@ body.lobby-retro .welcome-badge {
   max-width: 20rem;
   width: 100%;
   box-shadow: 0 0 0 0.375rem #000;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .radio-header {
@@ -1550,6 +1552,120 @@ body.lobby-retro .welcome-badge {
   color: #555;
   font-size: 0.5rem;
   padding: 1rem 0;
+}
+
+.radio-favorites {
+  margin-bottom: 0.5rem;
+}
+
+.radio-favorites:empty {
+  display: none;
+}
+
+.radio-favorites-label {
+  font-size: 0.45rem;
+  color: #8b6914;
+  text-transform: uppercase;
+  letter-spacing: 0.08rem;
+  margin-bottom: 0.35rem;
+}
+
+.radio-fav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.radio-fav-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 0.125rem solid #333;
+  background: #0a0a0a;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.radio-fav-row:hover {
+  border-color: #c9b896;
+  background: #111;
+}
+
+.radio-fav-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0;
+  object-fit: cover;
+  background: #222;
+  flex-shrink: 0;
+}
+
+.radio-fav-name {
+  flex: 1;
+  font-size: 0.48rem;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.radio-fav-meta {
+  font-size: 0.4rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radio-fav-remove {
+  background: none;
+  border: 0.1rem solid #333;
+  color: #8b6914;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.radio-fav-remove:hover {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.radio-station-fav {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.1rem 0.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.radio-station-fav:hover {
+  color: #c9b896;
+}
+
+.radio-station-fav.is-fav {
+  color: #8b6914;
+}
+
+.radio-audio-settings {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 0.125rem solid #333;
+}
+
+.radio-audio-settings .theme-group {
+  margin-bottom: 0.75rem;
 }
 
 .radio-station {

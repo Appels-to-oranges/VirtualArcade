@@ -25,9 +25,21 @@ async function ensureTables() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    // Add OAuth columns if table already existed without them
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(255) UNIQUE`).catch(() => {});
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS favorite_stations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        station_name VARCHAR(255) NOT NULL,
+        station_url TEXT NOT NULL,
+        favicon TEXT,
+        country VARCHAR(100),
+        tags TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, station_url)
+      );
+    `);
     console.log('Database tables ready');
   } catch (err) {
     console.error('Failed to create tables:', err.message);

@@ -608,6 +608,8 @@
     });
     var chRadioBtn = document.getElementById('ch-radio-btn');
     if (chRadioBtn) chRadioBtn.addEventListener('click', function () {
+      if (typeof initRadioVolume === 'function') initRadioVolume();
+      if (typeof loadFavorites === 'function') loadFavorites();
       var overlay = document.getElementById('radio-overlay');
       var searchInput = document.getElementById('radio-search');
       if (overlay) overlay.classList.remove('hidden');
