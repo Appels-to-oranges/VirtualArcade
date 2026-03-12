@@ -852,7 +852,7 @@ function showGameSelectScreen(players, chatHistory) {
   }
 }
 
-const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Swamp Slots', lobby: 'Lobby' };
+const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Slots', lobby: 'Lobby' };
 
 function renderParticipants() {
   if (!participantsList) return;
