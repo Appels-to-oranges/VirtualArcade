@@ -343,7 +343,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   background: var(--lobby-card-bg);
   border: 0.0625rem solid var(--lobby-border);
   border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.75rem;
   flex: 1.4;
   min-width: 0;
   min-height: 0;
@@ -352,8 +352,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 }
 
 .game-select-card h1 {
-  font-size: 0.7rem;
-  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.65rem;
   color: var(--lobby-accent);
   text-transform: uppercase;
   letter-spacing: 0.125rem;
@@ -420,17 +420,17 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 
 /* ── Participants ── */
 .game-select-participants {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .participants-label {
-  font-size: 0.4rem;
+  font-size: 0.45rem;
   color: var(--lobby-muted);
   text-transform: uppercase;
   letter-spacing: 0.1rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
   border-bottom: 0.0625rem solid var(--lobby-border);
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.3rem;
 }
 
 .participants-list {
@@ -494,22 +494,22 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 }
 
 .game-select-category {
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .game-category-label {
-  font-size: 0.45rem;
+  font-size: 0.5rem;
   color: var(--lobby-muted);
   text-transform: uppercase;
   letter-spacing: 0.1rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
   border-bottom: 0.0625rem solid var(--lobby-border);
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.3rem;
 }
 
 .game-select-options {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
@@ -518,17 +518,17 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 }
 
 .game-select-options-casino .game-option-btn {
-  min-width: 4rem;
+  min-width: 5rem;
 }
 
 .game-option-btn {
   width: 100%;
-  min-width: 5rem;
+  min-width: 6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.5rem 0.5rem;
+  gap: 0.4rem;
+  padding: 0.75rem 0.65rem;
   background: var(--lobby-input-bg);
   border: 0.125rem solid var(--lobby-border);
   border-radius: 0.5rem;
@@ -549,8 +549,8 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 .game-option-icon { font-size: 1.5rem; line-height: 1; }
 
 .game-option-img {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.75rem;
+  height: 1.75rem;
   object-fit: contain;
   filter: invert(1) brightness(0.85);
   transition: filter 0.2s;
@@ -580,9 +580,9 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 }
 
 .game-option-name {
-  font-size: 0.32rem;
+  font-size: 0.38rem;
   text-transform: uppercase;
-  letter-spacing: 0.03rem;
+  letter-spacing: 0.04rem;
   line-height: 1.2;
 }
 
@@ -621,16 +621,16 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 }
 
 .game-select-card .btn-back {
-  margin-top: 0.4rem;
+  margin-top: 0.5rem;
 }
 
 .btn-back {
   display: block;
   width: 100%;
   margin-top: 0;
-  padding: 0.45rem 0.75rem;
+  padding: 0.55rem 0.9rem;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.35rem;
+  font-size: 0.4rem;
   color: var(--lobby-muted);
   background: none;
   border: 0.0625rem solid var(--lobby-border);
@@ -1158,10 +1158,13 @@ body.lobby-retro .welcome-badge {
 }
 
 .waiting-msg {
-  font-size: 0.5rem;
-  color: #8b949e;
-  padding: 0 0.5rem;
+  font-size: 0.35rem;
+  color: var(--lobby-muted, #8b949e);
+  padding: 0 0.25rem;
+  white-space: nowrap;
 }
+
+.waiting-msg.hidden { display: none; }
 
 .btn-add-bot {
   padding: 0.25rem 0.6rem;
@@ -1215,6 +1218,7 @@ body.lobby-retro .welcome-badge {
 }
 
 .game-scale-wrapper {
+  position: relative;
   width: 100%;
   min-height: 0;
   display: flex;
@@ -1224,12 +1228,11 @@ body.lobby-retro .welcome-badge {
   overflow: auto;
 }
 
-/* Room bar */
+/* Room bar (legacy base) */
 .room-bar {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-wrap: nowrap;
   gap: 0.4rem;
   padding: 0.2rem 0.5rem;
@@ -1239,22 +1242,163 @@ body.lobby-retro .welcome-badge {
   overflow-x: auto;
 }
 
-.room-bar-chips {
-  font-size: 0.5rem;
-  color: #c9b896;
-  padding: 0.2rem 0.4rem;
-  background: #1a1a1a;
-  border: 0.125rem solid #333;
-  border-radius: 0.2rem;
+/* ── Standardized top bar ── */
+.std-bar {
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 0.0625rem solid var(--lobby-border, #1e2a3a);
+  padding: 0.3rem 0.65rem;
+  gap: 0.5rem;
+  backdrop-filter: blur(6px);
 }
 
-.room-bar #room-label {
-  font-size: 0.5rem;
-  color: #666;
-  letter-spacing: 0.0625rem;
+.std-bar-lobby {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.5rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.32rem;
+  color: var(--lobby-text, #c9d1d9);
+  background: none;
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.3rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s, color 0.15s;
+  opacity: 0.8;
+}
+
+.std-bar-lobby:hover {
+  border-color: var(--lobby-accent, #c9b896);
+  color: var(--lobby-accent, #c9b896);
+  opacity: 1;
+}
+
+.std-bar-icon {
+  width: 0.6rem;
+  height: 0.6rem;
+  vertical-align: middle;
+  filter: invert(0.7);
+  transition: filter 0.15s;
+}
+
+.std-bar-lobby:hover .std-bar-icon {
+  filter: invert(0.95);
+}
+
+.std-bar-player {
+  font-size: 0.35rem;
+  color: var(--lobby-accent, #c9b896);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
+.std-bar-spacer {
+  flex: 1;
+}
+
+.std-bar-game {
+  font-size: 0.35rem;
+  color: var(--lobby-muted, #8b949e);
+  letter-spacing: 0.05rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.std-bar-btn {
+  padding: 0.2rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+  border-radius: 0.25rem;
+}
+
+.std-bar-btn:hover {
+  opacity: 1;
+}
+
+.std-bar-btn-icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  display: block;
+  opacity: 0.85;
+}
+
+.std-bar-btn:hover .std-bar-btn-icon {
+  opacity: 1;
+}
+
+/* ── Poker action popup ── */
+.game-action-popup {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+}
+
+.game-action-popup.visible {
+  display: block;
+}
+
+.game-action-popup-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(0, 0, 0, 0.85);
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.5);
+}
+
+.game-action-btn {
+  padding: 0.35rem 0.75rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.35rem;
+  background: var(--lobby-input-bg, #1a1a1a);
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.35rem;
+  color: var(--lobby-text, #c9d1d9);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.game-action-btn:hover {
+  border-color: var(--lobby-accent, #c9b896);
+  color: #fff;
+}
+
+.game-action-btn.game-action-primary {
+  background: rgba(30, 80, 50, 0.6);
+  border-color: var(--lobby-accent, #40916c);
+  color: var(--lobby-accent, #c9b896);
+}
+
+.game-action-btn.game-action-primary:hover {
+  background: rgba(40, 100, 65, 0.8);
+  color: #fff;
+}
+
+.game-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.game-action-btn.hidden {
+  display: none;
+}
+
+/* Legacy button classes kept for backward compat (checkers/chess config panels) */
 .btn-start {
   padding: 0.3rem 0.7rem;
   background: #1b4332;
@@ -1267,7 +1411,6 @@ body.lobby-retro .welcome-badge {
   letter-spacing: 0.1rem;
   white-space: nowrap;
 }
-
 .btn-start:hover { background: #2d6a4f; }
 .btn-start:disabled {
   background: #1a1a1a;
@@ -1275,49 +1418,48 @@ body.lobby-retro .welcome-badge {
   color: #444;
   cursor: not-allowed;
 }
+.btn-restart {
+  padding: 0.3rem 0.7rem;
+  background: #1b4332;
+  border: 0.15rem solid #40916c;
+  color: #ddd;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.45rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.btn-restart:hover { background: #2d6a4f; }
+.btn-restart.hidden { display: none; }
 
 .btn-radio {
-  padding: 0.2rem 0.4rem;
+  padding: 0.2rem;
   background: transparent;
-  border: 0.0625rem solid var(--lobby-border, #30363d);
-  border-radius: 0.35rem;
-  color: var(--lobby-text, #c9d1d9);
-  font-size: 0.7rem;
+  border: none;
   cursor: pointer;
-  line-height: 1;
   flex-shrink: 0;
-  opacity: 0.85;
-  transition: background 0.15s, opacity 0.15s;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+  border-radius: 0.25rem;
 }
 
-.btn-radio:hover {
-  border-color: var(--lobby-accent, #c9b896);
-  background: var(--lobby-border, #30363d);
-  opacity: 1;
-}
+.btn-radio:hover { opacity: 1; }
 
 .btn-settings-inline {
-  padding: 0.2rem 0.4rem;
+  padding: 0.2rem;
   background: transparent;
-  border: 0.0625rem solid var(--lobby-border, #30363d);
-  border-radius: 0.35rem;
-  color: var(--lobby-text, #c9d1d9);
-  font-size: 0.65rem;
+  border: none;
   cursor: pointer;
-  line-height: 1;
   flex-shrink: 0;
-  opacity: 0.85;
-  transition: background 0.15s, opacity 0.15s;
+  opacity: 0.65;
+  transition: opacity 0.15s;
+  border-radius: 0.25rem;
 }
-.btn-settings-inline:hover {
-  border-color: var(--lobby-accent, #c9b896);
-  background: var(--lobby-border, #30363d);
-  opacity: 1;
-}
+.btn-settings-inline:hover { opacity: 1; }
 
 .btn-inline-icon {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1rem;
+  height: 1rem;
   object-fit: contain;
   opacity: 0.85;
   vertical-align: middle;
@@ -1401,7 +1543,8 @@ body.lobby-retro .welcome-badge {
 .radio-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.9);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1416,12 +1559,13 @@ body.lobby-retro .welcome-badge {
 }
 
 .radio-panel {
-  background: var(--lobby-input-bg);
-  border: 0.1875rem solid var(--lobby-accent);
-  padding: 1rem 1.25rem;
-  max-width: 20rem;
+  background: var(--lobby-card-bg, #0d1117);
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.75rem;
+  padding: 0;
+  max-width: 22rem;
   width: 100%;
-  box-shadow: 0 0 0 0.375rem rgba(0,0,0,0.9);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6);
   max-height: 85vh;
   overflow-x: hidden;
   overflow-y: auto;
@@ -1431,46 +1575,72 @@ body.lobby-retro .welcome-badge {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 0.0625rem solid var(--lobby-border);
+  background: var(--lobby-input-bg);
+  border-radius: 0.75rem 0.75rem 0 0;
 }
 
 .radio-header h2 {
-  font-size: 0.6rem;
+  font-size: 0.5rem;
   color: var(--lobby-accent);
   text-transform: uppercase;
-  letter-spacing: 0.125rem;
+  letter-spacing: 0.1rem;
 }
 
 .radio-close {
   background: none;
-  border: 0.125rem solid var(--lobby-border);
+  border: none;
   color: var(--lobby-text);
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
+  padding: 0.15rem 0.35rem;
   line-height: 1;
+  border-radius: 0.25rem;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
 }
 
 .radio-close:hover {
-  border-color: var(--lobby-accent);
+  opacity: 1;
   color: var(--lobby-accent);
+}
+
+/* Radio sections */
+.radio-section {
+  padding: 0.6rem 1rem;
+  border-bottom: 0.0625rem solid var(--lobby-border);
+}
+
+.radio-section:last-child {
+  border-bottom: none;
+}
+
+.radio-section-label {
+  font-size: 0.32rem;
+  color: var(--lobby-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  margin-bottom: 0.5rem;
 }
 
 .radio-search-wrap {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 
 .radio-search-wrap input {
   flex: 1;
   min-width: 0;
-  padding: 0.5rem 0.6rem;
-  border: 0.125rem solid var(--lobby-border);
+  padding: 0.4rem 0.55rem;
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.35rem;
   background: var(--lobby-input-bg);
   color: var(--lobby-text);
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.45rem;
+  font-size: 0.35rem;
+  transition: border-color 0.15s;
 }
 
 .radio-search-wrap input:focus {
@@ -1479,62 +1649,94 @@ body.lobby-retro .welcome-badge {
 }
 
 .radio-search-wrap button {
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.65rem;
   background: var(--lobby-accent);
-  border: 0.125rem solid var(--lobby-accent);
+  border: none;
+  border-radius: 0.35rem;
   color: #0a0a0a;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.4rem;
+  font-size: 0.32rem;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: opacity 0.15s;
 }
 
 .radio-search-wrap button:hover {
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
-.sound-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.radio-volume-wrap {
+/* Audio rows */
+.audio-row {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
 }
 
-.radio-volume-wrap label {
-  font-size: 0.45rem;
+.audio-row + .audio-row {
+  border-top: 0.0625rem solid rgba(255, 255, 255, 0.04);
+}
+
+.audio-row-label {
+  font-size: 0.32rem;
   color: var(--lobby-text);
+  min-width: 3.5rem;
+  flex-shrink: 0;
 }
 
-.radio-volume-wrap input[type="range"] {
+.audio-row input[type="range"] {
   flex: 1;
-  max-width: 7.5rem;
+  min-width: 0;
+  height: 0.15rem;
+  accent-color: var(--lobby-accent);
 }
 
-.radio-volume-wrap span {
-  font-size: 0.45rem;
+.audio-row-value {
+  font-size: 0.32rem;
   color: var(--lobby-accent);
-  min-width: 2.25rem;
+  min-width: 1.75rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.audio-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--lobby-input-bg);
+  color: var(--lobby-text);
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.32rem;
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.audio-select:focus {
+  outline: none;
+  border-color: var(--lobby-accent);
+}
+
+.audio-select option {
+  background: var(--lobby-input-bg);
+  color: var(--lobby-text);
 }
 
 .audio-mute-btn {
   flex-shrink: 0;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.35rem;
+  padding: 0.18rem 0.4rem;
+  font-size: 0.28rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.03rem;
   border: 0.0625rem solid var(--lobby-border);
   border-radius: 0.25rem;
-  background: var(--lobby-card-bg);
+  background: transparent;
   color: var(--lobby-text);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: all 0.15s;
 }
 
 .audio-mute-btn:hover {
@@ -1544,43 +1746,14 @@ body.lobby-retro .welcome-badge {
 }
 
 .audio-mute-btn.muted {
-  background: rgba(180, 60, 60, 0.3);
+  background: rgba(180, 60, 60, 0.25);
   color: #e88;
-  border-color: rgba(200, 80, 80, 0.6);
+  border-color: rgba(200, 80, 80, 0.5);
 }
 
 .audio-mute-btn.muted:hover {
-  background: rgba(180, 60, 60, 0.5);
+  background: rgba(180, 60, 60, 0.45);
   color: #fff;
-}
-
-.ambience-fx-wrap {
-  display: flex;
-  align-items: center;
-}
-
-.ambience-fx-select {
-  background: var(--lobby-input-bg);
-  color: var(--lobby-text);
-  border: 0.0625rem solid var(--lobby-border);
-  border-radius: 0.375rem;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.45rem;
-  font-family: inherit;
-  cursor: pointer;
-  flex: 1;
-  min-width: 0;
-  max-width: 10rem;
-}
-
-.ambience-fx-select:focus {
-  outline: none;
-  border-color: var(--lobby-accent);
-}
-
-.ambience-fx-select option {
-  background: var(--lobby-input-bg);
-  color: var(--lobby-text);
 }
 
 .settings-nickname-wrap {
@@ -1713,29 +1886,7 @@ body.lobby-retro .welcome-badge {
   color: var(--lobby-text);
 }
 
-.sfx-bitdepth-select {
-  background: var(--lobby-input-bg);
-  color: var(--lobby-text);
-  border: 0.0625rem solid var(--lobby-border);
-  border-radius: 0.375rem;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.45rem;
-  font-family: inherit;
-  cursor: pointer;
-  flex: 1;
-  min-width: 0;
-  max-width: 7.5rem;
-}
-
-.sfx-bitdepth-select:focus {
-  outline: none;
-  border-color: var(--lobby-accent);
-}
-
-.sfx-bitdepth-select option {
-  background: var(--lobby-input-bg);
-  color: var(--lobby-text);
-}
+/* Legacy .sfx-bitdepth-select removed; now uses .audio-select */
 
 .radio-results {
   max-height: 10rem;
@@ -1858,31 +2009,7 @@ body.lobby-retro .welcome-badge {
   color: var(--lobby-accent);
 }
 
-.radio-audio-settings {
-  margin-top: 0.75rem;
-  padding-top: 0.6rem;
-  border-top: 0.125rem solid var(--lobby-border);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.4rem 0.75rem;
-}
-
-.radio-audio-settings .theme-group:first-child {
-  grid-column: 1 / -1;
-}
-
-.radio-audio-settings .theme-group {
-  margin-bottom: 0;
-}
-
-.radio-audio-settings .theme-group label {
-  font-size: 0.35rem;
-  margin-bottom: 0.2rem;
-}
-
-.radio-audio-settings .radio-volume-wrap input[type="range"] {
-  max-width: none;
-}
+/* Legacy audio settings grid (removed, replaced by .audio-row layout) */
 
 .radio-station {
   display: flex;
@@ -3120,29 +3247,9 @@ body.lobby-retro .welcome-badge {
   min-height: 0;
 }
 
-#slots-screen .room-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  background: rgba(0, 0, 0, 0.5);
-  border-bottom: 0.2rem solid var(--swamp-border);
-  flex-shrink: 0;
-  image-rendering: pixelated;
-}
-
-#slots-screen .room-bar-chips {
-  color: var(--swamp-highlight);
-}
-
-#slots-screen .room-bar .btn-back-inline {
-  color: var(--swamp-muted);
-  border-color: var(--swamp-border);
-}
-
-#slots-screen .room-bar .btn-back-inline:hover {
-  color: var(--swamp-highlight);
-  border-color: var(--swamp-border-light);
+/* Slots top bar uses .std-bar, so just keep swamp-specific overrides minimal */
+#slots-screen .room-bar.std-bar {
+  border-bottom-color: var(--swamp-border);
 }
 
 #slots-screen .btn-bet,
@@ -3756,7 +3863,6 @@ body.lobby-retro .lobby-style-btn.active {
   box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
 }
 
-body.lobby-retro .sfx-bitdepth-select,
 body.lobby-retro .chat-duration-select {
   border-radius: 0;
 }
@@ -3846,15 +3952,18 @@ body.lobby-retro .radio-panel {
   box-shadow: 6px 6px 0 #000;
 }
 
+body.lobby-retro .radio-header {
+  border-radius: 0;
+}
+
 body.lobby-retro .radio-close {
   border-radius: 0;
 }
 
-body.lobby-retro .radio-search-wrap input {
-  border-radius: 0;
-}
-
-body.lobby-retro .radio-search-wrap button {
+body.lobby-retro .radio-search-wrap input,
+body.lobby-retro .radio-search-wrap button,
+body.lobby-retro .audio-select,
+body.lobby-retro .audio-mute-btn {
   border-radius: 0;
 }
 
@@ -3955,7 +4064,56 @@ body.lobby-retro .ch-config-panel input[type="range"] {
   border-radius: 0 !important;
 }
 
-/* ── Responsive lobby ── */
+/* ── Responsive lobby: compact at short viewports ── */
+@media (max-height: 750px) {
+  .game-select-card {
+    padding: 0.75rem 1rem;
+  }
+  .game-select-card h1 {
+    font-size: 0.65rem;
+    margin-bottom: 0.35rem;
+  }
+  .game-select-participants {
+    margin-bottom: 0.5rem;
+  }
+  .participants-label {
+    font-size: 0.35rem;
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.2rem;
+  }
+  .game-select-category {
+    margin-bottom: 0.5rem;
+  }
+  .game-category-label {
+    font-size: 0.4rem;
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.2rem;
+  }
+  .game-option-btn {
+    padding: 0.4rem 0.4rem;
+    gap: 0.25rem;
+    min-width: 4.5rem;
+  }
+  .game-select-options-casino .game-option-btn {
+    min-width: 3.5rem;
+  }
+  .game-option-img {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+  .game-option-name {
+    font-size: 0.28rem;
+  }
+  .game-select-card .btn-back {
+    margin-top: 0.3rem;
+  }
+  .btn-back {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.32rem;
+  }
+}
+
+/* ── Responsive lobby: narrow viewports ── */
 @media (max-width: 700px) {
   .lobby-cards {
     flex-direction: column;

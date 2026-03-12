@@ -223,8 +223,11 @@
   }
 
   function updateChipsDisplay() {
-    const chipsEl = el('slots-chips-display');
-    if (chipsEl) chipsEl.textContent = '$' + (slotsChips ?? 0);
+    const playerInfoEl = el('slots-player-info');
+    if (playerInfoEl) {
+      const me = slotsPlayers.find(p => p.id === slotsMyId);
+      playerInfoEl.textContent = (me?.nickname || '') + ': $' + (slotsChips ?? 0);
+    }
 
     const spinBtn = document.querySelector('.slots-spin-btn');
     if (spinBtn) {

@@ -259,8 +259,8 @@
     } else if (chipsDisplay) {
       chipsDisplay.textContent = '';
     }
-    const roomBarChips = el('bj-chips-display');
-    if (roomBarChips) roomBarChips.textContent = player ? `$${player.chips}` : '$0';
+    const bjPlayerInfo = el('bj-player-info');
+    if (bjPlayerInfo) bjPlayerInfo.textContent = (player ? player.nickname : '') + ': $' + (player ? player.chips : 0);
 
     if (bjGameState === 'lobby') {
       if (startBtn) startBtn.classList.remove('hidden');
@@ -348,7 +348,7 @@
         bjResultsData = null;
         if (msg.roomKey) bjRoomKey = msg.roomKey;
         const roomLabel = el('bj-room-label');
-        if (roomLabel) roomLabel.textContent = `Blackjack - ${bjRoomKey}`;
+        if (roomLabel) roomLabel.textContent = `Blackjack \u2014 ${bjRoomKey}`;
         setStatus('Waiting for game to start...');
         renderAll();
         break;
@@ -637,7 +637,7 @@
     bjResultsData = null;
 
     const roomLabelEl = el('bj-room-label');
-    if (roomLabelEl) roomLabelEl.textContent = `Blackjack - ${bjRoomKey}`;
+    if (roomLabelEl) roomLabelEl.textContent = `Blackjack \u2014 ${bjRoomKey}`;
 
     bindEvents();
     setStatus('Waiting for game to start...');

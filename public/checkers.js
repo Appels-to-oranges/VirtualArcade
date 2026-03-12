@@ -300,16 +300,14 @@
     screenEl.id = 'ck-screen';
     screenEl.className = 'hidden';
     screenEl.innerHTML =
-      '<div class="ck-room-bar">' +
-        '<button type="button" id="ck-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>' +
-        '<span id="ck-room-label"></span>' +
-        '<span class="ck-chips-display" id="ck-chips-display">$0</span>' +
-        '<button id="ck-start-btn" class="btn-start hidden">Start Game</button>' +
-        '<button id="ck-rematch-btn" class="btn-restart hidden">Rematch</button>' +
-        '<div class="ck-room-bar-spacer"></div>' +
-        '<button type="button" id="ck-radio-btn" class="lobby-header-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="lobby-header-icon"></button>' +
-        '<button type="button" id="ck-themes-btn" class="lobby-header-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="lobby-header-icon"></button>' +
-        '<button type="button" id="ck-settings-btn" class="lobby-header-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="lobby-header-icon"></button>' +
+      '<div class="room-bar std-bar ck-room-bar">' +
+        '<button type="button" id="ck-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>' +
+        '<span class="std-bar-player" id="ck-player-info"></span>' +
+        '<div class="std-bar-spacer"></div>' +
+        '<span class="std-bar-game" id="ck-room-label"></span>' +
+        '<button type="button" id="ck-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>' +
+        '<button type="button" id="ck-themes-btn" class="std-bar-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="std-bar-btn-icon"></button>' +
+        '<button type="button" id="ck-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>' +
       '</div>' +
       '<div class="ck-config-overlay" id="ck-config-overlay">' +
         '<div class="ck-config-layout">' +
@@ -586,10 +584,12 @@
   }
 
   function updateCkChipsDisplay() {
-    var el = document.getElementById('ck-chips-display');
-    if (!el) return;
-    var chips = ckWagerChips[ckMyId] ?? (ckPlayers.find(function (p) { return p.id === ckMyId; })?.chips ?? 0);
-    el.textContent = '$' + chips;
+    var infoEl = document.getElementById('ck-player-info');
+    if (!infoEl) return;
+    var me = ckPlayers.find(function (p) { return p.id === ckMyId; });
+    var chips = ckWagerChips[ckMyId] ?? (me?.chips ?? 0);
+    var nick = me?.nickname || '';
+    infoEl.textContent = nick + ': $' + chips;
   }
 
   function updateButtons() {

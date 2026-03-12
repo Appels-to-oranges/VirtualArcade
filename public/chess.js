@@ -454,16 +454,14 @@
     screenEl.id = 'ch-screen';
     screenEl.className = 'hidden';
     screenEl.innerHTML =
-      '<div class="ch-room-bar">' +
-        '<button type="button" id="ch-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>' +
-        '<span id="ch-room-label"></span>' +
-        '<span class="ch-chips-display" id="ch-chips-display">$0</span>' +
-        '<button id="ch-start-btn" class="btn-start hidden">Start Game</button>' +
-        '<button id="ch-rematch-btn" class="btn-restart hidden">Rematch</button>' +
-        '<div class="ch-room-bar-spacer"></div>' +
-        '<button type="button" id="ch-radio-btn" class="lobby-header-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="lobby-header-icon"></button>' +
-        '<button type="button" id="ch-themes-btn" class="lobby-header-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="lobby-header-icon"></button>' +
-        '<button type="button" id="ch-settings-btn" class="lobby-header-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="lobby-header-icon"></button>' +
+      '<div class="room-bar std-bar ch-room-bar">' +
+        '<button type="button" id="ch-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>' +
+        '<span class="std-bar-player" id="ch-player-info"></span>' +
+        '<div class="std-bar-spacer"></div>' +
+        '<span class="std-bar-game" id="ch-room-label"></span>' +
+        '<button type="button" id="ch-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>' +
+        '<button type="button" id="ch-themes-btn" class="std-bar-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="std-bar-btn-icon"></button>' +
+        '<button type="button" id="ch-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>' +
       '</div>' +
       '<div class="ch-config-overlay" id="ch-config-overlay">' +
         '<div class="ch-config-layout">' +
@@ -740,10 +738,12 @@
   }
 
   function updateChChipsDisplay() {
-    var el = document.getElementById('ch-chips-display');
-    if (!el) return;
-    var chips = chWagerChips[chMyId] ?? (chPlayers.find(function (p) { return p.id === chMyId; })?.chips ?? 0);
-    el.textContent = '$' + chips;
+    var infoEl = document.getElementById('ch-player-info');
+    if (!infoEl) return;
+    var me = chPlayers.find(function (p) { return p.id === chMyId; });
+    var chips = chWagerChips[chMyId] ?? (me?.chips ?? 0);
+    var nick = me?.nickname || '';
+    infoEl.textContent = nick + ': $' + chips;
   }
 
   function updateButtons() {

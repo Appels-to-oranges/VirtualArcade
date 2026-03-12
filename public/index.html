@@ -270,15 +270,9 @@
 
   <div id="game-screen" class="hidden">
     <div class="game-scale-wrapper">
-    <div class="room-bar">
-      <button type="button" id="holdem-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>
-      <span id="room-label"></span>
-      <span class="room-bar-chips" id="holdem-chips-display">$0</span>
-      <span id="waiting-for-players" class="waiting-msg hidden"></span>
-      <button id="start-btn" class="btn-start">Start Game</button>
-      <button id="add-bot-btn" class="btn-add-bot hidden">Add Bot</button>
-      <button id="restart-btn" class="btn-restart hidden">Next Hand</button>
-      <span id="next-hand-timer" class="next-hand-timer hidden"></span>
+    <div class="room-bar std-bar">
+      <button type="button" id="holdem-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>
+      <span class="std-bar-player" id="holdem-player-info"></span>
       <div class="chat-input-wrap">
         <div class="chat-input-inner">
           <input type="text" id="chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
@@ -287,11 +281,23 @@
           </button>
         </div>
       </div>
-      <button type="button" id="holdem-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="btn-inline-icon"></button>
-      <button type="button" id="radio-btn" class="btn-radio" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="btn-inline-icon"></button>
+      <div class="std-bar-spacer"></div>
+      <span class="std-bar-game" id="room-label"></span>
       <div class="now-playing-radio hidden" id="now-playing-radio">
         <span class="now-playing-label" id="now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="radio-stop" title="Stop radio">&#x25A0;</button>
+      </div>
+      <button type="button" id="radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>
+      <button type="button" id="holdem-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>
+    </div>
+
+    <div id="holdem-action-popup" class="game-action-popup">
+      <div class="game-action-popup-inner">
+        <span id="waiting-for-players" class="waiting-msg hidden"></span>
+        <button id="start-btn" class="game-action-btn game-action-primary">Start Game</button>
+        <button id="add-bot-btn" class="game-action-btn hidden">Add Bot</button>
+        <button id="restart-btn" class="game-action-btn game-action-primary hidden">Next Hand</button>
+        <span id="next-hand-timer" class="next-hand-timer hidden"></span>
       </div>
     </div>
     <div class="table-container">
@@ -359,10 +365,9 @@
 
   <div id="bj-screen" class="hidden">
     <div class="game-scale-wrapper">
-    <div class="room-bar">
-      <button type="button" id="bj-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>
-      <span id="bj-room-label"></span>
-      <span class="room-bar-chips" id="bj-chips-display">$0</span>
+    <div class="room-bar std-bar">
+      <button type="button" id="bj-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>
+      <span class="std-bar-player" id="bj-player-info"></span>
       <div class="chat-input-wrap">
         <div class="chat-input-inner">
           <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
@@ -371,12 +376,14 @@
           </button>
         </div>
       </div>
-      <button type="button" id="bj-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="btn-inline-icon"></button>
-      <button type="button" id="bj-radio-btn" class="btn-radio" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="btn-inline-icon"></button>
+      <div class="std-bar-spacer"></div>
+      <span class="std-bar-game" id="bj-room-label"></span>
       <div class="now-playing-radio hidden" id="bj-now-playing-radio">
         <span class="now-playing-label" id="bj-now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="bj-radio-stop" title="Stop radio">&#x25A0;</button>
       </div>
+      <button type="button" id="bj-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>
+      <button type="button" id="bj-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>
     </div>
     <div class="table-container">
       <div class="poker-table bj-table">
@@ -412,15 +419,17 @@
 
   <div id="slots-screen" class="hidden">
     <div class="game-scale-wrapper">
-    <div class="room-bar">
-      <button type="button" id="slots-back-btn" class="btn-back-inline" title="Back to game selection"><img src="icon-home.png" alt="" class="btn-back-icon"> Lobby</button>
-      <span class="room-bar-chips" id="slots-chips-display">$0</span>
-      <button type="button" id="slots-settings-btn" class="btn-settings-inline" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="btn-inline-icon"></button>
-      <button type="button" id="slots-radio-btn" class="btn-radio" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="btn-inline-icon"></button>
+    <div class="room-bar std-bar">
+      <button type="button" id="slots-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>
+      <span class="std-bar-player" id="slots-player-info"></span>
+      <div class="std-bar-spacer"></div>
+      <span class="std-bar-game" id="slots-room-label">Slots</span>
       <div class="now-playing-radio hidden" id="slots-now-playing-radio">
         <span class="now-playing-label" id="slots-now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="slots-radio-stop" title="Stop radio">&#x25A0;</button>
       </div>
+      <button type="button" id="slots-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>
+      <button type="button" id="slots-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>
     </div>
     <div class="slots-container">
       <div class="slots-machines-grid" id="slots-machines-grid"></div>
@@ -459,66 +468,64 @@
     <div class="radio-panel">
       <div class="radio-header">
         <h2>Radio &amp; Audio</h2>
-        <button type="button" class="radio-close" id="radio-close" aria-label="Close">&#xD7;</button>
+        <button type="button" class="radio-close" id="radio-close" aria-label="Close">&times;</button>
       </div>
-      <div class="radio-search-wrap">
-        <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
-        <button type="button" id="radio-search-btn">Search</button>
+
+      <div class="radio-section">
+        <div class="radio-section-label">Stations</div>
+        <div class="radio-search-wrap">
+          <input type="text" id="radio-search" placeholder="Search stations..." autocomplete="off">
+          <button type="button" id="radio-search-btn">Search</button>
+        </div>
+        <div class="radio-favorites" id="radio-favorites"></div>
+        <div class="radio-results" id="radio-results"></div>
       </div>
-      <div class="radio-favorites" id="radio-favorites"></div>
-      <div class="radio-results" id="radio-results"></div>
-      <div class="radio-audio-settings">
-        <div class="theme-group">
-          <label>Master Volume</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="master-volume" min="0" max="100" value="100">
-            <span id="master-volume-value">100%</span>
-          </div>
+
+      <div class="radio-section">
+        <div class="radio-section-label">Volume</div>
+        <div class="audio-row">
+          <label class="audio-row-label">Master</label>
+          <input type="range" id="master-volume" min="0" max="100" value="100">
+          <span class="audio-row-value" id="master-volume-value">100%</span>
         </div>
-        <div class="theme-group">
-          <label>Radio Volume</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="radio-volume" min="0" max="100" value="80">
-            <span id="radio-volume-value">80%</span>
-            <button type="button" class="audio-mute-btn" id="radio-mute-btn" title="Toggle radio">On</button>
-          </div>
+        <div class="audio-row">
+          <label class="audio-row-label">Radio</label>
+          <input type="range" id="radio-volume" min="0" max="100" value="80">
+          <span class="audio-row-value" id="radio-volume-value">80%</span>
+          <button type="button" class="audio-mute-btn" id="radio-mute-btn" title="Toggle radio">On</button>
         </div>
-        <div class="theme-group">
-          <label>Card FX &amp; Sounds</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="card-fx-volume" min="0" max="100" value="80">
-            <span id="card-fx-volume-value">80%</span>
-            <button type="button" class="audio-mute-btn" id="sfx-mute-btn" title="Toggle SFX">On</button>
-          </div>
+        <div class="audio-row">
+          <label class="audio-row-label">Card FX</label>
+          <input type="range" id="card-fx-volume" min="0" max="100" value="80">
+          <span class="audio-row-value" id="card-fx-volume-value">80%</span>
+          <button type="button" class="audio-mute-btn" id="sfx-mute-btn" title="Toggle SFX">On</button>
         </div>
-        <div class="theme-group">
-          <label>Ambience FX</label>
-          <div class="ambience-fx-wrap">
-            <select id="ambience-fx" class="ambience-fx-select">
-              <option value="casino">Casino</option>
-              <option value="fireplace">Fireplace</option>
-              <option value="rain">Rain</option>
-            </select>
-          </div>
+        <div class="audio-row">
+          <label class="audio-row-label">Ambience</label>
+          <input type="range" id="ambience-volume" min="0" max="100" value="25">
+          <span class="audio-row-value" id="ambience-volume-value">25%</span>
+          <button type="button" class="audio-mute-btn" id="ambience-mute-btn" title="Toggle ambience">On</button>
         </div>
-        <div class="theme-group">
-          <label>Ambience Volume</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="ambience-volume" min="0" max="100" value="25">
-            <span id="ambience-volume-value">25%</span>
-            <button type="button" class="audio-mute-btn" id="ambience-mute-btn" title="Toggle ambience">On</button>
-          </div>
+      </div>
+
+      <div class="radio-section">
+        <div class="radio-section-label">Effects</div>
+        <div class="audio-row">
+          <label class="audio-row-label">Ambience FX</label>
+          <select id="ambience-fx" class="audio-select">
+            <option value="casino">Casino</option>
+            <option value="fireplace">Fireplace</option>
+            <option value="rain">Rain</option>
+          </select>
         </div>
-        <div class="theme-group">
-          <label>SFX Bit Depth</label>
-          <div class="radio-volume-wrap">
-            <select id="sfx-bitdepth" class="sfx-bitdepth-select">
-              <option value="8">8-bit</option>
-              <option value="12">12-bit</option>
-              <option value="16">16-bit</option>
-              <option value="0" selected>Max / Original</option>
-            </select>
-          </div>
+        <div class="audio-row">
+          <label class="audio-row-label">SFX Bit Depth</label>
+          <select id="sfx-bitdepth" class="audio-select">
+            <option value="8">8-bit</option>
+            <option value="12">12-bit</option>
+            <option value="16">16-bit</option>
+            <option value="0" selected>Max / Original</option>
+          </select>
         </div>
       </div>
     </div>

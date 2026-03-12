@@ -1144,6 +1144,8 @@ function handleMessage(msg) {
             window.slots.init(ws, myId, me?.chips ?? 0, slotsPlayersList);
             window.slots.show();
           }
+          const slotsRoomLabel = document.getElementById('slots-room-label');
+          if (slotsRoomLabel) slotsRoomLabel.textContent = `Slots \u2014 ${msg.roomKey}`;
           const slotsChat = document.getElementById('slots-chat-messages');
           if (slotsChat && msg.chatHistory) {
             slotsChat.innerHTML = '';
@@ -1152,7 +1154,7 @@ function handleMessage(msg) {
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
         } else {
-          if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
+          if (roomLabel) roomLabel.textContent = `Hold'em \u2014 ${msg.roomKey}`;
           showGameScreen();
           try {
             renderTable();
@@ -1234,6 +1236,8 @@ function handleMessage(msg) {
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
         } else if (currentGameType === 'slots') {
+          const slotsRoomLabel2 = document.getElementById('slots-room-label');
+          if (slotsRoomLabel2) slotsRoomLabel2.textContent = `Slots \u2014 ${msg.roomKey}`;
           const slotsChat = document.getElementById('slots-chat-messages');
           if (slotsChat && msg.chatHistory) {
             slotsChat.innerHTML = '';
@@ -1242,7 +1246,7 @@ function handleMessage(msg) {
           try { startAmbience(); } catch (_) {}
           initRadioVolume();
         } else {
-          if (roomLabel) roomLabel.textContent = `Room: ${msg.roomKey}`;
+          if (roomLabel) roomLabel.textContent = `Hold'em \u2014 ${msg.roomKey}`;
           showGameScreen();
           try {
             renderTable();
@@ -2182,8 +2186,12 @@ function updateControls() {
     prevTurnIdx = -1;
   }
 
-  const holdemChipsEl = document.getElementById('holdem-chips-display');
-  if (holdemChipsEl) holdemChipsEl.textContent = '$' + (me?.chips ?? 0);
+  const holdemPlayerInfo = document.getElementById('holdem-player-info');
+  if (holdemPlayerInfo) holdemPlayerInfo.textContent = nickname + ': $' + (me?.chips ?? 0);
+
+  const actionPopup = document.getElementById('holdem-action-popup');
+  const showPopup = !gameState || gameState.phase === 'lobby';
+  if (actionPopup) actionPopup.classList.toggle('visible', showPopup);
 
   btnFold.disabled = !isMyTurn || folded;
   btnCheck.disabled = !isMyTurn || folded || !canCheck;
