@@ -728,6 +728,24 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 
 .theme-group:last-child { margin-bottom: 0; }
 
+.settings-contact {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 0.0625rem solid var(--lobby-border);
+  font-size: 0.35rem;
+  color: var(--lobby-text);
+  opacity: 0.85;
+}
+
+.settings-contact a {
+  color: var(--lobby-accent);
+  text-decoration: none;
+}
+
+.settings-contact a:hover {
+  text-decoration: underline;
+}
+
 .theme-group label {
   display: block;
   margin-bottom: 0.5rem;
@@ -1491,6 +1509,37 @@ body.lobby-retro .welcome-badge {
   font-size: 0.45rem;
   color: var(--lobby-accent);
   min-width: 2.25rem;
+}
+
+.audio-mute-btn {
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.35rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.25rem;
+  background: var(--lobby-card-bg);
+  color: var(--lobby-text);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.audio-mute-btn:hover {
+  background: var(--lobby-accent);
+  color: var(--lobby-card-bg);
+  border-color: var(--lobby-accent);
+}
+
+.audio-mute-btn.muted {
+  background: rgba(180, 60, 60, 0.3);
+  color: #e88;
+  border-color: rgba(200, 80, 80, 0.6);
+}
+
+.audio-mute-btn.muted:hover {
+  background: rgba(180, 60, 60, 0.5);
+  color: #fff;
 }
 
 .ambience-fx-wrap {

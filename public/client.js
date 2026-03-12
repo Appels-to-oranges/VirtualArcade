@@ -183,6 +183,7 @@ function getMasterVolume() {
 }
 
 function playSound(audio, volumeKey) {
+  if (volumeKey === CARD_FX_VOLUME_KEY && isSfxMuted()) return;
   let vol = 0.25;
   if (volumeKey) {
     const raw = parseInt(localStorage.getItem(volumeKey), 10);
@@ -323,6 +324,7 @@ function getAmbienceAudio() {
 }
 
 function startAmbience() {
+  if (isAmbienceMuted()) return;
   const audio = getAmbienceAudio();
   audio.loop = true;
   playSound(audio, AMBIENCE_VOLUME_KEY);
@@ -493,6 +495,9 @@ const lobbyBgOpacitySlider = document.getElementById('lobby-bg-opacity');
 const lobbyBgOpacityValue = document.getElementById('lobby-bg-opacity-value');
 const sfxBitDepthSelect = document.getElementById('sfx-bitdepth');
 const chatDurationSelect = document.getElementById('chat-duration');
+const radioMuteBtn = document.getElementById('radio-mute-btn');
+const sfxMuteBtn = document.getElementById('sfx-mute-btn');
+const ambienceMuteBtn = document.getElementById('ambience-mute-btn');
 const nowPlayingRadio = document.getElementById('now-playing-radio');
 const nowPlayingRadioLabel = document.getElementById('now-playing-radio-label');
 const bjRadioBtn = document.getElementById('bj-radio-btn');
@@ -561,6 +566,13 @@ const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 const LOBBY_BG_OPACITY_KEY = 'arcade_lobby_bg_opacity';
+const RADIO_MUTE_KEY = 'arcade_radio_mute';
+const SFX_MUTE_KEY = 'arcade_sfx_mute';
+const AMBIENCE_MUTE_KEY = 'arcade_ambience_mute';
+
+function isRadioMuted() { return localStorage.getItem(RADIO_MUTE_KEY) === '1'; }
+function isSfxMuted() { return localStorage.getItem(SFX_MUTE_KEY) === '1'; }
+function isAmbienceMuted() { return localStorage.getItem(AMBIENCE_MUTE_KEY) === '1'; }
 
 const gameSelectScreen = document.getElementById('game-select-screen');
 const gameSelectRoom = document.getElementById('game-select-room');
@@ -1095,7 +1107,7 @@ function handleMessage(msg) {
         if (msg.radio) playRadio(msg.radio);
         initRadioVolume();
         if (msg.theme) applyTheme(msg.theme);
-        else applyTheme(localStorage.getItem(THEME_STORAGE_KEY) || 'default');
+        else applyTheme(localStorage.getItem(THEME_STORAGE_KEY) || 'rolling-fog');
         if (msg.gameFull) {
           const name = GAME_NAMES[msg.gameFull] || msg.gameFull;
           showToast(`${name} is full. You've been placed in the lobby.`);
@@ -2366,7 +2378,7 @@ function initRadioVolume() {
 
   const saved = parseInt(localStorage.getItem(RADIO_VOLUME_KEY), 10);
   const vol = isNaN(saved) ? 25 : Math.max(0, Math.min(100, saved));
-  radioAudio.volume = (vol / 100) * master;
+  radioAudio.volume = isRadioMuted() ? 0 : (vol / 100) * master;
   if (radioVolumeSlider) radioVolumeSlider.value = vol;
   if (radioVolumeValue) radioVolumeValue.textContent = vol + '%';
 
@@ -2379,12 +2391,14 @@ function initRadioVolume() {
   const ambVol = isNaN(amb) ? 50 : Math.max(0, Math.min(100, amb));
   if (ambienceVolumeSlider) ambienceVolumeSlider.value = ambVol;
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = ambVol + '%';
+  if (isAmbienceMuted()) stopAmbience();
 
   const bd = localStorage.getItem(SFX_BITDEPTH_KEY) || '0';
   if (sfxBitDepthSelect) sfxBitDepthSelect.value = bd;
 
   const ambFx = localStorage.getItem(AMBIENCE_FX_KEY) || 'casino';
   if (ambienceFxSelect) ambienceFxSelect.value = ambFx;
+  initMuteButtons();
 }
 
 const settingsNicknameInput = document.getElementById('settings-nickname');
@@ -2679,15 +2693,15 @@ if (masterVolumeSlider) masterVolumeSlider.addEventListener('input', () => {
   if (masterVolumeValue) masterVolumeValue.textContent = v + '%';
   const master = v / 100;
   const radioVol = parseInt(radioVolumeSlider?.value || localStorage.getItem(RADIO_VOLUME_KEY), 10) || 25;
-  radioAudio.volume = (radioVol / 100) * master;
+  radioAudio.volume = isRadioMuted() ? 0 : (radioVol / 100) * master;
   const ambAudio = getAmbienceAudio();
   const ambVol = parseInt(ambienceVolumeSlider?.value || localStorage.getItem(AMBIENCE_VOLUME_KEY), 10) || 50;
-  ambAudio.volume = (ambVol / 100) * master;
+  ambAudio.volume = isAmbienceMuted() ? 0 : (ambVol / 100) * master;
 });
 
 if (radioVolumeSlider) radioVolumeSlider.addEventListener('input', () => {
   const v = parseInt(radioVolumeSlider.value, 10);
-  radioAudio.volume = (v / 100) * getMasterVolume();
+  radioAudio.volume = isRadioMuted() ? 0 : (v / 100) * getMasterVolume();
   localStorage.setItem(RADIO_VOLUME_KEY, v);
   if (radioVolumeValue) radioVolumeValue.textContent = v + '%';
 });
@@ -2708,7 +2722,7 @@ if (ambienceFxSelect) ambienceFxSelect.addEventListener('change', () => {
 if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   const v = parseInt(ambienceVolumeSlider.value, 10);
   const audio = getAmbienceAudio();
-  audio.volume = (v / 100) * getMasterVolume();
+  audio.volume = isAmbienceMuted() ? 0 : (v / 100) * getMasterVolume();
   localStorage.setItem(AMBIENCE_VOLUME_KEY, v);
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });
@@ -2722,6 +2736,45 @@ if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.addEventListener('input', () => {
 
 if (sfxBitDepthSelect) sfxBitDepthSelect.addEventListener('change', () => {
   localStorage.setItem(SFX_BITDEPTH_KEY, sfxBitDepthSelect.value);
+});
+
+function updateMuteButton(btn, muted) {
+  if (!btn) return;
+  btn.textContent = muted ? 'Off' : 'On';
+  btn.classList.toggle('muted', muted);
+}
+
+function initMuteButtons() {
+  updateMuteButton(radioMuteBtn, isRadioMuted());
+  updateMuteButton(sfxMuteBtn, isSfxMuted());
+  updateMuteButton(ambienceMuteBtn, isAmbienceMuted());
+}
+
+if (radioMuteBtn) radioMuteBtn.addEventListener('click', () => {
+  const next = !isRadioMuted();
+  localStorage.setItem(RADIO_MUTE_KEY, next ? '1' : '');
+  updateMuteButton(radioMuteBtn, next);
+  radioAudio.volume = next ? 0 : (parseInt(radioVolumeSlider?.value || localStorage.getItem(RADIO_VOLUME_KEY), 10) || 25) / 100 * getMasterVolume();
+});
+
+if (sfxMuteBtn) sfxMuteBtn.addEventListener('click', () => {
+  const next = !isSfxMuted();
+  localStorage.setItem(SFX_MUTE_KEY, next ? '1' : '');
+  updateMuteButton(sfxMuteBtn, next);
+});
+
+if (ambienceMuteBtn) ambienceMuteBtn.addEventListener('click', () => {
+  const next = !isAmbienceMuted();
+  localStorage.setItem(AMBIENCE_MUTE_KEY, next ? '1' : '');
+  updateMuteButton(ambienceMuteBtn, next);
+  if (next) {
+    stopAmbience();
+  } else {
+    const audio = getAmbienceAudio();
+    const v = parseInt(ambienceVolumeSlider?.value || localStorage.getItem(AMBIENCE_VOLUME_KEY), 10) || 50;
+    audio.volume = (v / 100) * getMasterVolume();
+    try { startAmbience(); } catch (_) {}
+  }
 });
 
 if (chatDurationSelect) chatDurationSelect.addEventListener('change', () => {
