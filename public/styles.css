@@ -1540,50 +1540,87 @@ body.lobby-retro .welcome-badge {
   flex-shrink: 0;
 }
 
-.chat-emoji-btn {
-  flex-shrink: 0;
-  padding: 0.25rem 0.4rem;
-  background: transparent;
-  border: 0.125rem solid var(--lobby-accent);
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  line-height: 1;
-  color: var(--lobby-accent);
-  opacity: 0.85;
-  transition: opacity 0.15s, border-color 0.15s;
+.chat-input-inner {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
 }
+
+.chat-input-inner .chat-input {
+  padding-right: 2.25rem;
+}
+
+.chat-emoji-btn {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--lobby-accent);
+  opacity: 0.8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, background 0.15s;
+}
+
 .chat-emoji-btn:hover {
   opacity: 1;
+  background: var(--lobby-border);
+}
+
+.chat-emoji-btn svg {
+  flex-shrink: 0;
 }
 
 .emoji-picker-popover {
-  position: fixed;
-  z-index: 1000;
-  background: var(--lobby-input-bg, #0d1117);
-  border: 0.0625rem solid var(--lobby-border, #30363d);
-  border-radius: 0.35rem;
-  padding: 0.35rem;
-  display: grid;
-  grid-template-columns: repeat(6, 1.5rem);
-  gap: 0.2rem;
-  box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.5);
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  right: 0;
+  width: 12rem;
   max-height: 10rem;
   overflow-x: hidden;
   overflow-y: auto;
+  background: var(--lobby-input-bg);
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.35rem;
+  padding: 0.35rem;
+  display: none;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.emoji-picker-popover.open {
+  display: flex;
 }
 
 .emoji-picker-item {
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  text-align: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
   border-radius: 0.2rem;
+  background: transparent;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.15s;
 }
 
 .emoji-picker-item:hover {
-  background: var(--lobby-border, #30363d);
+  background: var(--lobby-border);
 }
 
 .chat-duration-wrap {
@@ -3374,7 +3411,7 @@ body.lobby-retro .welcome-badge {
   flex: 1;
   min-width: 0;
   font-size: 0.35rem;
-  padding: 0.25rem;
+  padding: 0.25rem 2.25rem 0.25rem 0.25rem;
   background: #0a0a0a;
   border: 0.15rem solid var(--swamp-border);
   color: var(--swamp-muted);

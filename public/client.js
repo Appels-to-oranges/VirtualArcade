@@ -2742,28 +2742,37 @@ if (settingsNicknameSave && settingsNicknameInput) {
   });
 }
 
-/* ---------- Emoji picker ---------- */
-const EMOJI_LIST = ['\u{1F600}', '\u{1F603}', '\u{1F604}', '\u{1F601}', '\u{1F606}', '\u{1F605}', '\u{1F923}', '\u{1F602}', '\u{1F642}', '\u{1F643}', '\u{1F609}', '\u{1F60A}', '\u{1F60B}', '\u{1F60C}', '\u{1F60D}', '\u{1F618}', '\u{1F970}', '\u{1F60E}', '\u{1F973}', '\u{1F978}', '\u{1F92A}', '\u{1F92B}', '\u{1F92D}', '\u{1F44D}', '\u{1F44C}', '\u{1F91D}', '\u{1F64F}', '\u{2764}', '\u{1F494}', '\u{1F9E1}'];
+/* ---------- Emoji picker (VirtualSofa-style) ---------- */
+const EMOJI_LIST = [
+  '\u{1F600}', '\u{1F602}', '\u{1F605}', '\u{1F606}', '\u{1F609}', '\u{1F60A}', '\u{1F60D}', '\u{1F618}',
+  '\u{1F61C}', '\u{1F61D}', '\u{1F60E}', '\u{1F917}', '\u{1F914}', '\u{1F644}', '\u{1F612}', '\u{1F62D}',
+  '\u{1F621}', '\u{1F631}', '\u{1F4A9}', '\u{1F44D}', '\u{1F44E}', '\u{1F44F}', '\u{1F64C}', '\u{1F64F}',
+  '\u{1F4AA}', '\u{2764}\u{FE0F}', '\u{1F494}', '\u{1F525}', '\u{2728}', '\u{1F389}', '\u{1F381}', '\u{1F4AF}',
+  '\u{1F440}', '\u{1F62E}', '\u{1F615}', '\u{1F634}', '\u{1F637}', '\u{1F913}', '\u{1F60F}', '\u{1F643}',
+  '\u{1F973}', '\u{1F929}', '\u{1F970}', '\u{1F974}', '\u{1F976}', '\u{1F975}', '\u{1F92F}', '\u{1F47B}',
+  '\u{1F480}', '\u{1F47D}', '\u{1F916}', '\u{1F63A}', '\u{1F44B}', '\u{270C}\u{FE0F}', '\u{1F918}', '\u{1F919}',
+  '\u{1F91E}', '\u{1F91F}', '\u{1F90C}', '\u{1F91D}', '\u{1F590}\u{FE0F}', '\u{270A}', '\u{1F4A5}', '\u{1F4AB}'
+];
 
 function setupEmojiPicker(btn, input) {
   if (!btn || !input) return;
+  const container = btn.closest('.chat-input-inner');
+  if (!container) return;
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    let pop = document.getElementById('emoji-picker-popover');
-    if (pop && pop.dataset.anchor === String(btn.id || Math.random())) {
-      pop.remove();
+    let pop = container.querySelector('.emoji-picker-popover');
+    if (pop) {
+      pop.classList.toggle('open');
       return;
     }
-    if (pop) pop.remove();
     pop = document.createElement('div');
-    pop.id = 'emoji-picker-popover';
-    pop.className = 'emoji-picker-popover';
-    pop.dataset.anchor = String(btn.id || Math.random());
+    pop.className = 'emoji-picker-popover open';
     EMOJI_LIST.forEach((em) => {
-      const span = document.createElement('span');
-      span.className = 'emoji-picker-item';
-      span.textContent = em;
-      span.addEventListener('click', (e) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'emoji-picker-item';
+      item.textContent = em;
+      item.addEventListener('click', (e) => {
         e.stopPropagation();
         const start = input.selectionStart ?? input.value.length;
         const end = input.selectionEnd ?? input.value.length;
@@ -2773,26 +2782,22 @@ function setupEmojiPicker(btn, input) {
         input.selectionStart = input.selectionEnd = start + em.length;
         input.focus();
       });
-      pop.appendChild(span);
+      pop.appendChild(item);
     });
-    document.body.appendChild(pop);
-    const rect = btn.getBoundingClientRect();
-    pop.style.left = rect.left + 'px';
-    pop.style.top = (rect.bottom + 4) + 'px';
-    const close = (e) => {
-      if (pop && e.target && !pop.contains(e.target) && !btn.contains(e.target)) {
-        pop.remove();
-        document.removeEventListener('click', close);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', close), 0);
+    container.appendChild(pop);
+  });
+  document.addEventListener('click', (e) => {
+    const pop = container.querySelector('.emoji-picker-popover');
+    if (pop && !pop.contains(e.target) && e.target !== btn) {
+      pop.classList.remove('open');
+    }
   });
 }
 
 document.querySelectorAll('.chat-emoji-btn').forEach((btn, i) => {
-  const parent = btn.closest('.chat-input-wrap, .lobby-chat-input-panel, .slots-chat-input-panel');
-  const input = parent?.querySelector('input.chat-input, input[type="text"]');
-  if (input) { btn.id = 'emoji-btn-' + i; setupEmojiPicker(btn, input); }
+  const inner = btn.closest('.chat-input-inner');
+  const input = inner?.querySelector('input.chat-input, input[type="text"]');
+  if (input) setupEmojiPicker(btn, input);
 });
 
 function sendChat() {
