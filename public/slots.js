@@ -215,6 +215,7 @@
   }
 
   function setBet(amount) {
+    if (slotsSpinning[slotsMyId]) return;
     const val = parseInt(amount, 10);
     if (![5, 10, 20, 100].includes(val)) return;
     slotsBet = val;
@@ -230,6 +231,11 @@
       spinBtn.disabled = slotsSpinning[slotsMyId] || (slotsChips || 0) < slotsBet;
       spinBtn.textContent = `Spin $${slotsBet}`;
     }
+
+    const isSpinning = slotsSpinning[slotsMyId];
+    document.querySelectorAll('.slots-denom-btn').forEach((btn) => {
+      btn.disabled = isSpinning;
+    });
   }
 
   function getMachineEl(playerId) {

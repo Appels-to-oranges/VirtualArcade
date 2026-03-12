@@ -1248,33 +1248,41 @@ body.lobby-retro .welcome-badge {
 
 .btn-radio {
   padding: 0.2rem 0.4rem;
-  background: #1a1a1a;
-  border: 0.125rem solid #333;
-  color: #c9b896;
+  background: transparent;
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.35rem;
+  color: var(--lobby-text, #c9d1d9);
   font-size: 0.7rem;
   cursor: pointer;
   line-height: 1;
   flex-shrink: 0;
+  opacity: 0.85;
+  transition: background 0.15s, opacity 0.15s;
 }
 
 .btn-radio:hover {
-  border-color: #c9b896;
-  background: #222;
+  border-color: var(--lobby-accent, #c9b896);
+  background: var(--lobby-border, #30363d);
+  opacity: 1;
 }
 
 .btn-settings-inline {
   padding: 0.2rem 0.4rem;
-  background: #1a1a1a;
-  border: 0.125rem solid #333;
-  color: #c9b896;
+  background: transparent;
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.35rem;
+  color: var(--lobby-text, #c9d1d9);
   font-size: 0.65rem;
   cursor: pointer;
   line-height: 1;
   flex-shrink: 0;
+  opacity: 0.85;
+  transition: background 0.15s, opacity 0.15s;
 }
 .btn-settings-inline:hover {
-  border-color: #c9b896;
-  background: #222;
+  border-color: var(--lobby-accent, #c9b896);
+  background: var(--lobby-border, #30363d);
+  opacity: 1;
 }
 
 .btn-inline-icon {
@@ -1512,6 +1520,70 @@ body.lobby-retro .welcome-badge {
 .ambience-fx-select option {
   background: var(--lobby-input-bg);
   color: var(--lobby-text);
+}
+
+.settings-nickname-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.settings-nickname-wrap .chat-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--lobby-input-bg);
+  border-color: var(--lobby-border);
+  color: var(--lobby-text);
+}
+.settings-save-btn {
+  padding: 0.3rem 0.6rem !important;
+  font-size: 0.35rem !important;
+  flex-shrink: 0;
+}
+
+.chat-emoji-btn {
+  flex-shrink: 0;
+  padding: 0.2rem 0.35rem;
+  background: transparent;
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.35rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  line-height: 1;
+  opacity: 0.85;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.chat-emoji-btn:hover {
+  opacity: 1;
+  border-color: var(--lobby-accent, #c9b896);
+}
+
+.emoji-picker-popover {
+  position: fixed;
+  z-index: 1000;
+  background: var(--lobby-input-bg, #0d1117);
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.35rem;
+  padding: 0.35rem;
+  display: grid;
+  grid-template-columns: repeat(6, 1.5rem);
+  gap: 0.2rem;
+  box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.5);
+  max-height: 10rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.emoji-picker-item {
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  text-align: center;
+  border-radius: 0.2rem;
+  transition: background 0.15s;
+}
+
+.emoji-picker-item:hover {
+  background: var(--lobby-border, #30363d);
 }
 
 .chat-duration-wrap {
@@ -3128,6 +3200,12 @@ body.lobby-retro .welcome-badge {
   color: var(--swamp-highlight);
   border-color: var(--swamp-bright);
   background: rgba(46, 75, 61, 0.9);
+}
+
+.slots-denom-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .slots-spin-row {

@@ -1560,6 +1560,18 @@ function handleMessage(msg) {
       else applyTheme(currentTheme);
       break;
 
+    case 'nicknameChanged':
+      if (msg.playerId === myId) nickname = msg.nickname || nickname;
+      if (msg.players) {
+        players = msg.players;
+        lobbyPlayers = msg.players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
+      }
+      if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
+      renderParticipants();
+      if (currentGameType === 'holdem' || currentGameType === 'blackjack') renderTable();
+      if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
+      break;
+
     case 'themeChanged':
       applyTheme(msg.theme);
       if (lobbyChatMessages && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
@@ -2375,7 +2387,11 @@ function initRadioVolume() {
   if (ambienceFxSelect) ambienceFxSelect.value = ambFx;
 }
 
+const settingsNicknameInput = document.getElementById('settings-nickname');
+const settingsNicknameSave = document.getElementById('settings-nickname-save');
+
 function initSettingsOverlay() {
+  if (settingsNicknameInput) settingsNicknameInput.value = nickname || '';
   const chatDur = localStorage.getItem(CHAT_DURATION_KEY);
   if (chatDurationSelect) chatDurationSelect.value = (chatDur === '0' || chatDur === 'infinite') ? '0' : (chatDur || '45');
 }
@@ -2711,6 +2727,72 @@ if (sfxBitDepthSelect) sfxBitDepthSelect.addEventListener('change', () => {
 if (chatDurationSelect) chatDurationSelect.addEventListener('change', () => {
   const v = chatDurationSelect.value;
   localStorage.setItem(CHAT_DURATION_KEY, v === '0' ? '0' : v);
+});
+
+if (settingsNicknameSave && settingsNicknameInput) {
+  settingsNicknameSave.addEventListener('click', () => {
+    const newNick = settingsNicknameInput.value.trim().slice(0, 20) || 'Player';
+    if (!newNick || newNick === nickname) return;
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'changeNick', nickname: newNick }));
+      nickname = newNick;
+      settingsOverlay?.classList.add('hidden');
+      showToast('Name updated');
+    }
+  });
+}
+
+/* ---------- Emoji picker ---------- */
+const EMOJI_LIST = ['\u{1F600}', '\u{1F603}', '\u{1F604}', '\u{1F601}', '\u{1F606}', '\u{1F605}', '\u{1F923}', '\u{1F602}', '\u{1F642}', '\u{1F643}', '\u{1F609}', '\u{1F60A}', '\u{1F60B}', '\u{1F60C}', '\u{1F60D}', '\u{1F618}', '\u{1F970}', '\u{1F60E}', '\u{1F973}', '\u{1F978}', '\u{1F92A}', '\u{1F92B}', '\u{1F92D}', '\u{1F44D}', '\u{1F44C}', '\u{1F91D}', '\u{1F64F}', '\u{2764}', '\u{1F494}', '\u{1F9E1}'];
+
+function setupEmojiPicker(btn, input) {
+  if (!btn || !input) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    let pop = document.getElementById('emoji-picker-popover');
+    if (pop && pop.dataset.anchor === String(btn.id || Math.random())) {
+      pop.remove();
+      return;
+    }
+    if (pop) pop.remove();
+    pop = document.createElement('div');
+    pop.id = 'emoji-picker-popover';
+    pop.className = 'emoji-picker-popover';
+    pop.dataset.anchor = String(btn.id || Math.random());
+    EMOJI_LIST.forEach((em) => {
+      const span = document.createElement('span');
+      span.className = 'emoji-picker-item';
+      span.textContent = em;
+      span.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        const before = input.value.slice(0, start);
+        const after = input.value.slice(end);
+        input.value = before + em + after;
+        input.selectionStart = input.selectionEnd = start + em.length;
+        input.focus();
+      });
+      pop.appendChild(span);
+    });
+    document.body.appendChild(pop);
+    const rect = btn.getBoundingClientRect();
+    pop.style.left = rect.left + 'px';
+    pop.style.top = (rect.bottom + 4) + 'px';
+    const close = (e) => {
+      if (pop && e.target && !pop.contains(e.target) && !btn.contains(e.target)) {
+        pop.remove();
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  });
+}
+
+document.querySelectorAll('.chat-emoji-btn').forEach((btn, i) => {
+  const parent = btn.closest('.chat-input-wrap, .lobby-chat-input-panel, .slots-chat-input-panel');
+  const input = parent?.querySelector('input.chat-input, input[type="text"]');
+  if (input) { btn.id = 'emoji-btn-' + i; setupEmojiPicker(btn, input); }
 });
 
 function sendChat() {

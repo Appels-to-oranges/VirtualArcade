@@ -2423,6 +2423,21 @@ wss.on('connection', async (ws, req) => {
           winStreak: 0,
           maxWinStreak: 0,
         });
+      } else if (type === 'changeNick') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const player = room.players.find((p) => p.ws === ws);
+        if (!player) return;
+        const safeNick = String(msg.nickname || '').trim().slice(0, 20) || 'Player';
+        player.nickname = safeNick;
+        data.nickname = safeNick;
+        broadcastToRoom(data.roomKey, {
+          type: 'nicknameChanged',
+          playerId: ws.id,
+          nickname: safeNick,
+          players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips, currentView: p.currentView ?? 'lobby' })),
+        });
       } else if (type === 'chat') {
         const data = clients.get(ws);
         if (!data) {
