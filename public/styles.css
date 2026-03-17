@@ -339,6 +339,12 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   color: var(--lobby-accent);
 }
 
+.lobby-text-btn:hover {
+  color: #000;
+  background: var(--lobby-accent);
+  border-color: var(--lobby-accent);
+}
+
 /* ── Two-card row ── */
 .lobby-cards {
   display: flex;

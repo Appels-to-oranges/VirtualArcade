@@ -869,13 +869,13 @@ function showGameSelectScreen(players, chatHistory) {
 const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Slots', lobby: 'Lobby' };
 const DEFAULT_LOBBY_CHARACTER_SRC = '/character.png';
 const OUTFIT_CATALOG = [
-  { id: 'outfit1', name: 'Outfit 1', src: '/outfit1.png', price: 50 },
-  { id: 'outfit2', name: 'Outfit 2', src: '/outfit2.png', price: 50 },
+  { id: 'outfit1', name: 'Suit', src: '/outfit1.png', price: 50 },
+  { id: 'outfit2', name: 'Hoodie', src: '/outfit2.png', price: 50 },
 ];
 const CHARACTER_CATALOG = [
-  { id: 'k_dots', name: 'K Dots', src: '/k_dots.png', price: 100 },
-  { id: 'a_dots', name: 'A Dots', src: '/a_dots.png', price: 100 },
-  { id: 'dots', name: 'Dots', src: '/dots.png', price: 100 },
+  { id: 'boy_i', name: 'boy_i', src: '/IMG_1105.png', price: 100 },
+  { id: 'girl_a', name: 'girl_a', src: '/a_dots.png', price: 100 },
+  { id: 'boy_p', name: 'boy_p', src: '/dots.png', price: 100 },
 ];
 const OUTFIT_BY_ID = OUTFIT_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
 const CHARACTER_BY_ID = CHARACTER_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
@@ -938,7 +938,10 @@ function normalizeOutfitList(list) {
 
 function normalizeCharacterList(list) {
   if (!Array.isArray(list)) return [];
-  return list.filter((id) => !!CHARACTER_BY_ID[id]);
+  const aliases = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
+  return [...new Set(list
+    .map((id) => aliases[id] || id)
+    .filter((id) => !!CHARACTER_BY_ID[id]))];
 }
 
 function getMyPlayer() {
@@ -1414,6 +1417,10 @@ function handleMessage(msg) {
       }
       if (msg.playerId === myId) {
         refreshMyCosmeticState();
+        storePreviewOutfit = myEquippedOutfit;
+        closetPreviewOutfit = myEquippedOutfit;
+        storePreviewCharacter = myEquippedCharacter;
+        closetPreviewCharacter = myEquippedCharacter;
         updateLobbyChipDisplay();
         renderStoreOverlay();
         renderClosetOverlay();
@@ -3152,6 +3159,26 @@ function sendEquipCharacter(characterId) {
   ws.send(JSON.stringify({ type: 'equipCharacter', characterId }));
 }
 
+function toggleStoreOutfitPreview(outfitId) {
+  storePreviewOutfit = storePreviewOutfit === outfitId ? myEquippedOutfit : outfitId;
+  renderStoreOverlay();
+}
+
+function toggleStoreCharacterPreview(characterId) {
+  storePreviewCharacter = storePreviewCharacter === characterId ? myEquippedCharacter : characterId;
+  renderStoreOverlay();
+}
+
+function toggleClosetOutfitPreview(outfitId) {
+  closetPreviewOutfit = closetPreviewOutfit === outfitId ? myEquippedOutfit : outfitId;
+  renderClosetOverlay();
+}
+
+function toggleClosetCharacterPreview(characterId) {
+  closetPreviewCharacter = closetPreviewCharacter === characterId ? myEquippedCharacter : characterId;
+  renderClosetOverlay();
+}
+
 function updateOutfitAuthCtas() {
   const showGuestCta = !authUser;
   if (storeAuthCta) storeAuthCta.classList.toggle('hidden', !showGuestCta);
@@ -3204,6 +3231,8 @@ function renderStoreOverlay() {
   const chips = me?.chips ?? 0;
   if (storeBalance) storeBalance.textContent = '$' + chips;
   if (!storeItemsEl) return;
+  if (!OUTFIT_BY_ID[storePreviewOutfit]) storePreviewOutfit = myEquippedOutfit;
+  if (!CHARACTER_BY_ID[storePreviewCharacter]) storePreviewCharacter = myEquippedCharacter;
   storeItemsEl.innerHTML = '';
 
   const outfitHeader = document.createElement('div');
@@ -3215,6 +3244,7 @@ function renderStoreOverlay() {
     const owned = myPurchasedOutfits.includes(outfit.id);
     const equipped = myEquippedOutfit === outfit.id;
     const canAfford = chips >= outfit.price;
+    const previewing = storePreviewOutfit === outfit.id;
 
     const card = document.createElement('div');
     card.className = 'store-item-card';
@@ -3230,11 +3260,8 @@ function renderStoreOverlay() {
     const previewBtn = document.createElement('button');
     previewBtn.type = 'button';
     previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = 'Preview';
-    previewBtn.addEventListener('click', () => {
-      storePreviewOutfit = outfit.id;
-      updateStorePreview();
-    });
+    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
+    previewBtn.addEventListener('click', () => toggleStoreOutfitPreview(outfit.id));
     actions.appendChild(previewBtn);
 
     const mainBtn = document.createElement('button');
@@ -3270,6 +3297,7 @@ function renderStoreOverlay() {
     const owned = myPurchasedCharacters.includes(character.id);
     const equipped = myEquippedCharacter === character.id;
     const canAfford = chips >= character.price;
+    const previewing = storePreviewCharacter === character.id;
 
     const card = document.createElement('div');
     card.className = 'store-item-card';
@@ -3285,11 +3313,8 @@ function renderStoreOverlay() {
     const previewBtn = document.createElement('button');
     previewBtn.type = 'button';
     previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = 'Preview';
-    previewBtn.addEventListener('click', () => {
-      storePreviewCharacter = character.id;
-      updateStorePreview();
-    });
+    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
+    previewBtn.addEventListener('click', () => toggleStoreCharacterPreview(character.id));
     actions.appendChild(previewBtn);
 
     const mainBtn = document.createElement('button');
@@ -3316,14 +3341,14 @@ function renderStoreOverlay() {
     storeItemsEl.appendChild(card);
   });
 
-  storePreviewCharacter = myEquippedCharacter;
-  storePreviewOutfit = myEquippedOutfit;
   updateStorePreview();
 }
 
 function renderClosetOverlay() {
   updateOutfitAuthCtas();
   if (!closetItemsEl) return;
+  if (!OUTFIT_BY_ID[closetPreviewOutfit]) closetPreviewOutfit = myEquippedOutfit;
+  if (!CHARACTER_BY_ID[closetPreviewCharacter]) closetPreviewCharacter = myEquippedCharacter;
   closetItemsEl.innerHTML = '';
 
   const outfitHeader = document.createElement('div');
@@ -3342,6 +3367,7 @@ function renderClosetOverlay() {
     const outfit = OUTFIT_BY_ID[outfitId];
     if (!outfit) return;
     const equipped = myEquippedOutfit === outfit.id;
+    const previewing = closetPreviewOutfit === outfit.id;
     const card = document.createElement('div');
     card.className = 'closet-item-card';
     const head = document.createElement('div');
@@ -3354,11 +3380,8 @@ function renderClosetOverlay() {
     const previewBtn = document.createElement('button');
     previewBtn.type = 'button';
     previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = 'Preview';
-    previewBtn.addEventListener('click', () => {
-      closetPreviewOutfit = outfit.id;
-      updateClosetPreview();
-    });
+    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
+    previewBtn.addEventListener('click', () => toggleClosetOutfitPreview(outfit.id));
     actions.appendChild(previewBtn);
 
     const equipBtn = document.createElement('button');
@@ -3388,6 +3411,7 @@ function renderClosetOverlay() {
     const character = CHARACTER_BY_ID[characterId];
     if (!character) return;
     const equipped = myEquippedCharacter === character.id;
+    const previewing = closetPreviewCharacter === character.id;
     const card = document.createElement('div');
     card.className = 'closet-item-card';
     const head = document.createElement('div');
@@ -3400,11 +3424,8 @@ function renderClosetOverlay() {
     const previewBtn = document.createElement('button');
     previewBtn.type = 'button';
     previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = 'Preview';
-    previewBtn.addEventListener('click', () => {
-      closetPreviewCharacter = character.id;
-      updateClosetPreview();
-    });
+    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
+    previewBtn.addEventListener('click', () => toggleClosetCharacterPreview(character.id));
     actions.appendChild(previewBtn);
 
     const equipBtn = document.createElement('button');
@@ -3418,8 +3439,6 @@ function renderClosetOverlay() {
     closetItemsEl.appendChild(card);
   });
 
-  closetPreviewCharacter = myEquippedCharacter;
-  closetPreviewOutfit = myEquippedOutfit;
   updateClosetPreview();
 }
 

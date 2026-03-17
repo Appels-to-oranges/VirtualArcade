@@ -138,7 +138,7 @@ const LOBBY_CHAT_MAX = 100;
 
 const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2, slots: 999 };
 const OUTFIT_PRICES = { outfit1: 50, outfit2: 50 };
-const CHARACTER_PRICES = { k_dots: 100, a_dots: 100, dots: 100 };
+const CHARACTER_PRICES = { boy_i: 100, girl_a: 100, boy_p: 100 };
 
 function normalizePurchasedOutfits(list) {
   if (!Array.isArray(list)) return [];
@@ -148,15 +148,25 @@ function normalizePurchasedOutfits(list) {
 
 function normalizePurchasedCharacters(list) {
   if (!Array.isArray(list)) return [];
+  const aliases = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
   const allowed = new Set(Object.keys(CHARACTER_PRICES));
-  return [...new Set(list.filter((id) => allowed.has(id)))];
+  return [...new Set(list
+    .map((id) => aliases[id] || id)
+    .filter((id) => allowed.has(id)))];
+}
+
+function normalizeCharacterId(id) {
+  const aliases = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
+  const mapped = aliases[id] || id;
+  return CHARACTER_PRICES[mapped] ? mapped : null;
 }
 
 function serializePlayer(p) {
   const purchasedOutfits = normalizePurchasedOutfits(p.purchasedOutfits);
   const equippedOutfit = purchasedOutfits.includes(p.outfit) ? p.outfit : null;
   const purchasedCharacters = normalizePurchasedCharacters(p.purchasedCharacters);
-  const equippedCharacter = purchasedCharacters.includes(p.character) ? p.character : null;
+  const normalizedCharacter = normalizeCharacterId(p.character);
+  const equippedCharacter = normalizedCharacter && purchasedCharacters.includes(normalizedCharacter) ? normalizedCharacter : null;
   p.purchasedOutfits = purchasedOutfits;
   p.outfit = equippedOutfit;
   p.purchasedCharacters = purchasedCharacters;
@@ -2010,8 +2020,9 @@ wss.on('connection', async (ws, req) => {
                 ? dbResult.rows[0].equipped_outfit
                 : null;
               startingPurchasedCharacters = normalizePurchasedCharacters(dbResult.rows[0].purchased_characters);
-              startingCharacter = startingPurchasedCharacters.includes(dbResult.rows[0].equipped_character)
-                ? dbResult.rows[0].equipped_character
+              const normalizedDbCharacter = normalizeCharacterId(dbResult.rows[0].equipped_character);
+              startingCharacter = normalizedDbCharacter && startingPurchasedCharacters.includes(normalizedDbCharacter)
+                ? normalizedDbCharacter
                 : null;
             }
           } catch (e) {
@@ -2548,7 +2559,7 @@ wss.on('connection', async (ws, req) => {
         const room = getRoom(data.roomKey);
         const player = room.players.find((p) => p.ws === ws);
         if (!player) return;
-        const characterId = String(msg.characterId || '');
+        const characterId = normalizeCharacterId(String(msg.characterId || ''));
         const price = CHARACTER_PRICES[characterId];
         if (!price) {
           ws.send(JSON.stringify({ type: 'characterError', message: 'Invalid character.' }));
@@ -2593,7 +2604,7 @@ wss.on('connection', async (ws, req) => {
         const room = getRoom(data.roomKey);
         const player = room.players.find((p) => p.ws === ws);
         if (!player) return;
-        const characterId = String(msg.characterId || '');
+        const characterId = normalizeCharacterId(String(msg.characterId || '')) || '';
         player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
         if (characterId && !player.purchasedCharacters.includes(characterId)) {
           ws.send(JSON.stringify({ type: 'characterError', message: 'Purchase this character first.' }));
