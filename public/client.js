@@ -3116,6 +3116,26 @@ function openRegisterFromOutfitOverlay() {
   showPanel('register-panel');
 }
 
+function triggerRebuyAd() {
+  try {
+    // Preferred hook: define window.showRebuyAd if you wire a provider SDK.
+    if (typeof window.showRebuyAd === 'function') {
+      window.showRebuyAd();
+      return true;
+    }
+    // AdSense/Google interstitial-style hooks (if available on the page).
+    if (typeof window.adBreak === 'function') {
+      window.adBreak({ type: 'next', name: 'rebuy' });
+      return true;
+    }
+    if (window.googlefc && typeof window.googlefc.showRewardedAd === 'function') {
+      window.googlefc.showRewardedAd();
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
 function renderStoreOverlay() {
   updateOutfitAuthCtas();
   const me = getMyPlayer();
@@ -3287,6 +3307,7 @@ document.querySelectorAll('.theme-opt').forEach((btn) => {
 if (lobbyRebuyBtn) {
   lobbyRebuyBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
+      triggerRebuyAd();
       ws.send(JSON.stringify({ type: 'rebuy' }));
       if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
         soundRebuy.volume = 0.5;
