@@ -58,6 +58,18 @@ async function saveUserChips(userId, chips) {
   }
 }
 
+async function saveUserOutfits(userId, purchasedOutfits, equippedOutfit) {
+  if (!userId) return;
+  try {
+    await pool.query(
+      'UPDATE users SET purchased_outfits = $1, equipped_outfit = $2 WHERE id = $3',
+      [purchasedOutfits, equippedOutfit || null, userId]
+    );
+  } catch (err) {
+    console.error('Failed to save outfits:', err.message);
+  }
+}
+
 function parseSessionFromWs(ws, req) {
   return new Promise((resolve) => {
     sessionMiddleware(req, {}, () => {
@@ -125,6 +137,30 @@ const TURN_TIMEOUT_MS = 60 * 1000;
 const LOBBY_CHAT_MAX = 100;
 
 const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2, slots: 999 };
+const OUTFIT_PRICES = { outfit1: 50, outfit2: 50 };
+
+function normalizePurchasedOutfits(list) {
+  if (!Array.isArray(list)) return [];
+  const allowed = new Set(Object.keys(OUTFIT_PRICES));
+  return [...new Set(list.filter((id) => allowed.has(id)))];
+}
+
+function serializePlayer(p) {
+  const purchasedOutfits = normalizePurchasedOutfits(p.purchasedOutfits);
+  const equippedOutfit = purchasedOutfits.includes(p.outfit) ? p.outfit : null;
+  p.purchasedOutfits = purchasedOutfits;
+  p.outfit = equippedOutfit;
+  return {
+    id: p.id,
+    nickname: p.nickname,
+    chips: p.chips,
+    winStreak: p.winStreak ?? 0,
+    maxWinStreak: p.maxWinStreak ?? 0,
+    currentView: p.currentView ?? 'lobby',
+    outfit: equippedOutfit,
+    purchasedOutfits,
+  };
+}
 
 function getPlayersInGame(room, gameType) {
   return room.players.filter((p) => (p.currentView ?? 'lobby') === gameType);
@@ -291,14 +327,7 @@ function startGame(roomKey, resetStreaks = false, resetChips = false) {
 
   broadcastToRoom(roomKey, {
     type: 'playerViewChanged',
-    players: room.players.map((p) => ({
-      id: p.id,
-      nickname: p.nickname,
-      chips: p.chips,
-      winStreak: p.winStreak ?? 0,
-      maxWinStreak: p.maxWinStreak ?? 0,
-      currentView: p.currentView ?? 'lobby',
-    })),
+    players: room.players.map(serializePlayer),
   });
 
   if (resetChips) {
@@ -598,13 +627,7 @@ function showdown(roomKey) {
 
   broadcastToRoom(roomKey, {
     type: 'roundOver',
-    players: room.players.map((p) => ({
-      id: p.id,
-      nickname: p.nickname,
-      chips: p.chips,
-      winStreak: p.winStreak ?? 0,
-      maxWinStreak: p.maxWinStreak ?? 0,
-    })),
+    players: room.players.map(serializePlayer),
   });
 
   if (hasBrokeBots) {
@@ -1957,18 +1980,31 @@ wss.on('connection', async (ws, req) => {
         }
 
         let startingChips = 100;
+        let startingPurchasedOutfits = [];
+        let startingOutfit = null;
         if (ws._userId) {
           try {
-            const dbResult = await pool.query('SELECT chips FROM users WHERE id = $1', [ws._userId]);
-            if (dbResult.rows.length > 0) startingChips = dbResult.rows[0].chips;
+            const dbResult = await pool.query(
+              'SELECT chips, purchased_outfits, equipped_outfit FROM users WHERE id = $1',
+              [ws._userId]
+            );
+            if (dbResult.rows.length > 0) {
+              startingChips = dbResult.rows[0].chips;
+              startingPurchasedOutfits = normalizePurchasedOutfits(dbResult.rows[0].purchased_outfits);
+              startingOutfit = startingPurchasedOutfits.includes(dbResult.rows[0].equipped_outfit)
+                ? dbResult.rows[0].equipped_outfit
+                : null;
+            }
           } catch (e) {
-            console.error('Failed to load user chips:', e.message);
+            console.error('Failed to load user profile:', e.message);
           }
         }
 
         const existing = room.players.find((p) => p.ws === ws);
         if (existing) {
           existing.nickname = safeNick;
+          existing.purchasedOutfits = normalizePurchasedOutfits(existing.purchasedOutfits);
+          existing.outfit = existing.purchasedOutfits.includes(existing.outfit) ? existing.outfit : null;
         } else {
           room.players.push({
             id: ws.id,
@@ -1984,6 +2020,8 @@ wss.on('connection', async (ws, req) => {
             maxWinStreak: 0,
             currentView: targetGameType,
             dbUserId: ws._userId || null,
+            purchasedOutfits: startingPurchasedOutfits,
+            outfit: startingOutfit,
           });
         }
         if (existing) existing.currentView = targetGameType;
@@ -1996,14 +2034,7 @@ wss.on('connection', async (ws, req) => {
           roomKey: safeRoom,
           gameType: targetGameType === 'lobby' ? 'lobby' : (targetGameType || 'holdem'),
           ...(gameFull && { gameFull: msg.gameType }),
-          players: room.players.map((p) => ({
-            id: p.id,
-            nickname: p.nickname,
-            chips: p.chips,
-            winStreak: p.winStreak ?? 0,
-            maxWinStreak: p.maxWinStreak ?? 0,
-            currentView: p.currentView ?? 'lobby',
-          })),
+          players: room.players.map(serializePlayer),
           gameState: room.phase === 'lobby' ? null : {
             phase: room.phase,
             communityCards: room.communityCards,
@@ -2025,6 +2056,8 @@ wss.on('connection', async (ws, req) => {
           winStreak: 0,
           maxWinStreak: 0,
           currentView: targetGameType,
+          outfit: existing?.outfit || null,
+          purchasedOutfits: existing?.purchasedOutfits || [],
         }, ws);
       } else if (type === 'backToLobby') {
         const data = clients.get(ws);
@@ -2097,25 +2130,13 @@ wss.on('connection', async (ws, req) => {
 
         broadcastToRoom(data.roomKey, {
           type: 'playerViewChanged',
-          players: room.players.map((p) => ({
-            id: p.id,
-            nickname: p.nickname,
-            currentView: p.currentView ?? 'lobby',
-            chips: p.chips,
-          })),
+          players: room.players.map(serializePlayer),
         });
         ws.send(JSON.stringify({
           type: 'backToLobby',
           id: ws.id,
           roomKey: data.roomKey,
-          players: room.players.map((p) => ({
-            id: p.id,
-            nickname: p.nickname,
-            chips: p.chips,
-            winStreak: p.winStreak ?? 0,
-            maxWinStreak: p.maxWinStreak ?? 0,
-            currentView: p.currentView ?? 'lobby',
-          })),
+          players: room.players.map(serializePlayer),
           chatHistory: (room.chatHistory || []).slice(-LOBBY_CHAT_MAX),
           theme: room.theme || null,
         }));
@@ -2143,12 +2164,7 @@ wss.on('connection', async (ws, req) => {
 
         broadcastToRoom(data.roomKey, {
           type: 'playerViewChanged',
-          players: room.players.map((p) => ({
-            id: p.id,
-            nickname: p.nickname,
-            currentView: p.currentView ?? 'lobby',
-            chips: p.chips,
-          })),
+          players: room.players.map(serializePlayer),
         });
         const ckCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers').length;
         const chCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess').length;
@@ -2159,14 +2175,7 @@ wss.on('connection', async (ws, req) => {
           id: ws.id,
           roomKey: data.roomKey,
           gameType: newType,
-          players: room.players.map((p) => ({
-            id: p.id,
-            nickname: p.nickname,
-            chips: p.chips,
-            winStreak: p.winStreak ?? 0,
-            maxWinStreak: p.maxWinStreak ?? 0,
-            currentView: p.currentView ?? 'lobby',
-          })),
+          players: room.players.map(serializePlayer),
           gameState: room.phase === 'lobby' ? null : {
             phase: room.phase,
             communityCards: room.communityCards,
@@ -2413,6 +2422,8 @@ wss.on('connection', async (ws, req) => {
           winStreak: 0,
           maxWinStreak: 0,
           currentView: 'holdem',
+          purchasedOutfits: [],
+          outfit: null,
         });
         broadcastToRoom(data.roomKey, {
           type: 'userJoined',
@@ -2422,6 +2433,67 @@ wss.on('connection', async (ws, req) => {
           currentView: 'holdem',
           winStreak: 0,
           maxWinStreak: 0,
+          outfit: null,
+          purchasedOutfits: [],
+        });
+      } else if (type === 'buyOutfit') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const player = room.players.find((p) => p.ws === ws);
+        if (!player) return;
+        const outfitId = String(msg.outfitId || '');
+        const price = OUTFIT_PRICES[outfitId];
+        if (!price) {
+          ws.send(JSON.stringify({ type: 'outfitError', message: 'Invalid outfit.' }));
+          return;
+        }
+        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
+        if (player.purchasedOutfits.includes(outfitId)) {
+          ws.send(JSON.stringify({ type: 'outfitError', message: 'Outfit already purchased.' }));
+          return;
+        }
+        if ((player.chips || 0) < price) {
+          ws.send(JSON.stringify({ type: 'outfitError', message: 'Not enough currency.' }));
+          return;
+        }
+        player.chips -= price;
+        player.purchasedOutfits.push(outfitId);
+        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
+        player.outfit = outfitId;
+        if (player.dbUserId) {
+          saveUserChips(player.dbUserId, player.chips);
+          saveUserOutfits(player.dbUserId, player.purchasedOutfits, player.outfit);
+        }
+        broadcastToRoom(data.roomKey, {
+          type: 'outfitUpdated',
+          playerId: player.id,
+          outfit: player.outfit,
+          chips: player.chips,
+          purchasedOutfits: player.purchasedOutfits,
+        });
+      } else if (type === 'equipOutfit') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const player = room.players.find((p) => p.ws === ws);
+        if (!player) return;
+        const outfitId = String(msg.outfitId || '');
+        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
+        if (outfitId && !player.purchasedOutfits.includes(outfitId)) {
+          ws.send(JSON.stringify({ type: 'outfitError', message: 'Purchase this outfit first.' }));
+          return;
+        }
+        player.outfit = outfitId || null;
+        if (player.dbUserId) {
+          saveUserOutfits(player.dbUserId, player.purchasedOutfits, player.outfit);
+        }
+        broadcastToRoom(data.roomKey, {
+          type: 'outfitUpdated',
+          playerId: player.id,
+          outfit: player.outfit,
+          chips: player.chips,
+          purchasedOutfits: player.purchasedOutfits,
         });
       } else if (type === 'changeNick') {
         const data = clients.get(ws);
@@ -2430,13 +2502,32 @@ wss.on('connection', async (ws, req) => {
         const player = room.players.find((p) => p.ws === ws);
         if (!player) return;
         const safeNick = String(msg.nickname || '').trim().slice(0, 20) || 'Player';
+
+        if (player.dbUserId) {
+          try {
+            const conflict = await pool.query(
+              'SELECT id FROM users WHERE LOWER(username) = LOWER($1) AND id <> $2 LIMIT 1',
+              [safeNick, player.dbUserId]
+            );
+            if (conflict.rows.length > 0) {
+              ws.send(JSON.stringify({ type: 'error', message: 'That username is already taken' }));
+              return;
+            }
+            await pool.query('UPDATE users SET username = $1 WHERE id = $2', [safeNick, player.dbUserId]);
+          } catch (err) {
+            console.error('Failed to update username:', err.message);
+            ws.send(JSON.stringify({ type: 'error', message: 'Could not update username right now' }));
+            return;
+          }
+        }
+
         player.nickname = safeNick;
         data.nickname = safeNick;
         broadcastToRoom(data.roomKey, {
           type: 'nicknameChanged',
           playerId: ws.id,
           nickname: safeNick,
-          players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips, currentView: p.currentView ?? 'lobby' })),
+          players: room.players.map(serializePlayer),
         });
       } else if (type === 'chat') {
         const data = clients.get(ws);
@@ -2472,14 +2563,14 @@ wss.on('connection', async (ws, req) => {
         const player = room.players[idx];
         if (player.chips > 0) return;
         if (room.phase !== 'lobby') return;
-        player.chips = 100;
-        if (player.dbUserId) saveUserChips(player.dbUserId, 100);
-        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 100 }));
+        player.chips = 10;
+        if (player.dbUserId) saveUserChips(player.dbUserId, 10);
+        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 10 }));
         broadcastToRoom(data.roomKey, {
           type: 'userRebuy',
           id: ws.id,
           nickname: player.nickname,
-          chips: 100,
+          chips: 10,
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
         });
       } else if (type === 'slotSpin') {

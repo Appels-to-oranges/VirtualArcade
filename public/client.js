@@ -653,6 +653,7 @@ function updateJoinUI() {
     if (authPrompt) authPrompt.classList.remove('hidden');
     if (logoutBtn) logoutBtn.classList.add('hidden');
   }
+  updateOutfitAuthCtas();
   showPanel('join-panel');
 }
 
@@ -849,6 +850,7 @@ function showGameSelectScreen(players, chatHistory) {
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
   lobbyPlayers = (players || lobbyPlayers).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
+  refreshMyOutfitState();
   updateLobbyChipDisplay();
   renderParticipants();
   updateGameCounts();
@@ -865,6 +867,16 @@ function showGameSelectScreen(players, chatHistory) {
 }
 
 const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Slots', lobby: 'Lobby' };
+const DEFAULT_LOBBY_CHARACTER_SRC = '/character.png';
+const OUTFIT_CATALOG = [
+  { id: 'outfit1', name: 'Outfit 1', src: '/outfit1.png', price: 50 },
+  { id: 'outfit2', name: 'Outfit 2', src: '/outfit2.png', price: 50 },
+];
+const OUTFIT_BY_ID = OUTFIT_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
+let myPurchasedOutfits = [];
+let myEquippedOutfit = null;
+let storePreviewOutfit = null;
+let closetPreviewOutfit = null;
 
 function renderParticipants() {
   if (!participantsList) return;
@@ -874,9 +886,54 @@ function renderParticipants() {
     chip.className = 'participant-chip' + (p.id === myId ? ' you' : '');
     const view = p.currentView || 'lobby';
     const name = p.nickname || 'Player';
-    chip.textContent = view !== 'lobby' ? `${name} (${GAME_NAMES[view] || view})` : name;
+    chip.title = view !== 'lobby' ? `${name} (${GAME_NAMES[view] || view})` : name;
+    chip.setAttribute('aria-label', chip.title);
+
+    const avatarWrap = document.createElement('span');
+    avatarWrap.className = 'participant-avatar-wrap';
+
+    const avatar = document.createElement('img');
+    avatar.className = 'participant-avatar';
+    avatar.src = DEFAULT_LOBBY_CHARACTER_SRC;
+    avatar.alt = '';
+    avatar.loading = 'lazy';
+    avatar.decoding = 'async';
+    avatarWrap.appendChild(avatar);
+
+    const outfit = OUTFIT_BY_ID[p.outfit];
+    if (outfit) {
+      const outfitEl = document.createElement('img');
+      outfitEl.className = 'participant-outfit';
+      outfitEl.src = outfit.src;
+      outfitEl.alt = '';
+      outfitEl.loading = 'lazy';
+      outfitEl.decoding = 'async';
+      avatarWrap.appendChild(outfitEl);
+    }
+    chip.appendChild(avatarWrap);
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'participant-name';
+    nameEl.textContent = name;
+    chip.appendChild(nameEl);
+
     participantsList.appendChild(chip);
   });
+}
+
+function normalizeOutfitList(list) {
+  if (!Array.isArray(list)) return [];
+  return list.filter((id) => !!OUTFIT_BY_ID[id]);
+}
+
+function getMyPlayer() {
+  return players.find((p) => p.id === myId) || lobbyPlayers.find((p) => p.id === myId) || null;
+}
+
+function refreshMyOutfitState() {
+  const me = getMyPlayer();
+  myPurchasedOutfits = normalizeOutfitList(me?.purchasedOutfits);
+  myEquippedOutfit = OUTFIT_BY_ID[me?.outfit] ? me.outfit : null;
 }
 
 function updateGameCounts() {
@@ -1096,6 +1153,7 @@ function handleMessage(msg) {
     case 'joined':
       myId = msg.id;
       players = msg.players || [];
+      refreshMyOutfitState();
       gameState = msg.gameState;
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
@@ -1197,6 +1255,7 @@ function handleMessage(msg) {
       cancelBrokeKickTimer();
       myId = msg.id;
       players = msg.players || [];
+      refreshMyOutfitState();
       gameState = msg.gameState;
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
@@ -1267,10 +1326,13 @@ function handleMessage(msg) {
         id: msg.id,
         nickname: msg.nickname,
         chips: msg.chips ?? 100,
-      winStreak: msg.winStreak ?? 0,
-      maxWinStreak: msg.maxWinStreak ?? 0,
-      currentView: msg.currentView ?? 'lobby',
+        winStreak: msg.winStreak ?? 0,
+        maxWinStreak: msg.maxWinStreak ?? 0,
+        currentView: msg.currentView ?? 'lobby',
+        outfit: msg.outfit || null,
+        purchasedOutfits: normalizeOutfitList(msg.purchasedOutfits),
       });
+      refreshMyOutfitState();
       if (currentGameType === 'lobby') {
         lobbyPlayers = players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         renderParticipants();
@@ -1311,6 +1373,33 @@ function handleMessage(msg) {
       if (currentGameType === 'lobby') updateLobbyChipDisplay();
       renderTable();
       updateControls();
+      break;
+
+    case 'outfitUpdated': {
+      const pl = players.find((p) => p.id === msg.playerId);
+      if (pl) {
+        if (msg.outfit !== undefined) pl.outfit = msg.outfit || null;
+        if (msg.purchasedOutfits !== undefined) pl.purchasedOutfits = normalizeOutfitList(msg.purchasedOutfits);
+        if (msg.chips !== undefined) pl.chips = msg.chips;
+      }
+      const lp = lobbyPlayers.find((p) => p.id === msg.playerId);
+      if (lp) {
+        if (msg.outfit !== undefined) lp.outfit = msg.outfit || null;
+        if (msg.purchasedOutfits !== undefined) lp.purchasedOutfits = normalizeOutfitList(msg.purchasedOutfits);
+        if (msg.chips !== undefined) lp.chips = msg.chips;
+      }
+      if (msg.playerId === myId) {
+        refreshMyOutfitState();
+        updateLobbyChipDisplay();
+        renderStoreOverlay();
+        renderClosetOverlay();
+      }
+      renderParticipants();
+      break;
+    }
+
+    case 'outfitError':
+      showToast(msg.message || 'Outfit update failed');
       break;
 
     case 'gameStarted':
@@ -1521,14 +1610,31 @@ function handleMessage(msg) {
           if (ex) {
             ex.currentView = newView;
             if (up.chips !== undefined) ex.chips = up.chips;
+            if (up.outfit !== undefined) ex.outfit = up.outfit || null;
+            if (up.purchasedOutfits !== undefined) ex.purchasedOutfits = normalizeOutfitList(up.purchasedOutfits);
           } else {
-            players.push({ id: up.id, nickname: up.nickname, currentView: newView, chips: up.chips ?? 100 });
+            players.push({
+              id: up.id,
+              nickname: up.nickname,
+              currentView: newView,
+              chips: up.chips ?? 100,
+              outfit: up.outfit || null,
+              purchasedOutfits: normalizeOutfitList(up.purchasedOutfits),
+            });
           }
         });
+        refreshMyOutfitState();
         if (currentGameType === 'lobby') {
           lobbyPlayers = msg.players.map((up) => {
             const ex = lobbyPlayers.find((p) => p.id === up.id);
-            return { id: up.id, nickname: up.nickname, currentView: up.currentView ?? 'lobby', chips: up.chips ?? ex?.chips ?? 100 };
+            return {
+              id: up.id,
+              nickname: up.nickname,
+              currentView: up.currentView ?? 'lobby',
+              chips: up.chips ?? ex?.chips ?? 100,
+              outfit: up.outfit ?? ex?.outfit ?? null,
+              purchasedOutfits: normalizeOutfitList(up.purchasedOutfits ?? ex?.purchasedOutfits),
+            };
           });
           renderParticipants();
           updateGameCounts();
@@ -1571,6 +1677,7 @@ function handleMessage(msg) {
       turnStartedAt = 0;
       gameState = null;
       lobbyPlayers = (msg.players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
+      refreshMyOutfitState();
       showGameSelectScreen(msg.players, msg.chatHistory);
       if (msg.theme) applyTheme(msg.theme);
       else applyTheme(currentTheme);
@@ -1578,9 +1685,11 @@ function handleMessage(msg) {
 
     case 'nicknameChanged':
       if (msg.playerId === myId) nickname = msg.nickname || nickname;
+      if (msg.playerId === myId && authUser) authUser.username = nickname;
       if (msg.players) {
         players = msg.players;
         lobbyPlayers = msg.players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
+        refreshMyOutfitState();
       }
       if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
       renderParticipants();
@@ -2915,11 +3024,28 @@ if (lobbyChatInput) {
 // ── Lobby overlays & buttons ──
 const themesOverlay = document.getElementById('themes-overlay');
 const settingsOverlay = document.getElementById('settings-overlay');
+const storeOverlay = document.getElementById('store-overlay');
+const closetOverlay = document.getElementById('closet-overlay');
 const themesBtn = document.getElementById('lobby-themes-btn');
 const settingsBtn = document.getElementById('lobby-settings-btn');
+const storeBtn = document.getElementById('lobby-store-btn');
+const closetBtn = document.getElementById('lobby-closet-btn');
 const themesClose = document.getElementById('themes-close');
 const settingsClose = document.getElementById('settings-close');
+const storeClose = document.getElementById('store-close');
+const closetClose = document.getElementById('closet-close');
 const inviteBtn = document.getElementById('lobby-invite-btn');
+const storeBalance = document.getElementById('store-balance');
+const storePreviewOutfitImg = document.getElementById('store-preview-outfit');
+const storePreviewLabel = document.getElementById('store-preview-label');
+const closetPreviewOutfitImg = document.getElementById('closet-preview-outfit');
+const closetPreviewLabel = document.getElementById('closet-preview-label');
+const storeItemsEl = document.getElementById('store-items');
+const closetItemsEl = document.getElementById('closet-items');
+const storeAuthCta = document.getElementById('store-auth-cta');
+const closetAuthCta = document.getElementById('closet-auth-cta');
+const storeCreateAccountLink = document.getElementById('store-create-account-link');
+const closetCreateAccountLink = document.getElementById('closet-create-account-link');
 
 function toggleOverlay(overlay) {
   if (!overlay) return;
@@ -2931,10 +3057,194 @@ function openSettingsOverlay() {
   if (settingsOverlay) settingsOverlay.classList.remove('hidden');
 }
 
+function updateStorePreview() {
+  const preview = OUTFIT_BY_ID[storePreviewOutfit];
+  if (storePreviewOutfitImg) {
+    if (preview) {
+      storePreviewOutfitImg.src = preview.src;
+      storePreviewOutfitImg.classList.remove('hidden');
+    } else {
+      storePreviewOutfitImg.src = '';
+      storePreviewOutfitImg.classList.add('hidden');
+    }
+  }
+  if (storePreviewLabel) {
+    storePreviewLabel.textContent = preview
+      ? `Previewing: ${preview.name}`
+      : 'Previewing: Base character';
+  }
+}
+
+function updateClosetPreview() {
+  const preview = OUTFIT_BY_ID[closetPreviewOutfit];
+  if (closetPreviewOutfitImg) {
+    if (preview) {
+      closetPreviewOutfitImg.src = preview.src;
+      closetPreviewOutfitImg.classList.remove('hidden');
+    } else {
+      closetPreviewOutfitImg.src = '';
+      closetPreviewOutfitImg.classList.add('hidden');
+    }
+  }
+  if (closetPreviewLabel) {
+    closetPreviewLabel.textContent = preview
+      ? `Previewing: ${preview.name}`
+      : 'Previewing: Base character';
+  }
+}
+
+function sendBuyOutfit(outfitId) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'buyOutfit', outfitId }));
+}
+
+function sendEquipOutfit(outfitId) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'equipOutfit', outfitId }));
+}
+
+function updateOutfitAuthCtas() {
+  const showGuestCta = !authUser;
+  if (storeAuthCta) storeAuthCta.classList.toggle('hidden', !showGuestCta);
+  if (closetAuthCta) closetAuthCta.classList.toggle('hidden', !showGuestCta);
+}
+
+function openRegisterFromOutfitOverlay() {
+  if (storeOverlay) storeOverlay.classList.add('hidden');
+  if (closetOverlay) closetOverlay.classList.add('hidden');
+  showJoinScreen();
+  showPanel('register-panel');
+}
+
+function renderStoreOverlay() {
+  updateOutfitAuthCtas();
+  const me = getMyPlayer();
+  const chips = me?.chips ?? 0;
+  if (storeBalance) storeBalance.textContent = '$' + chips;
+  if (!storeItemsEl) return;
+  storeItemsEl.innerHTML = '';
+  OUTFIT_CATALOG.forEach((outfit) => {
+    const owned = myPurchasedOutfits.includes(outfit.id);
+    const equipped = myEquippedOutfit === outfit.id;
+    const canAfford = chips >= outfit.price;
+
+    const card = document.createElement('div');
+    card.className = 'store-item-card';
+
+    const head = document.createElement('div');
+    head.className = 'store-item-head';
+    head.innerHTML = `<strong>${outfit.name}</strong><span class="store-item-price">$${outfit.price}</span>`;
+    card.appendChild(head);
+
+    const actions = document.createElement('div');
+    actions.className = 'store-item-actions';
+
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.className = 'store-item-btn';
+    previewBtn.textContent = 'Preview';
+    previewBtn.addEventListener('click', () => {
+      storePreviewOutfit = outfit.id;
+      updateStorePreview();
+    });
+    actions.appendChild(previewBtn);
+
+    const mainBtn = document.createElement('button');
+    mainBtn.type = 'button';
+    mainBtn.className = 'store-item-btn ' + (owned ? 'equip-btn' : 'buy-btn');
+    if (owned) {
+      mainBtn.textContent = equipped ? 'Unequip' : 'Equip';
+      mainBtn.addEventListener('click', () => sendEquipOutfit(equipped ? '' : outfit.id));
+    } else {
+      mainBtn.textContent = 'Buy';
+      mainBtn.disabled = !canAfford;
+      mainBtn.addEventListener('click', () => sendBuyOutfit(outfit.id));
+    }
+    actions.appendChild(mainBtn);
+    card.appendChild(actions);
+
+    const status = document.createElement('div');
+    status.className = 'store-item-status';
+    status.textContent = owned
+      ? (equipped ? 'Owned - currently equipped' : 'Owned')
+      : (canAfford ? 'Not owned' : 'Not enough currency');
+    card.appendChild(status);
+
+    storeItemsEl.appendChild(card);
+  });
+  storePreviewOutfit = myEquippedOutfit;
+  updateStorePreview();
+}
+
+function renderClosetOverlay() {
+  updateOutfitAuthCtas();
+  if (!closetItemsEl) return;
+  closetItemsEl.innerHTML = '';
+  const owned = myPurchasedOutfits.slice();
+  if (!owned.length) {
+    const empty = document.createElement('div');
+    empty.className = 'store-item-status';
+    empty.textContent = 'No outfits purchased yet. Buy one from the Store.';
+    closetItemsEl.appendChild(empty);
+    closetPreviewOutfit = myEquippedOutfit;
+    updateClosetPreview();
+    return;
+  }
+  owned.forEach((outfitId) => {
+    const outfit = OUTFIT_BY_ID[outfitId];
+    if (!outfit) return;
+    const equipped = myEquippedOutfit === outfit.id;
+    const card = document.createElement('div');
+    card.className = 'closet-item-card';
+    const head = document.createElement('div');
+    head.className = 'store-item-head';
+    head.innerHTML = `<strong>${outfit.name}</strong><span class="store-item-price">Owned</span>`;
+    card.appendChild(head);
+    const actions = document.createElement('div');
+    actions.className = 'store-item-actions';
+
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.className = 'store-item-btn';
+    previewBtn.textContent = 'Preview';
+    previewBtn.addEventListener('click', () => {
+      closetPreviewOutfit = outfit.id;
+      updateClosetPreview();
+    });
+    actions.appendChild(previewBtn);
+
+    const equipBtn = document.createElement('button');
+    equipBtn.type = 'button';
+    equipBtn.className = 'store-item-btn equip-btn';
+    equipBtn.textContent = equipped ? 'Unequip' : 'Equip';
+    equipBtn.addEventListener('click', () => sendEquipOutfit(equipped ? '' : outfit.id));
+    actions.appendChild(equipBtn);
+
+    card.appendChild(actions);
+    closetItemsEl.appendChild(card);
+  });
+  closetPreviewOutfit = myEquippedOutfit;
+  updateClosetPreview();
+}
+
 if (themesBtn) themesBtn.addEventListener('click', () => { initThemesOverlay(); toggleOverlay(themesOverlay); });
 if (themesClose) themesClose.addEventListener('click', () => themesOverlay.classList.add('hidden'));
 if (settingsBtn) settingsBtn.addEventListener('click', () => { initSettingsOverlay(); toggleOverlay(settingsOverlay); });
 if (settingsClose) settingsClose.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
+if (storeBtn) storeBtn.addEventListener('click', () => {
+  refreshMyOutfitState();
+  renderStoreOverlay();
+  if (storeOverlay) storeOverlay.classList.remove('hidden');
+});
+if (closetBtn) closetBtn.addEventListener('click', () => {
+  refreshMyOutfitState();
+  renderClosetOverlay();
+  if (closetOverlay) closetOverlay.classList.remove('hidden');
+});
+if (storeClose) storeClose.addEventListener('click', () => storeOverlay?.classList.add('hidden'));
+if (closetClose) closetClose.addEventListener('click', () => closetOverlay?.classList.add('hidden'));
+if (storeCreateAccountLink) storeCreateAccountLink.addEventListener('click', (e) => { e.preventDefault(); openRegisterFromOutfitOverlay(); });
+if (closetCreateAccountLink) closetCreateAccountLink.addEventListener('click', (e) => { e.preventDefault(); openRegisterFromOutfitOverlay(); });
 
 const holdemSettingsBtn = document.getElementById('holdem-settings-btn');
 const bjSettingsBtn = document.getElementById('bj-settings-btn');
@@ -2951,6 +3261,16 @@ if (themesOverlay) {
 if (settingsOverlay) {
   settingsOverlay.addEventListener('click', (e) => {
     if (e.target === settingsOverlay) settingsOverlay.classList.add('hidden');
+  });
+}
+if (storeOverlay) {
+  storeOverlay.addEventListener('click', (e) => {
+    if (e.target === storeOverlay) storeOverlay.classList.add('hidden');
+  });
+}
+if (closetOverlay) {
+  closetOverlay.addEventListener('click', (e) => {
+    if (e.target === closetOverlay) closetOverlay.classList.add('hidden');
   });
 }
 

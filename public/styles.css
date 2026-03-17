@@ -329,6 +329,16 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   opacity: 1;
 }
 
+.lobby-text-btn {
+  width: auto;
+  min-width: 2.8rem;
+  padding: 0 0.45rem;
+  border: 0.0625rem solid var(--lobby-border);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.28rem;
+  color: var(--lobby-accent);
+}
+
 /* ── Two-card row ── */
 .lobby-cards {
   display: flex;
@@ -435,32 +445,80 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 
 .participants-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+
+.lobby-participants-bar {
+  width: 100%;
+  padding: 0.1rem 0.45rem;
+  background: var(--lobby-card-bg);
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.3);
+}
+
+.lobby-participants-strip {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
 }
 
 .participant-chip {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.3rem 0.5rem;
-  background: var(--lobby-input-bg);
-  border: 0.0625rem solid var(--lobby-border);
-  border-radius: 0.35rem;
-  font-size: 0.35rem;
+  justify-content: flex-start;
+  width: 3.1rem;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--lobby-text);
+  flex-shrink: 0;
+}
+
+.participant-avatar {
+  width: 1rem;
+  height: 2rem;
+  display: block;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.participant-avatar-wrap {
+  position: relative;
+  width: 1rem;
+  height: 2rem;
+}
+
+.participant-outfit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
 }
 
 .participant-chip.you {
-  border-color: var(--lobby-accent);
-  background: color-mix(in srgb, var(--lobby-accent) 15%, transparent);
-  color: var(--lobby-accent);
+  filter: none;
 }
 
-.participant-chip .game-status {
-  font-size: 0.3rem;
-  color: var(--lobby-muted);
-  margin-left: 0.2rem;
+.participant-name {
+  margin-top: 0.18rem;
+  max-width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: ellipsis;
+  font-size: 0.32rem;
+  line-height: 1;
 }
 
 /* ── Game buttons ── */
@@ -511,10 +569,6 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-}
-
-.game-select-options-casino {
-  flex-wrap: nowrap;
 }
 
 .game-select-options-casino .game-option-btn {
@@ -765,6 +819,142 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   color: var(--lobby-text);
   text-transform: uppercase;
   letter-spacing: 0.05rem;
+}
+
+.store-balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  padding: 0.45rem 0.55rem;
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.4rem;
+  background: var(--lobby-input-bg);
+  font-size: 0.32rem;
+}
+
+.store-balance-row strong {
+  color: var(--lobby-accent);
+}
+
+.store-preview-card {
+  margin-bottom: 0.7rem;
+  padding: 0.55rem;
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.45rem;
+  background: var(--lobby-input-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.store-preview-avatar {
+  position: relative;
+  width: 2rem;
+  height: 3.5rem;
+}
+
+.store-preview-base,
+.store-preview-outfit {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.store-preview-outfit {
+  position: absolute;
+  inset: 0;
+}
+
+.store-preview-label {
+  font-size: 0.3rem;
+  color: var(--lobby-muted);
+  text-align: center;
+}
+
+.store-items,
+.closet-items {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.store-item-card,
+.closet-item-card {
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.store-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.3rem;
+}
+
+.store-item-price {
+  color: #f0c674;
+}
+
+.store-item-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.store-item-btn {
+  flex: 1;
+  min-width: 0;
+  border: 0.0625rem solid var(--lobby-border);
+  border-radius: 0.35rem;
+  background: var(--lobby-input-bg);
+  color: var(--lobby-text);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.28rem;
+  padding: 0.3rem 0.35rem;
+  cursor: pointer;
+}
+
+.store-item-btn:hover {
+  border-color: var(--lobby-accent);
+}
+
+.store-item-btn.buy-btn {
+  color: #80e27e;
+}
+
+.store-item-btn.equip-btn {
+  color: var(--lobby-accent);
+}
+
+.store-item-status {
+  font-size: 0.28rem;
+  color: var(--lobby-muted);
+}
+
+.store-auth-cta {
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 0.0625rem solid var(--lobby-border);
+  font-size: 0.3rem;
+  color: var(--lobby-muted);
+  text-align: center;
+}
+
+.store-auth-cta a {
+  color: var(--lobby-accent);
+  text-decoration: none;
+}
+
+.store-auth-cta a:hover {
+  text-decoration: underline;
 }
 
 .theme-options {
@@ -3694,6 +3884,14 @@ body.lobby-retro .lobby-top-bar {
   padding: 0.4rem 0.6rem;
 }
 
+body.lobby-retro .lobby-participants-bar {
+  border-radius: 0;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+  padding: 0.2rem 0.45rem;
+}
+
 body.lobby-retro .lobby-room-badge {
   border-radius: 0;
   border-width: 2px;
@@ -3747,8 +3945,9 @@ body.lobby-retro .participants-label {
 
 body.lobby-retro .participant-chip {
   border-radius: 0;
-  border-width: 2px;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+  border: none;
+  box-shadow: none;
+  background: transparent;
 }
 
 body.lobby-retro .game-category-label {

@@ -102,7 +102,7 @@
       <div class="lobby-top-bar">
         <span class="lobby-room-badge" id="game-select-room"></span>
         <span class="lobby-chips-display" id="lobby-chips-display">$100</span>
-        <button type="button" class="lobby-rebuy-btn hidden" id="lobby-rebuy-btn" title="Rebuy $100">Rebuy $100</button>
+        <button type="button" class="lobby-rebuy-btn hidden" id="lobby-rebuy-btn" title="Rebuy $10">Rebuy $10</button>
         <button type="button" class="lobby-invite-btn" id="lobby-invite-btn" title="Copy invite link">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           Invite
@@ -118,17 +118,22 @@
         <button type="button" class="lobby-header-btn" id="lobby-themes-btn" title="Themes" aria-label="Themes">
           <img src="icon-themes.png" alt="" class="lobby-header-icon">
         </button>
+        <button type="button" class="lobby-header-btn lobby-text-btn" id="lobby-store-btn" title="Store" aria-label="Store">
+          Store
+        </button>
+        <button type="button" class="lobby-header-btn lobby-text-btn" id="lobby-closet-btn" title="Closet" aria-label="Closet">
+          Closet
+        </button>
         <button type="button" class="lobby-header-btn" id="lobby-settings-btn" title="Settings" aria-label="Settings">
           <img src="icon-settings.png" alt="" class="lobby-header-icon">
         </button>
       </div>
+      <div class="lobby-participants-bar" aria-label="Room participants">
+        <div class="participants-list lobby-participants-strip" id="participants-list"></div>
+      </div>
       <div class="lobby-cards">
         <div class="game-select-card">
           <h1>Choose a Game</h1>
-          <div class="game-select-participants" id="game-select-participants">
-            <h3 class="participants-label">In Room</h3>
-            <div class="participants-list" id="participants-list"></div>
-          </div>
           <div class="game-select-category">
             <h2 class="game-category-label">Casino</h2>
             <div class="game-select-options game-select-options-casino">
@@ -264,6 +269,54 @@
           </div>
         </div>
         <div class="settings-contact">Contact: <a href="mailto:dev@virtualarcade.space">dev@virtualarcade.space</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lobby-overlay hidden" id="store-overlay">
+    <div class="lobby-overlay-panel">
+      <div class="lobby-overlay-header">
+        <h2>Store</h2>
+        <button type="button" class="lobby-overlay-close" id="store-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="lobby-overlay-body">
+        <div class="store-balance-row">
+          <span>Balance</span>
+          <strong id="store-balance">$0</strong>
+        </div>
+        <div class="store-preview-card">
+          <div class="store-preview-avatar">
+            <img src="/character.png" alt="" class="store-preview-base">
+            <img src="" alt="" class="store-preview-outfit hidden" id="store-preview-outfit">
+          </div>
+          <div class="store-preview-label" id="store-preview-label">Previewing: Base character</div>
+        </div>
+        <div class="store-items" id="store-items"></div>
+        <div class="store-auth-cta hidden" id="store-auth-cta">
+          Want to save your character? <a href="#" id="store-create-account-link">Create an account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lobby-overlay hidden" id="closet-overlay">
+    <div class="lobby-overlay-panel">
+      <div class="lobby-overlay-header">
+        <h2>Closet</h2>
+        <button type="button" class="lobby-overlay-close" id="closet-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="lobby-overlay-body">
+        <div class="store-preview-card">
+          <div class="store-preview-avatar">
+            <img src="/character.png" alt="" class="store-preview-base">
+            <img src="" alt="" class="store-preview-outfit hidden" id="closet-preview-outfit">
+          </div>
+          <div class="store-preview-label" id="closet-preview-label">Previewing: Base character</div>
+        </div>
+        <div class="closet-items" id="closet-items"></div>
+        <div class="store-auth-cta hidden" id="closet-auth-cta">
+          Want to save your character? <a href="#" id="closet-create-account-link">Create an account</a>
+        </div>
       </div>
     </div>
   </div>
