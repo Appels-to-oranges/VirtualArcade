@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   chips INTEGER NOT NULL DEFAULT 100,
   purchased_outfits TEXT[] NOT NULL DEFAULT '{}',
   equipped_outfit VARCHAR(50),
+  purchased_characters TEXT[] NOT NULL DEFAULT '{}',
+  equipped_character VARCHAR(50),
   google_id VARCHAR(255) UNIQUE,
   discord_id VARCHAR(255) UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -20,6 +22,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Safe migration for existing databases
 ALTER TABLE users ADD COLUMN IF NOT EXISTS purchased_outfits TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_outfit VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS purchased_characters TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_character VARCHAR(50);
 
 -- Session store for connect-pg-simple
 CREATE TABLE IF NOT EXISTS "session" (

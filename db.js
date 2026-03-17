@@ -22,6 +22,8 @@ async function ensureTables() {
         chips INTEGER NOT NULL DEFAULT 100,
         purchased_outfits TEXT[] NOT NULL DEFAULT '{}',
         equipped_outfit VARCHAR(50),
+        purchased_characters TEXT[] NOT NULL DEFAULT '{}',
+        equipped_character VARCHAR(50),
         google_id VARCHAR(255) UNIQUE,
         discord_id VARCHAR(255) UNIQUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -29,6 +31,8 @@ async function ensureTables() {
     `);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS purchased_outfits TEXT[] NOT NULL DEFAULT '{}'`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_outfit VARCHAR(50)`).catch(() => {});
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS purchased_characters TEXT[] NOT NULL DEFAULT '{}'`).catch(() => {});
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_character VARCHAR(50)`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(255) UNIQUE`).catch(() => {});
     await pool.query(`

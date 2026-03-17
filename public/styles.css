@@ -511,7 +511,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 }
 
 .participant-name {
-  margin-top: 0.18rem;
+  margin-top: 0;
   max-width: 100%;
   text-align: center;
   white-space: nowrap;
@@ -937,6 +937,14 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 .store-item-status {
   font-size: 0.28rem;
   color: var(--lobby-muted);
+}
+
+.store-section-title {
+  margin: 0.2rem 0 0.1rem;
+  font-size: 0.32rem;
+  color: var(--lobby-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
 }
 
 .store-auth-cta {

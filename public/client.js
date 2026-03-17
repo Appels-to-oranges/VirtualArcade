@@ -850,7 +850,7 @@ function showGameSelectScreen(players, chatHistory) {
   if (gameSelectScreen) gameSelectScreen.classList.remove('hidden');
   if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
   lobbyPlayers = (players || lobbyPlayers).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
-  refreshMyOutfitState();
+  refreshMyCosmeticState();
   updateLobbyChipDisplay();
   renderParticipants();
   updateGameCounts();
@@ -872,11 +872,21 @@ const OUTFIT_CATALOG = [
   { id: 'outfit1', name: 'Outfit 1', src: '/outfit1.png', price: 50 },
   { id: 'outfit2', name: 'Outfit 2', src: '/outfit2.png', price: 50 },
 ];
+const CHARACTER_CATALOG = [
+  { id: 'k_dots', name: 'K Dots', src: '/k_dots.png', price: 100 },
+  { id: 'a_dots', name: 'A Dots', src: '/a_dots.png', price: 100 },
+  { id: 'dots', name: 'Dots', src: '/dots.png', price: 100 },
+];
 const OUTFIT_BY_ID = OUTFIT_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
+const CHARACTER_BY_ID = CHARACTER_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
 let myPurchasedOutfits = [];
 let myEquippedOutfit = null;
+let myPurchasedCharacters = [];
+let myEquippedCharacter = null;
 let storePreviewOutfit = null;
 let closetPreviewOutfit = null;
+let storePreviewCharacter = null;
+let closetPreviewCharacter = null;
 
 function renderParticipants() {
   if (!participantsList) return;
@@ -894,7 +904,7 @@ function renderParticipants() {
 
     const avatar = document.createElement('img');
     avatar.className = 'participant-avatar';
-    avatar.src = DEFAULT_LOBBY_CHARACTER_SRC;
+    avatar.src = CHARACTER_BY_ID[p.character]?.src || DEFAULT_LOBBY_CHARACTER_SRC;
     avatar.alt = '';
     avatar.loading = 'lazy';
     avatar.decoding = 'async';
@@ -926,14 +936,21 @@ function normalizeOutfitList(list) {
   return list.filter((id) => !!OUTFIT_BY_ID[id]);
 }
 
+function normalizeCharacterList(list) {
+  if (!Array.isArray(list)) return [];
+  return list.filter((id) => !!CHARACTER_BY_ID[id]);
+}
+
 function getMyPlayer() {
   return players.find((p) => p.id === myId) || lobbyPlayers.find((p) => p.id === myId) || null;
 }
 
-function refreshMyOutfitState() {
+function refreshMyCosmeticState() {
   const me = getMyPlayer();
   myPurchasedOutfits = normalizeOutfitList(me?.purchasedOutfits);
   myEquippedOutfit = OUTFIT_BY_ID[me?.outfit] ? me.outfit : null;
+  myPurchasedCharacters = normalizeCharacterList(me?.purchasedCharacters);
+  myEquippedCharacter = CHARACTER_BY_ID[me?.character] ? me.character : null;
 }
 
 function updateGameCounts() {
@@ -1153,7 +1170,7 @@ function handleMessage(msg) {
     case 'joined':
       myId = msg.id;
       players = msg.players || [];
-      refreshMyOutfitState();
+      refreshMyCosmeticState();
       gameState = msg.gameState;
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
@@ -1255,7 +1272,7 @@ function handleMessage(msg) {
       cancelBrokeKickTimer();
       myId = msg.id;
       players = msg.players || [];
-      refreshMyOutfitState();
+      refreshMyCosmeticState();
       gameState = msg.gameState;
       prevCommunityCount = 0;
       currentGameType = msg.gameType || 'holdem';
@@ -1331,8 +1348,10 @@ function handleMessage(msg) {
         currentView: msg.currentView ?? 'lobby',
         outfit: msg.outfit || null,
         purchasedOutfits: normalizeOutfitList(msg.purchasedOutfits),
+        character: msg.character || null,
+        purchasedCharacters: normalizeCharacterList(msg.purchasedCharacters),
       });
-      refreshMyOutfitState();
+      refreshMyCosmeticState();
       if (currentGameType === 'lobby') {
         lobbyPlayers = players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         renderParticipants();
@@ -1375,21 +1394,26 @@ function handleMessage(msg) {
       updateControls();
       break;
 
-    case 'outfitUpdated': {
+    case 'outfitUpdated':
+    case 'characterUpdated': {
       const pl = players.find((p) => p.id === msg.playerId);
       if (pl) {
         if (msg.outfit !== undefined) pl.outfit = msg.outfit || null;
         if (msg.purchasedOutfits !== undefined) pl.purchasedOutfits = normalizeOutfitList(msg.purchasedOutfits);
+        if (msg.character !== undefined) pl.character = msg.character || null;
+        if (msg.purchasedCharacters !== undefined) pl.purchasedCharacters = normalizeCharacterList(msg.purchasedCharacters);
         if (msg.chips !== undefined) pl.chips = msg.chips;
       }
       const lp = lobbyPlayers.find((p) => p.id === msg.playerId);
       if (lp) {
         if (msg.outfit !== undefined) lp.outfit = msg.outfit || null;
         if (msg.purchasedOutfits !== undefined) lp.purchasedOutfits = normalizeOutfitList(msg.purchasedOutfits);
+        if (msg.character !== undefined) lp.character = msg.character || null;
+        if (msg.purchasedCharacters !== undefined) lp.purchasedCharacters = normalizeCharacterList(msg.purchasedCharacters);
         if (msg.chips !== undefined) lp.chips = msg.chips;
       }
       if (msg.playerId === myId) {
-        refreshMyOutfitState();
+        refreshMyCosmeticState();
         updateLobbyChipDisplay();
         renderStoreOverlay();
         renderClosetOverlay();
@@ -1399,7 +1423,8 @@ function handleMessage(msg) {
     }
 
     case 'outfitError':
-      showToast(msg.message || 'Outfit update failed');
+    case 'characterError':
+      showToast(msg.message || 'Character update failed');
       break;
 
     case 'gameStarted':
@@ -1612,6 +1637,8 @@ function handleMessage(msg) {
             if (up.chips !== undefined) ex.chips = up.chips;
             if (up.outfit !== undefined) ex.outfit = up.outfit || null;
             if (up.purchasedOutfits !== undefined) ex.purchasedOutfits = normalizeOutfitList(up.purchasedOutfits);
+            if (up.character !== undefined) ex.character = up.character || null;
+            if (up.purchasedCharacters !== undefined) ex.purchasedCharacters = normalizeCharacterList(up.purchasedCharacters);
           } else {
             players.push({
               id: up.id,
@@ -1620,10 +1647,12 @@ function handleMessage(msg) {
               chips: up.chips ?? 100,
               outfit: up.outfit || null,
               purchasedOutfits: normalizeOutfitList(up.purchasedOutfits),
+              character: up.character || null,
+              purchasedCharacters: normalizeCharacterList(up.purchasedCharacters),
             });
           }
         });
-        refreshMyOutfitState();
+        refreshMyCosmeticState();
         if (currentGameType === 'lobby') {
           lobbyPlayers = msg.players.map((up) => {
             const ex = lobbyPlayers.find((p) => p.id === up.id);
@@ -1634,6 +1663,8 @@ function handleMessage(msg) {
               chips: up.chips ?? ex?.chips ?? 100,
               outfit: up.outfit ?? ex?.outfit ?? null,
               purchasedOutfits: normalizeOutfitList(up.purchasedOutfits ?? ex?.purchasedOutfits),
+              character: up.character ?? ex?.character ?? null,
+              purchasedCharacters: normalizeCharacterList(up.purchasedCharacters ?? ex?.purchasedCharacters),
             };
           });
           renderParticipants();
@@ -1677,7 +1708,7 @@ function handleMessage(msg) {
       turnStartedAt = 0;
       gameState = null;
       lobbyPlayers = (msg.players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
-      refreshMyOutfitState();
+      refreshMyCosmeticState();
       showGameSelectScreen(msg.players, msg.chatHistory);
       if (msg.theme) applyTheme(msg.theme);
       else applyTheme(currentTheme);
@@ -1689,7 +1720,7 @@ function handleMessage(msg) {
       if (msg.players) {
         players = msg.players;
         lobbyPlayers = msg.players.map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
-        refreshMyOutfitState();
+        refreshMyCosmeticState();
       }
       if (gameSelectRoom) gameSelectRoom.textContent = `Room: ${roomKey} \u2022 ${nickname}`;
       renderParticipants();
@@ -3036,8 +3067,10 @@ const storeClose = document.getElementById('store-close');
 const closetClose = document.getElementById('closet-close');
 const inviteBtn = document.getElementById('lobby-invite-btn');
 const storeBalance = document.getElementById('store-balance');
+const storePreviewBaseImg = document.getElementById('store-preview-base');
 const storePreviewOutfitImg = document.getElementById('store-preview-outfit');
 const storePreviewLabel = document.getElementById('store-preview-label');
+const closetPreviewBaseImg = document.getElementById('closet-preview-base');
 const closetPreviewOutfitImg = document.getElementById('closet-preview-outfit');
 const closetPreviewLabel = document.getElementById('closet-preview-label');
 const storeItemsEl = document.getElementById('store-items');
@@ -3057,8 +3090,13 @@ function openSettingsOverlay() {
   if (settingsOverlay) settingsOverlay.classList.remove('hidden');
 }
 
+function currentCharacterSrc(characterId) {
+  return CHARACTER_BY_ID[characterId]?.src || DEFAULT_LOBBY_CHARACTER_SRC;
+}
+
 function updateStorePreview() {
   const preview = OUTFIT_BY_ID[storePreviewOutfit];
+  if (storePreviewBaseImg) storePreviewBaseImg.src = currentCharacterSrc(storePreviewCharacter);
   if (storePreviewOutfitImg) {
     if (preview) {
       storePreviewOutfitImg.src = preview.src;
@@ -3069,14 +3107,15 @@ function updateStorePreview() {
     }
   }
   if (storePreviewLabel) {
-    storePreviewLabel.textContent = preview
-      ? `Previewing: ${preview.name}`
-      : 'Previewing: Base character';
+    const characterName = CHARACTER_BY_ID[storePreviewCharacter]?.name || 'Default Character';
+    const outfitName = preview ? preview.name : 'No Outfit';
+    storePreviewLabel.textContent = `Previewing: ${characterName} + ${outfitName}`;
   }
 }
 
 function updateClosetPreview() {
   const preview = OUTFIT_BY_ID[closetPreviewOutfit];
+  if (closetPreviewBaseImg) closetPreviewBaseImg.src = currentCharacterSrc(closetPreviewCharacter);
   if (closetPreviewOutfitImg) {
     if (preview) {
       closetPreviewOutfitImg.src = preview.src;
@@ -3087,9 +3126,9 @@ function updateClosetPreview() {
     }
   }
   if (closetPreviewLabel) {
-    closetPreviewLabel.textContent = preview
-      ? `Previewing: ${preview.name}`
-      : 'Previewing: Base character';
+    const characterName = CHARACTER_BY_ID[closetPreviewCharacter]?.name || 'Default Character';
+    const outfitName = preview ? preview.name : 'No Outfit';
+    closetPreviewLabel.textContent = `Previewing: ${characterName} + ${outfitName}`;
   }
 }
 
@@ -3101,6 +3140,16 @@ function sendBuyOutfit(outfitId) {
 function sendEquipOutfit(outfitId) {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   ws.send(JSON.stringify({ type: 'equipOutfit', outfitId }));
+}
+
+function sendBuyCharacter(characterId) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'buyCharacter', characterId }));
+}
+
+function sendEquipCharacter(characterId) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'equipCharacter', characterId }));
 }
 
 function updateOutfitAuthCtas() {
@@ -3116,24 +3165,37 @@ function openRegisterFromOutfitOverlay() {
   showPanel('register-panel');
 }
 
-function triggerRebuyAd() {
+let rebuyAdInProgress = false;
+
+function triggerRebuyAd(onRewardEarned) {
+  if (rebuyAdInProgress) return;
+  if (typeof onRewardEarned !== 'function') return;
   try {
-    // Preferred hook: define window.showRebuyAd if you wire a provider SDK.
-    if (typeof window.showRebuyAd === 'function') {
-      window.showRebuyAd();
-      return true;
+    if (typeof window.adBreak !== 'function') {
+      showToast('Rewarded ad is unavailable right now');
+      return;
     }
-    // AdSense/Google interstitial-style hooks (if available on the page).
-    if (typeof window.adBreak === 'function') {
-      window.adBreak({ type: 'next', name: 'rebuy' });
-      return true;
-    }
-    if (window.googlefc && typeof window.googlefc.showRewardedAd === 'function') {
-      window.googlefc.showRewardedAd();
-      return true;
-    }
-  } catch (_) {}
-  return false;
+    rebuyAdInProgress = true;
+    window.adBreak({
+      type: 'reward',
+      name: 'rebuy',
+      beforeReward: (showAdFn) => {
+        try { if (typeof showAdFn === 'function') showAdFn(); } catch (_) {}
+      },
+      adViewed: () => {
+        onRewardEarned();
+      },
+      adDismissed: () => {
+        showToast('Watch the full ad to get rebuy payout');
+      },
+      afterAd: () => {
+        rebuyAdInProgress = false;
+      },
+    });
+  } catch (_) {
+    rebuyAdInProgress = false;
+    showToast('Rewarded ad failed to load');
+  }
 }
 
 function renderStoreOverlay() {
@@ -3143,6 +3205,12 @@ function renderStoreOverlay() {
   if (storeBalance) storeBalance.textContent = '$' + chips;
   if (!storeItemsEl) return;
   storeItemsEl.innerHTML = '';
+
+  const outfitHeader = document.createElement('div');
+  outfitHeader.className = 'store-section-title';
+  outfitHeader.textContent = 'Outfits';
+  storeItemsEl.appendChild(outfitHeader);
+
   OUTFIT_CATALOG.forEach((outfit) => {
     const owned = myPurchasedOutfits.includes(outfit.id);
     const equipped = myEquippedOutfit === outfit.id;
@@ -3192,6 +3260,63 @@ function renderStoreOverlay() {
 
     storeItemsEl.appendChild(card);
   });
+
+  const characterHeader = document.createElement('div');
+  characterHeader.className = 'store-section-title';
+  characterHeader.textContent = 'Characters';
+  storeItemsEl.appendChild(characterHeader);
+
+  CHARACTER_CATALOG.forEach((character) => {
+    const owned = myPurchasedCharacters.includes(character.id);
+    const equipped = myEquippedCharacter === character.id;
+    const canAfford = chips >= character.price;
+
+    const card = document.createElement('div');
+    card.className = 'store-item-card';
+
+    const head = document.createElement('div');
+    head.className = 'store-item-head';
+    head.innerHTML = `<strong>${character.name}</strong><span class="store-item-price">$${character.price}</span>`;
+    card.appendChild(head);
+
+    const actions = document.createElement('div');
+    actions.className = 'store-item-actions';
+
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.className = 'store-item-btn';
+    previewBtn.textContent = 'Preview';
+    previewBtn.addEventListener('click', () => {
+      storePreviewCharacter = character.id;
+      updateStorePreview();
+    });
+    actions.appendChild(previewBtn);
+
+    const mainBtn = document.createElement('button');
+    mainBtn.type = 'button';
+    mainBtn.className = 'store-item-btn ' + (owned ? 'equip-btn' : 'buy-btn');
+    if (owned) {
+      mainBtn.textContent = equipped ? 'Unequip' : 'Equip';
+      mainBtn.addEventListener('click', () => sendEquipCharacter(equipped ? '' : character.id));
+    } else {
+      mainBtn.textContent = 'Buy';
+      mainBtn.disabled = !canAfford;
+      mainBtn.addEventListener('click', () => sendBuyCharacter(character.id));
+    }
+    actions.appendChild(mainBtn);
+    card.appendChild(actions);
+
+    const status = document.createElement('div');
+    status.className = 'store-item-status';
+    status.textContent = owned
+      ? (equipped ? 'Owned - currently equipped' : 'Owned')
+      : (canAfford ? 'Not owned' : 'Not enough currency');
+    card.appendChild(status);
+
+    storeItemsEl.appendChild(card);
+  });
+
+  storePreviewCharacter = myEquippedCharacter;
   storePreviewOutfit = myEquippedOutfit;
   updateStorePreview();
 }
@@ -3200,17 +3325,20 @@ function renderClosetOverlay() {
   updateOutfitAuthCtas();
   if (!closetItemsEl) return;
   closetItemsEl.innerHTML = '';
-  const owned = myPurchasedOutfits.slice();
-  if (!owned.length) {
+
+  const outfitHeader = document.createElement('div');
+  outfitHeader.className = 'store-section-title';
+  outfitHeader.textContent = 'Outfits';
+  closetItemsEl.appendChild(outfitHeader);
+
+  const ownedOutfits = myPurchasedOutfits.slice();
+  if (!ownedOutfits.length) {
     const empty = document.createElement('div');
     empty.className = 'store-item-status';
     empty.textContent = 'No outfits purchased yet. Buy one from the Store.';
     closetItemsEl.appendChild(empty);
-    closetPreviewOutfit = myEquippedOutfit;
-    updateClosetPreview();
-    return;
   }
-  owned.forEach((outfitId) => {
+  ownedOutfits.forEach((outfitId) => {
     const outfit = OUTFIT_BY_ID[outfitId];
     if (!outfit) return;
     const equipped = myEquippedOutfit === outfit.id;
@@ -3243,6 +3371,54 @@ function renderClosetOverlay() {
     card.appendChild(actions);
     closetItemsEl.appendChild(card);
   });
+
+  const characterHeader = document.createElement('div');
+  characterHeader.className = 'store-section-title';
+  characterHeader.textContent = 'Characters';
+  closetItemsEl.appendChild(characterHeader);
+
+  const ownedCharacters = myPurchasedCharacters.slice();
+  if (!ownedCharacters.length) {
+    const empty = document.createElement('div');
+    empty.className = 'store-item-status';
+    empty.textContent = 'No characters purchased yet. Buy one from the Store.';
+    closetItemsEl.appendChild(empty);
+  }
+  ownedCharacters.forEach((characterId) => {
+    const character = CHARACTER_BY_ID[characterId];
+    if (!character) return;
+    const equipped = myEquippedCharacter === character.id;
+    const card = document.createElement('div');
+    card.className = 'closet-item-card';
+    const head = document.createElement('div');
+    head.className = 'store-item-head';
+    head.innerHTML = `<strong>${character.name}</strong><span class="store-item-price">Owned</span>`;
+    card.appendChild(head);
+    const actions = document.createElement('div');
+    actions.className = 'store-item-actions';
+
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.className = 'store-item-btn';
+    previewBtn.textContent = 'Preview';
+    previewBtn.addEventListener('click', () => {
+      closetPreviewCharacter = character.id;
+      updateClosetPreview();
+    });
+    actions.appendChild(previewBtn);
+
+    const equipBtn = document.createElement('button');
+    equipBtn.type = 'button';
+    equipBtn.className = 'store-item-btn equip-btn';
+    equipBtn.textContent = equipped ? 'Unequip' : 'Equip';
+    equipBtn.addEventListener('click', () => sendEquipCharacter(equipped ? '' : character.id));
+    actions.appendChild(equipBtn);
+
+    card.appendChild(actions);
+    closetItemsEl.appendChild(card);
+  });
+
+  closetPreviewCharacter = myEquippedCharacter;
   closetPreviewOutfit = myEquippedOutfit;
   updateClosetPreview();
 }
@@ -3252,12 +3428,12 @@ if (themesClose) themesClose.addEventListener('click', () => themesOverlay.class
 if (settingsBtn) settingsBtn.addEventListener('click', () => { initSettingsOverlay(); toggleOverlay(settingsOverlay); });
 if (settingsClose) settingsClose.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
 if (storeBtn) storeBtn.addEventListener('click', () => {
-  refreshMyOutfitState();
+  refreshMyCosmeticState();
   renderStoreOverlay();
   if (storeOverlay) storeOverlay.classList.remove('hidden');
 });
 if (closetBtn) closetBtn.addEventListener('click', () => {
-  refreshMyOutfitState();
+  refreshMyCosmeticState();
   renderClosetOverlay();
   if (closetOverlay) closetOverlay.classList.remove('hidden');
 });
@@ -3307,13 +3483,14 @@ document.querySelectorAll('.theme-opt').forEach((btn) => {
 if (lobbyRebuyBtn) {
   lobbyRebuyBtn.addEventListener('click', () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      triggerRebuyAd();
-      ws.send(JSON.stringify({ type: 'rebuy' }));
-      if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
-        soundRebuy.volume = 0.5;
-        soundRebuy.currentTime = 0;
-        soundRebuy.play().catch(() => {});
-      }
+      triggerRebuyAd(() => {
+        ws.send(JSON.stringify({ type: 'rebuy' }));
+        if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
+          soundRebuy.volume = 0.5;
+          soundRebuy.currentTime = 0;
+          soundRebuy.play().catch(() => {});
+        }
+      });
     }
   });
 }

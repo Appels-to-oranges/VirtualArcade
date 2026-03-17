@@ -58,15 +58,15 @@ async function saveUserChips(userId, chips) {
   }
 }
 
-async function saveUserOutfits(userId, purchasedOutfits, equippedOutfit) {
+async function saveUserCosmetics(userId, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter) {
   if (!userId) return;
   try {
     await pool.query(
-      'UPDATE users SET purchased_outfits = $1, equipped_outfit = $2 WHERE id = $3',
-      [purchasedOutfits, equippedOutfit || null, userId]
+      'UPDATE users SET purchased_outfits = $1, equipped_outfit = $2, purchased_characters = $3, equipped_character = $4 WHERE id = $5',
+      [purchasedOutfits, equippedOutfit || null, purchasedCharacters, equippedCharacter || null, userId]
     );
   } catch (err) {
-    console.error('Failed to save outfits:', err.message);
+    console.error('Failed to save cosmetics:', err.message);
   }
 }
 
@@ -138,6 +138,7 @@ const LOBBY_CHAT_MAX = 100;
 
 const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2, slots: 999 };
 const OUTFIT_PRICES = { outfit1: 50, outfit2: 50 };
+const CHARACTER_PRICES = { k_dots: 100, a_dots: 100, dots: 100 };
 
 function normalizePurchasedOutfits(list) {
   if (!Array.isArray(list)) return [];
@@ -145,11 +146,21 @@ function normalizePurchasedOutfits(list) {
   return [...new Set(list.filter((id) => allowed.has(id)))];
 }
 
+function normalizePurchasedCharacters(list) {
+  if (!Array.isArray(list)) return [];
+  const allowed = new Set(Object.keys(CHARACTER_PRICES));
+  return [...new Set(list.filter((id) => allowed.has(id)))];
+}
+
 function serializePlayer(p) {
   const purchasedOutfits = normalizePurchasedOutfits(p.purchasedOutfits);
   const equippedOutfit = purchasedOutfits.includes(p.outfit) ? p.outfit : null;
+  const purchasedCharacters = normalizePurchasedCharacters(p.purchasedCharacters);
+  const equippedCharacter = purchasedCharacters.includes(p.character) ? p.character : null;
   p.purchasedOutfits = purchasedOutfits;
   p.outfit = equippedOutfit;
+  p.purchasedCharacters = purchasedCharacters;
+  p.character = equippedCharacter;
   return {
     id: p.id,
     nickname: p.nickname,
@@ -159,6 +170,8 @@ function serializePlayer(p) {
     currentView: p.currentView ?? 'lobby',
     outfit: equippedOutfit,
     purchasedOutfits,
+    character: equippedCharacter,
+    purchasedCharacters,
   };
 }
 
@@ -1982,10 +1995,12 @@ wss.on('connection', async (ws, req) => {
         let startingChips = 100;
         let startingPurchasedOutfits = [];
         let startingOutfit = null;
+        let startingPurchasedCharacters = [];
+        let startingCharacter = null;
         if (ws._userId) {
           try {
             const dbResult = await pool.query(
-              'SELECT chips, purchased_outfits, equipped_outfit FROM users WHERE id = $1',
+              'SELECT chips, purchased_outfits, equipped_outfit, purchased_characters, equipped_character FROM users WHERE id = $1',
               [ws._userId]
             );
             if (dbResult.rows.length > 0) {
@@ -1993,6 +2008,10 @@ wss.on('connection', async (ws, req) => {
               startingPurchasedOutfits = normalizePurchasedOutfits(dbResult.rows[0].purchased_outfits);
               startingOutfit = startingPurchasedOutfits.includes(dbResult.rows[0].equipped_outfit)
                 ? dbResult.rows[0].equipped_outfit
+                : null;
+              startingPurchasedCharacters = normalizePurchasedCharacters(dbResult.rows[0].purchased_characters);
+              startingCharacter = startingPurchasedCharacters.includes(dbResult.rows[0].equipped_character)
+                ? dbResult.rows[0].equipped_character
                 : null;
             }
           } catch (e) {
@@ -2005,6 +2024,8 @@ wss.on('connection', async (ws, req) => {
           existing.nickname = safeNick;
           existing.purchasedOutfits = normalizePurchasedOutfits(existing.purchasedOutfits);
           existing.outfit = existing.purchasedOutfits.includes(existing.outfit) ? existing.outfit : null;
+          existing.purchasedCharacters = normalizePurchasedCharacters(existing.purchasedCharacters);
+          existing.character = existing.purchasedCharacters.includes(existing.character) ? existing.character : null;
         } else {
           room.players.push({
             id: ws.id,
@@ -2022,6 +2043,8 @@ wss.on('connection', async (ws, req) => {
             dbUserId: ws._userId || null,
             purchasedOutfits: startingPurchasedOutfits,
             outfit: startingOutfit,
+            purchasedCharacters: startingPurchasedCharacters,
+            character: startingCharacter,
           });
         }
         if (existing) existing.currentView = targetGameType;
@@ -2058,6 +2081,8 @@ wss.on('connection', async (ws, req) => {
           currentView: targetGameType,
           outfit: existing?.outfit || null,
           purchasedOutfits: existing?.purchasedOutfits || [],
+          character: existing?.character || null,
+          purchasedCharacters: existing?.purchasedCharacters || [],
         }, ws);
       } else if (type === 'backToLobby') {
         const data = clients.get(ws);
@@ -2424,6 +2449,8 @@ wss.on('connection', async (ws, req) => {
           currentView: 'holdem',
           purchasedOutfits: [],
           outfit: null,
+          purchasedCharacters: [],
+          character: null,
         });
         broadcastToRoom(data.roomKey, {
           type: 'userJoined',
@@ -2435,6 +2462,8 @@ wss.on('connection', async (ws, req) => {
           maxWinStreak: 0,
           outfit: null,
           purchasedOutfits: [],
+          character: null,
+          purchasedCharacters: [],
         });
       } else if (type === 'buyOutfit') {
         const data = clients.get(ws);
@@ -2461,9 +2490,16 @@ wss.on('connection', async (ws, req) => {
         player.purchasedOutfits.push(outfitId);
         player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
         player.outfit = outfitId;
+        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
         if (player.dbUserId) {
           saveUserChips(player.dbUserId, player.chips);
-          saveUserOutfits(player.dbUserId, player.purchasedOutfits, player.outfit);
+          saveUserCosmetics(
+            player.dbUserId,
+            player.purchasedOutfits,
+            player.outfit,
+            player.purchasedCharacters,
+            player.character
+          );
         }
         broadcastToRoom(data.roomKey, {
           type: 'outfitUpdated',
@@ -2471,6 +2507,8 @@ wss.on('connection', async (ws, req) => {
           outfit: player.outfit,
           chips: player.chips,
           purchasedOutfits: player.purchasedOutfits,
+          character: player.character || null,
+          purchasedCharacters: player.purchasedCharacters,
         });
       } else if (type === 'equipOutfit') {
         const data = clients.get(ws);
@@ -2485,14 +2523,100 @@ wss.on('connection', async (ws, req) => {
           return;
         }
         player.outfit = outfitId || null;
+        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
         if (player.dbUserId) {
-          saveUserOutfits(player.dbUserId, player.purchasedOutfits, player.outfit);
+          saveUserCosmetics(
+            player.dbUserId,
+            player.purchasedOutfits,
+            player.outfit,
+            player.purchasedCharacters,
+            player.character
+          );
         }
         broadcastToRoom(data.roomKey, {
           type: 'outfitUpdated',
           playerId: player.id,
           outfit: player.outfit,
           chips: player.chips,
+          purchasedOutfits: player.purchasedOutfits,
+          character: player.character || null,
+          purchasedCharacters: player.purchasedCharacters,
+        });
+      } else if (type === 'buyCharacter') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const player = room.players.find((p) => p.ws === ws);
+        if (!player) return;
+        const characterId = String(msg.characterId || '');
+        const price = CHARACTER_PRICES[characterId];
+        if (!price) {
+          ws.send(JSON.stringify({ type: 'characterError', message: 'Invalid character.' }));
+          return;
+        }
+        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
+        if (player.purchasedCharacters.includes(characterId)) {
+          ws.send(JSON.stringify({ type: 'characterError', message: 'Character already purchased.' }));
+          return;
+        }
+        if ((player.chips || 0) < price) {
+          ws.send(JSON.stringify({ type: 'characterError', message: 'Not enough currency.' }));
+          return;
+        }
+        player.chips -= price;
+        player.purchasedCharacters.push(characterId);
+        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
+        player.character = characterId;
+        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
+        if (player.dbUserId) {
+          saveUserChips(player.dbUserId, player.chips);
+          saveUserCosmetics(
+            player.dbUserId,
+            player.purchasedOutfits,
+            player.outfit,
+            player.purchasedCharacters,
+            player.character
+          );
+        }
+        broadcastToRoom(data.roomKey, {
+          type: 'characterUpdated',
+          playerId: player.id,
+          character: player.character,
+          chips: player.chips,
+          purchasedCharacters: player.purchasedCharacters,
+          outfit: player.outfit || null,
+          purchasedOutfits: player.purchasedOutfits,
+        });
+      } else if (type === 'equipCharacter') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const player = room.players.find((p) => p.ws === ws);
+        if (!player) return;
+        const characterId = String(msg.characterId || '');
+        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
+        if (characterId && !player.purchasedCharacters.includes(characterId)) {
+          ws.send(JSON.stringify({ type: 'characterError', message: 'Purchase this character first.' }));
+          return;
+        }
+        player.character = characterId || null;
+        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
+        if (player.dbUserId) {
+          saveUserCosmetics(
+            player.dbUserId,
+            player.purchasedOutfits,
+            player.outfit,
+            player.purchasedCharacters,
+            player.character
+          );
+        }
+        broadcastToRoom(data.roomKey, {
+          type: 'characterUpdated',
+          playerId: player.id,
+          character: player.character || null,
+          chips: player.chips,
+          purchasedCharacters: player.purchasedCharacters,
+          outfit: player.outfit || null,
           purchasedOutfits: player.purchasedOutfits,
         });
       } else if (type === 'changeNick') {
