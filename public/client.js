@@ -919,24 +919,46 @@ function showGameSelectScreen(players, chatHistory) {
 }
 
 const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 'Checkers', chess: 'Chess', slots: 'Slots', lobby: 'Lobby' };
-const DEFAULT_LOBBY_CHARACTER_SRC = '/character.png';
-const OUTFIT_CATALOG = [
-  { id: 'outfit1', name: 'Suit', src: '/outfit1.png', price: 50 },
-  { id: 'outfit2', name: 'Hoodie', src: '/outfit2.png', price: 50 },
-];
+const DEFAULT_LOBBY_CHARACTER_SRC = '/pixel-characters/Default_Boy_1.png';
+const OUTFIT_CATALOG = [];
 const CHARACTER_CATALOG = [
-  { id: 'boy_i', name: 'boy_i', src: '/IMG_1105.png', price: 100 },
-  { id: 'girl_a', name: 'girl_a', src: '/a_dots.png', price: 100 },
-  { id: 'boy_p', name: 'boy_p', src: '/dots.png', price: 100 },
+  { id: 'agent', name: 'Agent', src: '/pixel-characters/Agent.png', price: 100 },
+  { id: 'alt_girl', name: 'Alt Girl', src: '/pixel-characters/Alt_Girl.png', price: 100 },
+  { id: 'army', name: 'Army', src: '/pixel-characters/Army.png', price: 100 },
+  { id: 'default_boy_1', name: 'Default Boy 1', src: '/pixel-characters/Default_Boy_1.png', price: 0 },
+  { id: 'default_boy_2', name: 'Default Boy 2', src: '/pixel-characters/Default_Boy_2.png', price: 0 },
+  { id: 'default_boy_3', name: 'Default Boy 3', src: '/pixel-characters/Default_Boy_3.PNG', price: 0 },
+  { id: 'default_boy_4', name: 'Default Boy 4', src: '/pixel-characters/Default_Boy_4.PNG', price: 0 },
+  { id: 'default_girl_1', name: 'Default Girl 1', src: '/pixel-characters/Default_Girl_1.png', price: 0 },
+  { id: 'default_girl_2', name: 'Default Girl 2', src: '/pixel-characters/Default_Girl_2.png', price: 0 },
+  { id: 'default_girl_3', name: 'Default Girl 3', src: '/pixel-characters/Default_Girl_3.png', price: 0 },
+  { id: 'default_girl_4', name: 'Default Girl 4', src: '/pixel-characters/Default_Girl_4.png', price: 0 },
+  { id: 'default_girl_5', name: 'Default Girl 5', src: '/pixel-characters/Default_Girl_5.png', price: 0 },
+  { id: 'default_girl_6', name: 'Default Girl 6', src: '/pixel-characters/Default_Girl_6.PNG', price: 0 },
+  { id: 'default_girl_7', name: 'Default Girl 7', src: '/pixel-characters/Default_Girl_7.PNG', price: 0 },
+  { id: 'football_1', name: 'Football 1', src: '/pixel-characters/Football_1.png', price: 100 },
+  { id: 'football_2', name: 'Football 2', src: '/pixel-characters/Football_2.png', price: 100 },
+  { id: 'football_3', name: 'Football 3', src: '/pixel-characters/Football_3.png', price: 100 },
+  { id: 'football_4', name: 'Football 4', src: '/pixel-characters/Football_4.png', price: 100 },
+  { id: 'gator', name: 'Gator', src: '/pixel-characters/Gator.png', price: 100 },
+  { id: 'ghost', name: 'Ghost', src: '/pixel-characters/Ghost.png', price: 100 },
+  { id: 'king', name: 'King', src: '/pixel-characters/King.png', price: 100 },
+  { id: 'knight', name: 'Knight', src: '/pixel-characters/Knight.png', price: 100 },
+  { id: 'monopoly_man', name: 'Monopoly Man', src: '/pixel-characters/Monopoly_Man.png', price: 100 },
+  { id: 'queen', name: 'Queen', src: '/pixel-characters/Queen.png', price: 100 },
+  { id: 'robot', name: 'Robot', src: '/pixel-characters/Robot.gif', price: 1000 },
+  { id: 'sheriff', name: 'Sheriff', src: '/pixel-characters/Sheriff.gif', price: 1000 },
+  { id: 'skeleton', name: 'Skeleton', src: '/pixel-characters/Skeleton.png', price: 100 },
+  { id: 'skeleton_2', name: 'Skeleton 2', src: '/pixel-characters/Skeleton_2.png', price: 100 },
+  { id: 'swimsuit_girl', name: 'Swimsuit Girl', src: '/pixel-characters/Swimsuit_Girl.png', price: 100 },
+  { id: 'vampire', name: 'Vampire', src: '/pixel-characters/Vampire.png', price: 100 },
 ];
-const OUTFIT_BY_ID = OUTFIT_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
+const OUTFIT_BY_ID = {};
 const CHARACTER_BY_ID = CHARACTER_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
 let myPurchasedOutfits = [];
 let myEquippedOutfit = null;
 let myPurchasedCharacters = [];
 let myEquippedCharacter = null;
-let storePreviewOutfit = null;
-let closetPreviewOutfit = null;
 let storePreviewCharacter = null;
 let closetPreviewCharacter = null;
 
@@ -962,16 +984,6 @@ function renderParticipants() {
     avatar.decoding = 'async';
     avatarWrap.appendChild(avatar);
 
-    const outfit = OUTFIT_BY_ID[p.outfit];
-    if (outfit) {
-      const outfitEl = document.createElement('img');
-      outfitEl.className = 'participant-outfit';
-      outfitEl.src = outfit.src;
-      outfitEl.alt = '';
-      outfitEl.loading = 'lazy';
-      outfitEl.decoding = 'async';
-      avatarWrap.appendChild(outfitEl);
-    }
     chip.appendChild(avatarWrap);
 
     const nameEl = document.createElement('span');
@@ -988,17 +1000,13 @@ function renderParticipants() {
   });
 }
 
-function normalizeOutfitList(list) {
-  if (!Array.isArray(list)) return [];
-  return list.filter((id) => !!OUTFIT_BY_ID[id]);
+function normalizeOutfitList() {
+  return [];
 }
 
 function normalizeCharacterList(list) {
   if (!Array.isArray(list)) return [];
-  const aliases = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
-  return [...new Set(list
-    .map((id) => aliases[id] || id)
-    .filter((id) => !!CHARACTER_BY_ID[id]))];
+  return [...new Set(list.filter((id) => !!CHARACTER_BY_ID[id]))];
 }
 
 function getMyPlayer() {
@@ -1007,8 +1015,6 @@ function getMyPlayer() {
 
 function refreshMyCosmeticState() {
   const me = getMyPlayer();
-  myPurchasedOutfits = normalizeOutfitList(me?.purchasedOutfits);
-  myEquippedOutfit = OUTFIT_BY_ID[me?.outfit] ? me.outfit : null;
   myPurchasedCharacters = normalizeCharacterList(me?.purchasedCharacters);
   myEquippedCharacter = CHARACTER_BY_ID[me?.character] ? me.character : null;
 }
@@ -1487,8 +1493,6 @@ function handleMessage(msg) {
       }
       if (msg.playerId === myId) {
         refreshMyCosmeticState();
-        storePreviewOutfit = myEquippedOutfit;
-        closetPreviewOutfit = myEquippedOutfit;
         storePreviewCharacter = myEquippedCharacter;
         closetPreviewCharacter = myEquippedCharacter;
         updateLobbyChipDisplay();
@@ -3178,51 +3182,27 @@ function currentCharacterSrc(characterId) {
 }
 
 function updateStorePreview() {
-  const preview = OUTFIT_BY_ID[storePreviewOutfit];
   if (storePreviewBaseImg) storePreviewBaseImg.src = currentCharacterSrc(storePreviewCharacter);
   if (storePreviewOutfitImg) {
-    if (preview) {
-      storePreviewOutfitImg.src = preview.src;
-      storePreviewOutfitImg.classList.remove('hidden');
-    } else {
-      storePreviewOutfitImg.src = '';
-      storePreviewOutfitImg.classList.add('hidden');
-    }
+    storePreviewOutfitImg.src = '';
+    storePreviewOutfitImg.classList.add('hidden');
   }
   if (storePreviewLabel) {
     const characterName = CHARACTER_BY_ID[storePreviewCharacter]?.name || 'Default Character';
-    const outfitName = preview ? preview.name : 'No Outfit';
-    storePreviewLabel.textContent = `Previewing: ${characterName} + ${outfitName}`;
+    storePreviewLabel.textContent = `Previewing: ${characterName}`;
   }
 }
 
 function updateClosetPreview() {
-  const preview = OUTFIT_BY_ID[closetPreviewOutfit];
   if (closetPreviewBaseImg) closetPreviewBaseImg.src = currentCharacterSrc(closetPreviewCharacter);
   if (closetPreviewOutfitImg) {
-    if (preview) {
-      closetPreviewOutfitImg.src = preview.src;
-      closetPreviewOutfitImg.classList.remove('hidden');
-    } else {
-      closetPreviewOutfitImg.src = '';
-      closetPreviewOutfitImg.classList.add('hidden');
-    }
+    closetPreviewOutfitImg.src = '';
+    closetPreviewOutfitImg.classList.add('hidden');
   }
   if (closetPreviewLabel) {
     const characterName = CHARACTER_BY_ID[closetPreviewCharacter]?.name || 'Default Character';
-    const outfitName = preview ? preview.name : 'No Outfit';
-    closetPreviewLabel.textContent = `Previewing: ${characterName} + ${outfitName}`;
+    closetPreviewLabel.textContent = `Previewing: ${characterName}`;
   }
-}
-
-function sendBuyOutfit(outfitId) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify({ type: 'buyOutfit', outfitId }));
-}
-
-function sendEquipOutfit(outfitId) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify({ type: 'equipOutfit', outfitId }));
 }
 
 function sendBuyCharacter(characterId) {
@@ -3235,19 +3215,9 @@ function sendEquipCharacter(characterId) {
   ws.send(JSON.stringify({ type: 'equipCharacter', characterId }));
 }
 
-function toggleStoreOutfitPreview(outfitId) {
-  storePreviewOutfit = storePreviewOutfit === outfitId ? myEquippedOutfit : outfitId;
-  renderStoreOverlay();
-}
-
 function toggleStoreCharacterPreview(characterId) {
   storePreviewCharacter = storePreviewCharacter === characterId ? myEquippedCharacter : characterId;
   renderStoreOverlay();
-}
-
-function toggleClosetOutfitPreview(outfitId) {
-  closetPreviewOutfit = closetPreviewOutfit === outfitId ? myEquippedOutfit : outfitId;
-  renderClosetOverlay();
 }
 
 function toggleClosetCharacterPreview(characterId) {
@@ -3390,34 +3360,10 @@ function renderStoreOverlay() {
   const chips = me?.chips ?? 0;
   if (storeBalance) storeBalance.textContent = '$' + chips;
   if (!storeItemsEl) return;
-  if (!OUTFIT_BY_ID[storePreviewOutfit]) storePreviewOutfit = myEquippedOutfit;
   if (!CHARACTER_BY_ID[storePreviewCharacter]) storePreviewCharacter = myEquippedCharacter;
   storeItemsEl.innerHTML = '';
   const query = (storeSearchInput?.value || '').trim().toLowerCase();
-  const filteredOutfits = OUTFIT_CATALOG.filter((outfit) => catalogMatches(outfit, query));
   const filteredCharacters = CHARACTER_CATALOG.filter((character) => catalogMatches(character, query));
-  createCatalogSection(
-    storeItemsEl,
-    'Outfits',
-    filteredOutfits,
-    query ? 'No outfits match your search.' : 'No outfits available right now.',
-    (outfit) => {
-      const owned = myPurchasedOutfits.includes(outfit.id);
-      const equipped = myEquippedOutfit === outfit.id;
-      const canAfford = chips >= outfit.price;
-      const previewing = storePreviewOutfit === outfit.id;
-      return createStoreItemCard(outfit, {
-        priceLabel: `$${outfit.price}`,
-        owned,
-        equipped,
-        canAfford,
-        previewing,
-        onPreview: () => toggleStoreOutfitPreview(outfit.id),
-        onMain: () => (owned ? sendEquipOutfit(equipped ? '' : outfit.id) : sendBuyOutfit(outfit.id)),
-        statusText: owned ? (equipped ? 'Owned - currently equipped' : 'Owned') : (canAfford ? 'Not owned' : 'Not enough currency'),
-      });
-    }
-  );
   createCatalogSection(
     storeItemsEl,
     'Characters',
@@ -3447,39 +3393,13 @@ function renderStoreOverlay() {
 function renderClosetOverlay() {
   updateOutfitAuthCtas();
   if (!closetItemsEl) return;
-  if (!OUTFIT_BY_ID[closetPreviewOutfit]) closetPreviewOutfit = myEquippedOutfit;
   if (!CHARACTER_BY_ID[closetPreviewCharacter]) closetPreviewCharacter = myEquippedCharacter;
   closetItemsEl.innerHTML = '';
   const query = (closetSearchInput?.value || '').trim().toLowerCase();
-  const ownedOutfits = myPurchasedOutfits
-    .map((outfitId) => OUTFIT_BY_ID[outfitId])
-    .filter(Boolean)
-    .filter((outfit) => catalogMatches(outfit, query));
   const ownedCharacters = myPurchasedCharacters
     .map((characterId) => CHARACTER_BY_ID[characterId])
     .filter(Boolean)
     .filter((character) => catalogMatches(character, query));
-  createCatalogSection(
-    closetItemsEl,
-    'Outfits',
-    ownedOutfits,
-    query ? 'No owned outfits match your search.' : 'No outfits purchased yet. Buy one from the Store.',
-    (outfit) => {
-      const equipped = myEquippedOutfit === outfit.id;
-      const previewing = closetPreviewOutfit === outfit.id;
-      return createStoreItemCard(outfit, {
-        priceLabel: 'Owned',
-        owned: true,
-        equipped,
-        canAfford: true,
-        previewing,
-        onPreview: () => toggleClosetOutfitPreview(outfit.id),
-        onMain: () => sendEquipOutfit(equipped ? '' : outfit.id),
-        statusText: equipped ? 'Owned - currently equipped' : 'Owned',
-        cardClass: 'closet-item-card',
-      });
-    }
-  );
   createCatalogSection(
     closetItemsEl,
     'Characters',

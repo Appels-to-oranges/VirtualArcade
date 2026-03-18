@@ -7,9 +7,39 @@ const pool = require('./db');
 
 const router = express.Router();
 
-const ALLOWED_OUTFITS = new Set(['outfit1', 'outfit2']);
-const CHARACTER_ALIASES = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
-const ALLOWED_CHARACTERS = new Set(['boy_i', 'girl_a', 'boy_p']);
+const ALLOWED_OUTFITS = new Set([]);
+const ALLOWED_CHARACTERS = new Set([
+  'agent',
+  'alt_girl',
+  'army',
+  'default_boy_1',
+  'default_boy_2',
+  'default_boy_3',
+  'default_boy_4',
+  'default_girl_1',
+  'default_girl_2',
+  'default_girl_3',
+  'default_girl_4',
+  'default_girl_5',
+  'default_girl_6',
+  'default_girl_7',
+  'football_1',
+  'football_2',
+  'football_3',
+  'football_4',
+  'gator',
+  'ghost',
+  'king',
+  'knight',
+  'monopoly_man',
+  'queen',
+  'robot',
+  'sheriff',
+  'skeleton',
+  'skeleton_2',
+  'swimsuit_girl',
+  'vampire',
+]);
 
 router.use(express.json());
 router.use(passport.initialize());
@@ -32,11 +62,7 @@ function normalizeOutfitList(list) {
 
 function normalizeCharacterList(list) {
   if (!Array.isArray(list)) return [];
-  return [...new Set(
-    list
-      .map((id) => CHARACTER_ALIASES[id] || id)
-      .filter((id) => ALLOWED_CHARACTERS.has(id))
-  )];
+  return [...new Set(list.filter((id) => ALLOWED_CHARACTERS.has(id)))];
 }
 
 function normalizeProgress(progress) {
@@ -45,8 +71,7 @@ function normalizeProgress(progress) {
   const purchasedOutfits = normalizeOutfitList(safeProgress.purchasedOutfits);
   const equippedOutfit = purchasedOutfits.includes(safeProgress.equippedOutfit) ? safeProgress.equippedOutfit : null;
   const purchasedCharacters = normalizeCharacterList(safeProgress.purchasedCharacters);
-  const normalizedCharacter = CHARACTER_ALIASES[safeProgress.equippedCharacter] || safeProgress.equippedCharacter;
-  const equippedCharacter = purchasedCharacters.includes(normalizedCharacter) ? normalizedCharacter : null;
+  const equippedCharacter = purchasedCharacters.includes(safeProgress.equippedCharacter) ? safeProgress.equippedCharacter : null;
   return { chips, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter };
 }
 

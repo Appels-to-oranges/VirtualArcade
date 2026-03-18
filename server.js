@@ -139,28 +139,60 @@ const TURN_TIMEOUT_MS = 60 * 1000;
 const LOBBY_CHAT_MAX = 100;
 
 const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2, slots: 999 };
-const OUTFIT_PRICES = { outfit1: 50, outfit2: 50 };
-const CHARACTER_PRICES = { boy_i: 100, girl_a: 100, boy_p: 100 };
+const OUTFIT_PRICES = {};
+const CHARACTER_PRICES = {
+  agent: 100,
+  alt_girl: 100,
+  army: 100,
+  default_boy_1: 0,
+  default_boy_2: 0,
+  default_boy_3: 0,
+  default_boy_4: 0,
+  default_girl_1: 0,
+  default_girl_2: 0,
+  default_girl_3: 0,
+  default_girl_4: 0,
+  default_girl_5: 0,
+  default_girl_6: 0,
+  default_girl_7: 0,
+  football_1: 100,
+  football_2: 100,
+  football_3: 100,
+  football_4: 100,
+  gator: 100,
+  ghost: 100,
+  king: 100,
+  knight: 100,
+  monopoly_man: 100,
+  queen: 100,
+  robot: 1000,
+  sheriff: 1000,
+  skeleton: 100,
+  skeleton_2: 100,
+  swimsuit_girl: 100,
+  vampire: 100,
+};
+const DEFAULT_CHARACTER_IDS = Object.keys(CHARACTER_PRICES).filter((id) => id.includes('default'));
 
 function normalizePurchasedOutfits(list) {
-  if (!Array.isArray(list)) return [];
-  const allowed = new Set(Object.keys(OUTFIT_PRICES));
-  return [...new Set(list.filter((id) => allowed.has(id)))];
+  return [];
 }
 
 function normalizePurchasedCharacters(list) {
   if (!Array.isArray(list)) return [];
-  const aliases = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
   const allowed = new Set(Object.keys(CHARACTER_PRICES));
   return [...new Set(list
-    .map((id) => aliases[id] || id)
     .filter((id) => allowed.has(id)))];
 }
 
 function normalizeCharacterId(id) {
-  const aliases = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
-  const mapped = aliases[id] || id;
-  return CHARACTER_PRICES[mapped] ? mapped : null;
+  return Object.prototype.hasOwnProperty.call(CHARACTER_PRICES, id) ? id : null;
+}
+
+function getRandomDefaultCharacterId() {
+  if (!DEFAULT_CHARACTER_IDS.length) return null;
+  const idx = Math.floor(Math.random() * DEFAULT_CHARACTER_IDS.length);
+  return DEFAULT_CHARACTER_IDS[idx];
 }
 
 function serializePlayer(p) {
@@ -2486,6 +2518,12 @@ wss.on('connection', async (ws, req) => {
           } catch (e) {
             console.error('Failed to load user profile:', e.message);
           }
+        } else {
+          const randomDefault = getRandomDefaultCharacterId();
+          if (randomDefault) {
+            startingPurchasedCharacters = [randomDefault];
+            startingCharacter = randomDefault;
+          }
         }
 
         const existing = room.players.find((p) => p.ws === ws);
@@ -2495,6 +2533,13 @@ wss.on('connection', async (ws, req) => {
           existing.outfit = existing.purchasedOutfits.includes(existing.outfit) ? existing.outfit : null;
           existing.purchasedCharacters = normalizePurchasedCharacters(existing.purchasedCharacters);
           existing.character = existing.purchasedCharacters.includes(existing.character) ? existing.character : null;
+          if (!ws._userId && !existing.character) {
+            const randomDefault = getRandomDefaultCharacterId();
+            if (randomDefault) {
+              if (!existing.purchasedCharacters.includes(randomDefault)) existing.purchasedCharacters.push(randomDefault);
+              existing.character = randomDefault;
+            }
+          }
         } else {
           room.players.push({
             id: ws.id,
@@ -3016,6 +3061,7 @@ wss.on('connection', async (ws, req) => {
         const botId = 'bot-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
         const botName = BOT_NAMES[botNameIdx % BOT_NAMES.length];
         botNameIdx++;
+        const botDefaultCharacter = getRandomDefaultCharacterId();
         room.players.push({
           id: botId,
           ws: null,
@@ -3032,8 +3078,8 @@ wss.on('connection', async (ws, req) => {
           currentView: 'holdem',
           purchasedOutfits: [],
           outfit: null,
-          purchasedCharacters: [],
-          character: null,
+          purchasedCharacters: botDefaultCharacter ? [botDefaultCharacter] : [],
+          character: botDefaultCharacter,
         });
         broadcastToRoom(data.roomKey, {
           type: 'userJoined',
@@ -3045,86 +3091,15 @@ wss.on('connection', async (ws, req) => {
           maxWinStreak: 0,
           outfit: null,
           purchasedOutfits: [],
-          character: null,
-          purchasedCharacters: [],
+          character: botDefaultCharacter,
+          purchasedCharacters: botDefaultCharacter ? [botDefaultCharacter] : [],
         });
       } else if (type === 'buyOutfit') {
-        const data = clients.get(ws);
-        if (!data) return;
-        const room = getRoom(data.roomKey);
-        const player = room.players.find((p) => p.ws === ws);
-        if (!player) return;
-        const outfitId = String(msg.outfitId || '');
-        const price = OUTFIT_PRICES[outfitId];
-        if (!price) {
-          ws.send(JSON.stringify({ type: 'outfitError', message: 'Invalid outfit.' }));
-          return;
-        }
-        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
-        if (player.purchasedOutfits.includes(outfitId)) {
-          ws.send(JSON.stringify({ type: 'outfitError', message: 'Outfit already purchased.' }));
-          return;
-        }
-        if ((player.chips || 0) < price) {
-          ws.send(JSON.stringify({ type: 'outfitError', message: 'Not enough currency.' }));
-          return;
-        }
-        player.chips -= price;
-        player.purchasedOutfits.push(outfitId);
-        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
-        player.outfit = outfitId;
-        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
-        if (player.dbUserId) {
-          saveUserChips(player.dbUserId, player.chips);
-          saveUserCosmetics(
-            player.dbUserId,
-            player.purchasedOutfits,
-            player.outfit,
-            player.purchasedCharacters,
-            player.character
-          );
-        }
-        broadcastToRoom(data.roomKey, {
-          type: 'outfitUpdated',
-          playerId: player.id,
-          outfit: player.outfit,
-          chips: player.chips,
-          purchasedOutfits: player.purchasedOutfits,
-          character: player.character || null,
-          purchasedCharacters: player.purchasedCharacters,
-        });
+        ws.send(JSON.stringify({ type: 'outfitError', message: 'Outfits are currently unavailable.' }));
+        return;
       } else if (type === 'equipOutfit') {
-        const data = clients.get(ws);
-        if (!data) return;
-        const room = getRoom(data.roomKey);
-        const player = room.players.find((p) => p.ws === ws);
-        if (!player) return;
-        const outfitId = String(msg.outfitId || '');
-        player.purchasedOutfits = normalizePurchasedOutfits(player.purchasedOutfits);
-        if (outfitId && !player.purchasedOutfits.includes(outfitId)) {
-          ws.send(JSON.stringify({ type: 'outfitError', message: 'Purchase this outfit first.' }));
-          return;
-        }
-        player.outfit = outfitId || null;
-        player.purchasedCharacters = normalizePurchasedCharacters(player.purchasedCharacters);
-        if (player.dbUserId) {
-          saveUserCosmetics(
-            player.dbUserId,
-            player.purchasedOutfits,
-            player.outfit,
-            player.purchasedCharacters,
-            player.character
-          );
-        }
-        broadcastToRoom(data.roomKey, {
-          type: 'outfitUpdated',
-          playerId: player.id,
-          outfit: player.outfit,
-          chips: player.chips,
-          purchasedOutfits: player.purchasedOutfits,
-          character: player.character || null,
-          purchasedCharacters: player.purchasedCharacters,
-        });
+        ws.send(JSON.stringify({ type: 'outfitError', message: 'Outfits are currently unavailable.' }));
+        return;
       } else if (type === 'buyCharacter') {
         const data = clients.get(ws);
         if (!data) return;
@@ -3133,7 +3108,7 @@ wss.on('connection', async (ws, req) => {
         if (!player) return;
         const characterId = normalizeCharacterId(String(msg.characterId || ''));
         const price = CHARACTER_PRICES[characterId];
-        if (!price) {
+        if (characterId == null || price == null) {
           ws.send(JSON.stringify({ type: 'characterError', message: 'Invalid character.' }));
           return;
         }
