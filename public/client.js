@@ -3160,6 +3160,8 @@ const storeAuthCta = document.getElementById('store-auth-cta');
 const closetAuthCta = document.getElementById('closet-auth-cta');
 const storeCreateAccountLink = document.getElementById('store-create-account-link');
 const closetCreateAccountLink = document.getElementById('closet-create-account-link');
+const storeSearchInput = document.getElementById('store-search-input');
+const closetSearchInput = document.getElementById('closet-search-input');
 
 function toggleOverlay(overlay) {
   if (!overlay) return;
@@ -3299,6 +3301,89 @@ function triggerRebuyAd(onRewardEarned) {
   }
 }
 
+function catalogMatches(item, query) {
+  if (!query) return true;
+  return (item?.name || '').toLowerCase().includes(query);
+}
+
+function createCatalogSection(container, title, items, emptyText, renderCard) {
+  const section = document.createElement('section');
+  section.className = 'store-section';
+  const heading = document.createElement('h3');
+  heading.className = 'store-section-title';
+  heading.textContent = title;
+  section.appendChild(heading);
+  const grid = document.createElement('div');
+  grid.className = 'store-section-grid';
+  if (!items.length) {
+    const empty = document.createElement('div');
+    empty.className = 'store-item-status';
+    empty.textContent = emptyText;
+    grid.appendChild(empty);
+  } else {
+    items.forEach((item) => {
+      const card = renderCard(item);
+      if (card) grid.appendChild(card);
+    });
+  }
+  section.appendChild(grid);
+  container.appendChild(section);
+}
+
+function createStoreItemCard(item, options) {
+  const {
+    priceLabel,
+    owned,
+    equipped,
+    canAfford,
+    previewing,
+    onPreview,
+    onMain,
+    statusText,
+    cardClass = 'store-item-card',
+  } = options;
+  const card = document.createElement('div');
+  card.className = cardClass;
+  const media = document.createElement('div');
+  media.className = 'store-item-media';
+  const img = document.createElement('img');
+  img.src = item.src;
+  img.alt = item.name;
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  media.appendChild(img);
+  card.appendChild(media);
+  const head = document.createElement('div');
+  head.className = 'store-item-head';
+  head.innerHTML = `<strong>${item.name}</strong><span class="store-item-price">${priceLabel}</span>`;
+  card.appendChild(head);
+  const actions = document.createElement('div');
+  actions.className = 'store-item-actions';
+  const previewBtn = document.createElement('button');
+  previewBtn.type = 'button';
+  previewBtn.className = 'store-item-btn';
+  previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
+  previewBtn.addEventListener('click', onPreview);
+  actions.appendChild(previewBtn);
+  const mainBtn = document.createElement('button');
+  mainBtn.type = 'button';
+  mainBtn.className = 'store-item-btn ' + (owned ? 'equip-btn' : 'buy-btn');
+  if (owned) {
+    mainBtn.textContent = equipped ? 'Unequip' : 'Equip';
+  } else {
+    mainBtn.textContent = 'Buy';
+    mainBtn.disabled = !canAfford;
+  }
+  mainBtn.addEventListener('click', onMain);
+  actions.appendChild(mainBtn);
+  card.appendChild(actions);
+  const status = document.createElement('div');
+  status.className = 'store-item-status';
+  status.textContent = statusText;
+  card.appendChild(status);
+  return card;
+}
+
 function renderStoreOverlay() {
   updateOutfitAuthCtas();
   const me = getMyPlayer();
@@ -3308,112 +3393,53 @@ function renderStoreOverlay() {
   if (!OUTFIT_BY_ID[storePreviewOutfit]) storePreviewOutfit = myEquippedOutfit;
   if (!CHARACTER_BY_ID[storePreviewCharacter]) storePreviewCharacter = myEquippedCharacter;
   storeItemsEl.innerHTML = '';
-
-  const outfitHeader = document.createElement('div');
-  outfitHeader.className = 'store-section-title';
-  outfitHeader.textContent = 'Outfits';
-  storeItemsEl.appendChild(outfitHeader);
-
-  OUTFIT_CATALOG.forEach((outfit) => {
-    const owned = myPurchasedOutfits.includes(outfit.id);
-    const equipped = myEquippedOutfit === outfit.id;
-    const canAfford = chips >= outfit.price;
-    const previewing = storePreviewOutfit === outfit.id;
-
-    const card = document.createElement('div');
-    card.className = 'store-item-card';
-
-    const head = document.createElement('div');
-    head.className = 'store-item-head';
-    head.innerHTML = `<strong>${outfit.name}</strong><span class="store-item-price">$${outfit.price}</span>`;
-    card.appendChild(head);
-
-    const actions = document.createElement('div');
-    actions.className = 'store-item-actions';
-
-    const previewBtn = document.createElement('button');
-    previewBtn.type = 'button';
-    previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
-    previewBtn.addEventListener('click', () => toggleStoreOutfitPreview(outfit.id));
-    actions.appendChild(previewBtn);
-
-    const mainBtn = document.createElement('button');
-    mainBtn.type = 'button';
-    mainBtn.className = 'store-item-btn ' + (owned ? 'equip-btn' : 'buy-btn');
-    if (owned) {
-      mainBtn.textContent = equipped ? 'Unequip' : 'Equip';
-      mainBtn.addEventListener('click', () => sendEquipOutfit(equipped ? '' : outfit.id));
-    } else {
-      mainBtn.textContent = 'Buy';
-      mainBtn.disabled = !canAfford;
-      mainBtn.addEventListener('click', () => sendBuyOutfit(outfit.id));
+  const query = (storeSearchInput?.value || '').trim().toLowerCase();
+  const filteredOutfits = OUTFIT_CATALOG.filter((outfit) => catalogMatches(outfit, query));
+  const filteredCharacters = CHARACTER_CATALOG.filter((character) => catalogMatches(character, query));
+  createCatalogSection(
+    storeItemsEl,
+    'Outfits',
+    filteredOutfits,
+    query ? 'No outfits match your search.' : 'No outfits available right now.',
+    (outfit) => {
+      const owned = myPurchasedOutfits.includes(outfit.id);
+      const equipped = myEquippedOutfit === outfit.id;
+      const canAfford = chips >= outfit.price;
+      const previewing = storePreviewOutfit === outfit.id;
+      return createStoreItemCard(outfit, {
+        priceLabel: `$${outfit.price}`,
+        owned,
+        equipped,
+        canAfford,
+        previewing,
+        onPreview: () => toggleStoreOutfitPreview(outfit.id),
+        onMain: () => (owned ? sendEquipOutfit(equipped ? '' : outfit.id) : sendBuyOutfit(outfit.id)),
+        statusText: owned ? (equipped ? 'Owned - currently equipped' : 'Owned') : (canAfford ? 'Not owned' : 'Not enough currency'),
+      });
     }
-    actions.appendChild(mainBtn);
-    card.appendChild(actions);
-
-    const status = document.createElement('div');
-    status.className = 'store-item-status';
-    status.textContent = owned
-      ? (equipped ? 'Owned - currently equipped' : 'Owned')
-      : (canAfford ? 'Not owned' : 'Not enough currency');
-    card.appendChild(status);
-
-    storeItemsEl.appendChild(card);
-  });
-
-  const characterHeader = document.createElement('div');
-  characterHeader.className = 'store-section-title';
-  characterHeader.textContent = 'Characters';
-  storeItemsEl.appendChild(characterHeader);
-
-  CHARACTER_CATALOG.forEach((character) => {
-    const owned = myPurchasedCharacters.includes(character.id);
-    const equipped = myEquippedCharacter === character.id;
-    const canAfford = chips >= character.price;
-    const previewing = storePreviewCharacter === character.id;
-
-    const card = document.createElement('div');
-    card.className = 'store-item-card';
-
-    const head = document.createElement('div');
-    head.className = 'store-item-head';
-    head.innerHTML = `<strong>${character.name}</strong><span class="store-item-price">$${character.price}</span>`;
-    card.appendChild(head);
-
-    const actions = document.createElement('div');
-    actions.className = 'store-item-actions';
-
-    const previewBtn = document.createElement('button');
-    previewBtn.type = 'button';
-    previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
-    previewBtn.addEventListener('click', () => toggleStoreCharacterPreview(character.id));
-    actions.appendChild(previewBtn);
-
-    const mainBtn = document.createElement('button');
-    mainBtn.type = 'button';
-    mainBtn.className = 'store-item-btn ' + (owned ? 'equip-btn' : 'buy-btn');
-    if (owned) {
-      mainBtn.textContent = equipped ? 'Unequip' : 'Equip';
-      mainBtn.addEventListener('click', () => sendEquipCharacter(equipped ? '' : character.id));
-    } else {
-      mainBtn.textContent = 'Buy';
-      mainBtn.disabled = !canAfford;
-      mainBtn.addEventListener('click', () => sendBuyCharacter(character.id));
+  );
+  createCatalogSection(
+    storeItemsEl,
+    'Characters',
+    filteredCharacters,
+    query ? 'No characters match your search.' : 'No characters available right now.',
+    (character) => {
+      const owned = myPurchasedCharacters.includes(character.id);
+      const equipped = myEquippedCharacter === character.id;
+      const canAfford = chips >= character.price;
+      const previewing = storePreviewCharacter === character.id;
+      return createStoreItemCard(character, {
+        priceLabel: `$${character.price}`,
+        owned,
+        equipped,
+        canAfford,
+        previewing,
+        onPreview: () => toggleStoreCharacterPreview(character.id),
+        onMain: () => (owned ? sendEquipCharacter(equipped ? '' : character.id) : sendBuyCharacter(character.id)),
+        statusText: owned ? (equipped ? 'Owned - currently equipped' : 'Owned') : (canAfford ? 'Not owned' : 'Not enough currency'),
+      });
     }
-    actions.appendChild(mainBtn);
-    card.appendChild(actions);
-
-    const status = document.createElement('div');
-    status.className = 'store-item-status';
-    status.textContent = owned
-      ? (equipped ? 'Owned - currently equipped' : 'Owned')
-      : (canAfford ? 'Not owned' : 'Not enough currency');
-    card.appendChild(status);
-
-    storeItemsEl.appendChild(card);
-  });
+  );
 
   updateStorePreview();
 }
@@ -3424,94 +3450,57 @@ function renderClosetOverlay() {
   if (!OUTFIT_BY_ID[closetPreviewOutfit]) closetPreviewOutfit = myEquippedOutfit;
   if (!CHARACTER_BY_ID[closetPreviewCharacter]) closetPreviewCharacter = myEquippedCharacter;
   closetItemsEl.innerHTML = '';
-
-  const outfitHeader = document.createElement('div');
-  outfitHeader.className = 'store-section-title';
-  outfitHeader.textContent = 'Outfits';
-  closetItemsEl.appendChild(outfitHeader);
-
-  const ownedOutfits = myPurchasedOutfits.slice();
-  if (!ownedOutfits.length) {
-    const empty = document.createElement('div');
-    empty.className = 'store-item-status';
-    empty.textContent = 'No outfits purchased yet. Buy one from the Store.';
-    closetItemsEl.appendChild(empty);
-  }
-  ownedOutfits.forEach((outfitId) => {
-    const outfit = OUTFIT_BY_ID[outfitId];
-    if (!outfit) return;
-    const equipped = myEquippedOutfit === outfit.id;
-    const previewing = closetPreviewOutfit === outfit.id;
-    const card = document.createElement('div');
-    card.className = 'closet-item-card';
-    const head = document.createElement('div');
-    head.className = 'store-item-head';
-    head.innerHTML = `<strong>${outfit.name}</strong><span class="store-item-price">Owned</span>`;
-    card.appendChild(head);
-    const actions = document.createElement('div');
-    actions.className = 'store-item-actions';
-
-    const previewBtn = document.createElement('button');
-    previewBtn.type = 'button';
-    previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
-    previewBtn.addEventListener('click', () => toggleClosetOutfitPreview(outfit.id));
-    actions.appendChild(previewBtn);
-
-    const equipBtn = document.createElement('button');
-    equipBtn.type = 'button';
-    equipBtn.className = 'store-item-btn equip-btn';
-    equipBtn.textContent = equipped ? 'Unequip' : 'Equip';
-    equipBtn.addEventListener('click', () => sendEquipOutfit(equipped ? '' : outfit.id));
-    actions.appendChild(equipBtn);
-
-    card.appendChild(actions);
-    closetItemsEl.appendChild(card);
-  });
-
-  const characterHeader = document.createElement('div');
-  characterHeader.className = 'store-section-title';
-  characterHeader.textContent = 'Characters';
-  closetItemsEl.appendChild(characterHeader);
-
-  const ownedCharacters = myPurchasedCharacters.slice();
-  if (!ownedCharacters.length) {
-    const empty = document.createElement('div');
-    empty.className = 'store-item-status';
-    empty.textContent = 'No characters purchased yet. Buy one from the Store.';
-    closetItemsEl.appendChild(empty);
-  }
-  ownedCharacters.forEach((characterId) => {
-    const character = CHARACTER_BY_ID[characterId];
-    if (!character) return;
-    const equipped = myEquippedCharacter === character.id;
-    const previewing = closetPreviewCharacter === character.id;
-    const card = document.createElement('div');
-    card.className = 'closet-item-card';
-    const head = document.createElement('div');
-    head.className = 'store-item-head';
-    head.innerHTML = `<strong>${character.name}</strong><span class="store-item-price">Owned</span>`;
-    card.appendChild(head);
-    const actions = document.createElement('div');
-    actions.className = 'store-item-actions';
-
-    const previewBtn = document.createElement('button');
-    previewBtn.type = 'button';
-    previewBtn.className = 'store-item-btn';
-    previewBtn.textContent = previewing ? 'Unpreview' : 'Preview';
-    previewBtn.addEventListener('click', () => toggleClosetCharacterPreview(character.id));
-    actions.appendChild(previewBtn);
-
-    const equipBtn = document.createElement('button');
-    equipBtn.type = 'button';
-    equipBtn.className = 'store-item-btn equip-btn';
-    equipBtn.textContent = equipped ? 'Unequip' : 'Equip';
-    equipBtn.addEventListener('click', () => sendEquipCharacter(equipped ? '' : character.id));
-    actions.appendChild(equipBtn);
-
-    card.appendChild(actions);
-    closetItemsEl.appendChild(card);
-  });
+  const query = (closetSearchInput?.value || '').trim().toLowerCase();
+  const ownedOutfits = myPurchasedOutfits
+    .map((outfitId) => OUTFIT_BY_ID[outfitId])
+    .filter(Boolean)
+    .filter((outfit) => catalogMatches(outfit, query));
+  const ownedCharacters = myPurchasedCharacters
+    .map((characterId) => CHARACTER_BY_ID[characterId])
+    .filter(Boolean)
+    .filter((character) => catalogMatches(character, query));
+  createCatalogSection(
+    closetItemsEl,
+    'Outfits',
+    ownedOutfits,
+    query ? 'No owned outfits match your search.' : 'No outfits purchased yet. Buy one from the Store.',
+    (outfit) => {
+      const equipped = myEquippedOutfit === outfit.id;
+      const previewing = closetPreviewOutfit === outfit.id;
+      return createStoreItemCard(outfit, {
+        priceLabel: 'Owned',
+        owned: true,
+        equipped,
+        canAfford: true,
+        previewing,
+        onPreview: () => toggleClosetOutfitPreview(outfit.id),
+        onMain: () => sendEquipOutfit(equipped ? '' : outfit.id),
+        statusText: equipped ? 'Owned - currently equipped' : 'Owned',
+        cardClass: 'closet-item-card',
+      });
+    }
+  );
+  createCatalogSection(
+    closetItemsEl,
+    'Characters',
+    ownedCharacters,
+    query ? 'No owned characters match your search.' : 'No characters purchased yet. Buy one from the Store.',
+    (character) => {
+      const equipped = myEquippedCharacter === character.id;
+      const previewing = closetPreviewCharacter === character.id;
+      return createStoreItemCard(character, {
+        priceLabel: 'Owned',
+        owned: true,
+        equipped,
+        canAfford: true,
+        previewing,
+        onPreview: () => toggleClosetCharacterPreview(character.id),
+        onMain: () => sendEquipCharacter(equipped ? '' : character.id),
+        statusText: equipped ? 'Owned - currently equipped' : 'Owned',
+        cardClass: 'closet-item-card',
+      });
+    }
+  );
 
   updateClosetPreview();
 }
@@ -3534,6 +3523,8 @@ if (storeClose) storeClose.addEventListener('click', () => storeOverlay?.classLi
 if (closetClose) closetClose.addEventListener('click', () => closetOverlay?.classList.add('hidden'));
 if (storeCreateAccountLink) storeCreateAccountLink.addEventListener('click', (e) => { e.preventDefault(); openRegisterFromOutfitOverlay(); });
 if (closetCreateAccountLink) closetCreateAccountLink.addEventListener('click', (e) => { e.preventDefault(); openRegisterFromOutfitOverlay(); });
+if (storeSearchInput) storeSearchInput.addEventListener('input', () => renderStoreOverlay());
+if (closetSearchInput) closetSearchInput.addEventListener('input', () => renderClosetOverlay());
 
 const holdemSettingsBtn = document.getElementById('holdem-settings-btn');
 const bjSettingsBtn = document.getElementById('bj-settings-btn');

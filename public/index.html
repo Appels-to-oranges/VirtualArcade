@@ -268,7 +268,7 @@
           <label>Display Name</label>
           <div class="settings-nickname-wrap">
             <input type="text" id="settings-nickname" class="chat-input" placeholder="Your name" maxlength="20" autocomplete="off">
-            <button type="button" id="settings-nickname-save" class="btn-join settings-save-btn">Save</button>
+            <button type="button" id="settings-nickname-save" class="std-bar-lobby settings-save-btn">Save</button>
           </div>
         </div>
         <div class="theme-group">
@@ -295,20 +295,30 @@
         <button type="button" class="lobby-overlay-close" id="store-close" aria-label="Close">&times;</button>
       </div>
       <div class="lobby-overlay-body">
-        <div class="store-balance-row">
-          <span>Balance</span>
-          <strong id="store-balance">$0</strong>
-        </div>
-        <div class="store-preview-card">
-          <div class="store-preview-avatar">
-            <img src="/character.png" alt="" class="store-preview-base" id="store-preview-base">
-            <img src="" alt="" class="store-preview-outfit hidden" id="store-preview-outfit">
+        <div class="store-layout">
+          <div class="store-sidebar">
+            <div class="store-balance-row">
+              <span>Balance</span>
+              <strong id="store-balance">$0</strong>
+            </div>
+            <div class="store-preview-card">
+              <div class="store-preview-avatar">
+                <img src="/character.png" alt="" class="store-preview-base" id="store-preview-base">
+                <img src="" alt="" class="store-preview-outfit hidden" id="store-preview-outfit">
+              </div>
+              <div class="store-preview-label" id="store-preview-label">Previewing: Base character</div>
+            </div>
+            <div class="store-auth-cta hidden" id="store-auth-cta">
+              Want to save your character? <a href="#" id="store-create-account-link">Create an account</a>
+            </div>
           </div>
-          <div class="store-preview-label" id="store-preview-label">Previewing: Base character</div>
-        </div>
-        <div class="store-items" id="store-items"></div>
-        <div class="store-auth-cta hidden" id="store-auth-cta">
-          Want to save your character? <a href="#" id="store-create-account-link">Create an account</a>
+          <div class="store-catalog">
+            <div class="store-toolbar">
+              <label for="store-search-input">Search</label>
+              <input type="text" id="store-search-input" class="chat-input store-search-input" placeholder="Search outfits or characters" maxlength="40" autocomplete="off">
+            </div>
+            <div class="store-items" id="store-items"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -321,16 +331,26 @@
         <button type="button" class="lobby-overlay-close" id="closet-close" aria-label="Close">&times;</button>
       </div>
       <div class="lobby-overlay-body">
-        <div class="store-preview-card">
-          <div class="store-preview-avatar">
-            <img src="/character.png" alt="" class="store-preview-base" id="closet-preview-base">
-            <img src="" alt="" class="store-preview-outfit hidden" id="closet-preview-outfit">
+        <div class="store-layout">
+          <div class="store-sidebar">
+            <div class="store-preview-card">
+              <div class="store-preview-avatar">
+                <img src="/character.png" alt="" class="store-preview-base" id="closet-preview-base">
+                <img src="" alt="" class="store-preview-outfit hidden" id="closet-preview-outfit">
+              </div>
+              <div class="store-preview-label" id="closet-preview-label">Previewing: Base character</div>
+            </div>
+            <div class="store-auth-cta hidden" id="closet-auth-cta">
+              Want to save your character? <a href="#" id="closet-create-account-link">Create an account</a>
+            </div>
           </div>
-          <div class="store-preview-label" id="closet-preview-label">Previewing: Base character</div>
-        </div>
-        <div class="closet-items" id="closet-items"></div>
-        <div class="store-auth-cta hidden" id="closet-auth-cta">
-          Want to save your character? <a href="#" id="closet-create-account-link">Create an account</a>
+          <div class="store-catalog">
+            <div class="store-toolbar">
+              <label for="closet-search-input">Search</label>
+              <input type="text" id="closet-search-input" class="chat-input store-search-input" placeholder="Search owned cosmetics" maxlength="40" autocomplete="off">
+            </div>
+            <div class="closet-items" id="closet-items"></div>
+          </div>
         </div>
       </div>
     </div>
