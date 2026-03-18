@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const session = require('express-session');
 const PgSession = require('connect-pg-simple')(session);
 const { WebSocketServer } = require('ws');
@@ -8,6 +9,7 @@ const Hand = require('pokersolver').Hand;
 const { decideAction, getPosition } = require('./bot_decide');
 const pool = require('./db');
 const authRouter = require('./auth');
+const STOCKFISH_CLI_PATH = path.join(__dirname, 'node_modules', 'stockfish', 'scripts', 'cli.js');
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -222,6 +224,14 @@ function getRoom(roomKey) {
       bjTurnIdx: 0,
       bjPhase: 'lobby',
       theme: null,
+      ckMode: 'player',
+      ckDifficulty: 1,
+      ckVsComputer: false,
+      ckBotMoveTimer: null,
+      chMode: 'player',
+      chDifficulty: 10,
+      chVsComputer: false,
+      chBotMoveTimer: null,
     });
   }
   return rooms.get(roomKey);
@@ -1340,9 +1350,192 @@ function ckClearTurnTimer(room) {
   }
 }
 
+const CHECKERS_COMPUTER_ID = 'checkers-computer';
+
+function ckClearBotMoveTimer(room) {
+  if (room.ckBotMoveTimer) {
+    clearTimeout(room.ckBotMoveTimer);
+    room.ckBotMoveTimer = null;
+  }
+}
+
+function ckBroadcastModeState(roomKey, room) {
+  const mode = room.ckMode === 'computer' ? 'computer' : 'player';
+  const difficulty = Math.max(1, Math.min(3, Number(room.ckDifficulty) || 1));
+  broadcastToRoom(roomKey, { type: 'ckModeState', mode, difficulty }, null, (p) => (p.currentView ?? 'lobby') === 'checkers');
+}
+
+function ckCloneBoard(board) {
+  return board.map((row) => row.map((cell) => (cell ? { color: cell.color, king: !!cell.king } : null)));
+}
+
+function ckGetLegalMovesForState(board, color, mustContinue = null) {
+  const moves = [];
+  if (mustContinue) {
+    const list = ckGetValidMoves(board, mustContinue.row, mustContinue.col, color, true);
+    list.forEach((m) => moves.push({
+      from: { row: mustContinue.row, col: mustContinue.col },
+      to: { row: m.row, col: m.col },
+      captured: m.captured || null,
+    }));
+    return moves;
+  }
+  const forceCapture = ckHasAnyCapture(board, color);
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (!piece || piece.color !== color) continue;
+      let pieceMoves = ckGetValidMoves(board, r, c, color, false);
+      if (forceCapture) pieceMoves = pieceMoves.filter((m) => m.captured);
+      pieceMoves.forEach((m) => moves.push({
+        from: { row: r, col: c },
+        to: { row: m.row, col: m.col },
+        captured: m.captured || null,
+      }));
+    }
+  }
+  return moves;
+}
+
+function ckApplyMoveState(board, color, move) {
+  const nextBoard = ckCloneBoard(board);
+  const piece = nextBoard[move.from.row][move.from.col];
+  if (!piece || piece.color !== color) return null;
+  nextBoard[move.to.row][move.to.col] = { ...piece };
+  nextBoard[move.from.row][move.from.col] = null;
+  if (move.captured) {
+    nextBoard[move.captured.row][move.captured.col] = null;
+  }
+  let promoted = false;
+  if (color === 'red' && move.to.row === 0 && !nextBoard[move.to.row][move.to.col].king) {
+    nextBoard[move.to.row][move.to.col].king = true;
+    promoted = true;
+  } else if (color === 'white' && move.to.row === 7 && !nextBoard[move.to.row][move.to.col].king) {
+    nextBoard[move.to.row][move.to.col].king = true;
+    promoted = true;
+  }
+  let mustContinue = null;
+  if (move.captured) {
+    const more = ckGetValidMoves(nextBoard, move.to.row, move.to.col, color, true);
+    if (more.length > 0) mustContinue = { row: move.to.row, col: move.to.col };
+  }
+  const nextTurn = mustContinue ? color : (color === 'red' ? 'white' : 'red');
+  return { board: nextBoard, mustContinue, nextTurn, promoted };
+}
+
+function ckEvaluateBoard(board, botColor) {
+  let score = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c];
+      if (!piece) continue;
+      const value = piece.king ? 170 : 100;
+      score += piece.color === botColor ? value : -value;
+    }
+  }
+  return score;
+}
+
+function ckNegamax(board, turnColor, botColor, mustContinue, depth) {
+  const moves = ckGetLegalMovesForState(board, turnColor, mustContinue);
+  if (depth <= 0 || moves.length === 0) {
+    if (moves.length === 0) {
+      return turnColor === botColor ? -100000 : 100000;
+    }
+    return ckEvaluateBoard(board, botColor);
+  }
+  let best = -Infinity;
+  for (const mv of moves) {
+    const applied = ckApplyMoveState(board, turnColor, mv);
+    if (!applied) continue;
+    const score = -ckNegamax(applied.board, applied.nextTurn, botColor, applied.mustContinue, depth - 1);
+    if (score > best) best = score;
+  }
+  return best === -Infinity ? ckEvaluateBoard(board, botColor) : best;
+}
+
+function ckPickComputerMove(room) {
+  const botColor = room.ckPlayers?.red === CHECKERS_COMPUTER_ID ? 'red' : 'white';
+  const board = room.ckBoard;
+  const mustContinue = room.ckMustContinue || null;
+  const moves = ckGetLegalMovesForState(board, botColor, mustContinue);
+  if (!moves.length) return null;
+  const difficulty = Math.max(1, Math.min(3, Number(room.ckDifficulty) || 1));
+  if (difficulty === 1) {
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+  if (difficulty === 2) {
+    let best = null;
+    let bestScore = -Infinity;
+    for (const mv of moves) {
+      const applied = ckApplyMoveState(board, botColor, mv);
+      if (!applied) continue;
+      let score = ckEvaluateBoard(applied.board, botColor);
+      if (mv.captured) score += 40;
+      if (applied.promoted) score += 60;
+      if (score > bestScore) {
+        bestScore = score;
+        best = mv;
+      }
+    }
+    return best || moves[0];
+  }
+  let best = null;
+  let bestScore = -Infinity;
+  for (const mv of moves) {
+    const applied = ckApplyMoveState(board, botColor, mv);
+    if (!applied) continue;
+    const score = -ckNegamax(applied.board, applied.nextTurn, botColor, applied.mustContinue, 5);
+    if (score > bestScore) {
+      bestScore = score;
+      best = mv;
+    }
+  }
+  return best || moves[0];
+}
+
+function ckAwardWinner(room, winnerColor) {
+  if (!winnerColor || !room.ckPlayers || !room.ckPlayersList) return;
+  const winnerId = room.ckPlayers[winnerColor];
+  const winnerP = room.ckPlayersList.find((p) => p.id === winnerId);
+  if (!winnerP) return;
+  const wager = room.ckWager || 0;
+  if (wager <= 0) return;
+  if (room.ckVsComputer) {
+    if (winnerP.id !== CHECKERS_COMPUTER_ID) {
+      winnerP.chips = (winnerP.chips || 0) + wager;
+    }
+  } else {
+    winnerP.chips = (winnerP.chips || 0) + wager * 2;
+  }
+}
+
+function ckScheduleBotMove(roomKey, delayMs = 450) {
+  const room = getRoom(roomKey);
+  if (!room.ckVsComputer || room.ckPhase !== 'playing') return;
+  const botColor = room.ckPlayers?.red === CHECKERS_COMPUTER_ID ? 'red' : 'white';
+  if (room.ckTurn !== botColor) return;
+  ckClearTurnTimer(room);
+  ckClearBotMoveTimer(room);
+  room.ckBotMoveTimer = setTimeout(() => {
+    room.ckBotMoveTimer = null;
+    const current = getRoom(roomKey);
+    if (!current.ckVsComputer || current.ckPhase !== 'playing') return;
+    const currentBotColor = current.ckPlayers?.red === CHECKERS_COMPUTER_ID ? 'red' : 'white';
+    if (current.ckTurn !== currentBotColor) return;
+    const move = ckPickComputerMove(current);
+    if (!move) return;
+    ckMakeMove(roomKey, CHECKERS_COMPUTER_ID, move.from, move.to);
+  }, Math.max(120, delayMs));
+}
+
 function ckStartTurnTimer(roomKey) {
   const room = getRoom(roomKey);
   ckClearTurnTimer(room);
+  if (room.ckVsComputer && room.ckPlayers?.[room.ckTurn] === CHECKERS_COMPUTER_ID) {
+    ckScheduleBotMove(roomKey);
+    return;
+  }
   if (!room.ckTimerMs || room.ckTimerMs <= 0) return;
   room.ckTurnDeadline = Date.now() + room.ckTimerMs;
   room.ckTurnTimeout = setTimeout(() => {
@@ -1352,12 +1545,9 @@ function ckStartTurnTimer(roomKey) {
     const losingColor = r.ckTurn;
     const winnerColor = losingColor === 'red' ? 'white' : 'red';
     r.ckPhase = 'over';
+    ckClearBotMoveTimer(r);
     const wager = r.ckWager || 0;
-    if (wager > 0 && r.ckPlayers && r.ckPlayersList) {
-      const winnerId = r.ckPlayers[winnerColor];
-      const winnerP = r.ckPlayersList.find((p) => p.id === winnerId);
-      if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
-    }
+    ckAwardWinner(r, winnerColor);
     const winnerP = r.ckPlayersList?.find((p) => p.id === r.ckPlayers[winnerColor]);
     const loserP = r.ckPlayersList?.find((p) => p.id === r.ckPlayers[losingColor]);
     broadcastToRoom(roomKey, {
@@ -1416,10 +1606,18 @@ function broadcastChWagerState(roomKey, room) {
   });
 }
 
+function broadcastChModeState(roomKey, room) {
+  const mode = room.chMode === 'computer' ? 'computer' : 'player';
+  const difficulty = Math.max(1, Math.min(20, Number(room.chDifficulty) || 10));
+  broadcastToRoom(roomKey, { type: 'chModeState', mode, difficulty }, null, (p) => (p.currentView ?? 'lobby') === 'chess');
+}
+
 function ckStartGame(roomKey, timerSeconds) {
   const room = getRoom(roomKey);
   const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
   if (ckPlayers.length !== 2) return;
+  room.ckVsComputer = false;
+  ckClearBotMoveTimer(room);
 
   let wager = 0;
   const locked = room.ckWagerLocked || {};
@@ -1481,6 +1679,55 @@ function ckStartGame(roomKey, timerSeconds) {
       p.ws.send(JSON.stringify({ type: 'ckYourColor', color }));
     }
   });
+}
+
+function ckStartGameVsComputer(roomKey, humanId, timerSeconds, difficulty) {
+  const room = getRoom(roomKey);
+  const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+  const human = ckPlayers.find((p) => p.id === humanId);
+  if (!human) return;
+  const level = Math.max(1, Math.min(3, Math.floor(Number(difficulty) || 1)));
+  room.ckMode = 'computer';
+  room.ckDifficulty = level;
+  room.ckVsComputer = true;
+  ckClearBotMoveTimer(room);
+  room.ckWager = level * 100;
+  room.ckWagerProposals = {};
+  room.ckWagerReady = {};
+  room.ckWagerLocked = {};
+  const botLabel = level === 1 ? 'Easy' : (level === 2 ? 'Medium' : 'Hard');
+  const botPlayer = {
+    id: CHECKERS_COMPUTER_ID,
+    nickname: `Computer ${botLabel}`,
+    chips: 0,
+    isBot: true,
+  };
+  room.ckPlayersList = [human, botPlayer];
+  room.ckBoard = ckCreateBoard();
+  room.ckTurn = 'red';
+  room.ckPhase = 'playing';
+  room.ckMustContinue = null;
+  room.ckTimerMs = (timerSeconds && timerSeconds > 0) ? timerSeconds * 1000 : 0;
+  room.ckTurnDeadline = 0;
+  room.ckPlayers = { red: human.id, white: CHECKERS_COMPUTER_ID };
+  const playersInfo = [
+    { id: human.id, nickname: human.nickname, color: 'red' },
+    { id: CHECKERS_COMPUTER_ID, nickname: botPlayer.nickname, color: 'white' },
+  ];
+  ckStartTurnTimer(roomKey);
+  broadcastToRoom(roomKey, {
+    type: 'ckGameStarted',
+    board: room.ckBoard,
+    turn: 'red',
+    players: playersInfo,
+    timerSeconds: room.ckTimerMs > 0 ? room.ckTimerMs / 1000 : 0,
+    timerMs: room.ckTimerMs || 0,
+    wager: room.ckWager || 0,
+    playersChips: { [human.id]: human.chips || 0, [CHECKERS_COMPUTER_ID]: 0 },
+  });
+  if (human.ws?.readyState === 1) {
+    human.ws.send(JSON.stringify({ type: 'ckYourColor', color: 'red' }));
+  }
 }
 
 function ckMakeMove(roomKey, playerId, from, to) {
@@ -1546,12 +1793,9 @@ function ckMakeMove(roomKey, playerId, from, to) {
     if (winner) {
       room.ckPhase = 'over';
       ckClearTurnTimer(room);
+      ckClearBotMoveTimer(room);
       const wager = room.ckWager || 0;
-      if (wager > 0 && room.ckPlayers && room.ckPlayersList) {
-        const winnerId = room.ckPlayers[winner];
-        const winnerP = room.ckPlayersList.find((p) => p.id === winnerId);
-        if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
-      }
+      ckAwardWinner(room, winner);
       const hasPieces = (() => {
         for (let r = 0; r < 8; r++)
           for (let c = 0; c < 8; c++)
@@ -1756,6 +2000,166 @@ function chCheckGameEnd(board, color, castling, enPassant) {
   return chIsInCheck(board, color) ? 'checkmate' : 'stalemate';
 }
 
+const CHESS_STOCKFISH_ID = 'chess-stockfish';
+
+function chClearBotMoveTimer(room) {
+  if (room.chBotMoveTimer) {
+    clearTimeout(room.chBotMoveTimer);
+    room.chBotMoveTimer = null;
+  }
+}
+
+function chSquareToAlg(row, col) {
+  return String.fromCharCode(97 + col) + String(8 - row);
+}
+
+function chUciToSquare(sq) {
+  if (!sq || sq.length !== 2) return null;
+  const col = sq.charCodeAt(0) - 97;
+  const rank = Number(sq[1]);
+  const row = 8 - rank;
+  if (col < 0 || col > 7 || row < 0 || row > 7) return null;
+  return { row, col };
+}
+
+function chBoardToFen(room) {
+  const board = room.chBoard || [];
+  const pieceMap = { pawn: 'p', knight: 'n', bishop: 'b', rook: 'r', queen: 'q', king: 'k' };
+  const rows = [];
+  for (let r = 0; r < 8; r++) {
+    let fenRow = '';
+    let empty = 0;
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r]?.[c];
+      if (!piece) {
+        empty++;
+        continue;
+      }
+      if (empty > 0) {
+        fenRow += String(empty);
+        empty = 0;
+      }
+      const code = pieceMap[piece.type] || 'p';
+      fenRow += piece.color === 'white' ? code.toUpperCase() : code;
+    }
+    if (empty > 0) fenRow += String(empty);
+    rows.push(fenRow);
+  }
+  const side = room.chTurn === 'black' ? 'b' : 'w';
+  const rights = [];
+  if (room.chCastling?.white?.kingSide) rights.push('K');
+  if (room.chCastling?.white?.queenSide) rights.push('Q');
+  if (room.chCastling?.black?.kingSide) rights.push('k');
+  if (room.chCastling?.black?.queenSide) rights.push('q');
+  const castling = rights.length ? rights.join('') : '-';
+  const ep = room.chEnPassant ? chSquareToAlg(room.chEnPassant.row, room.chEnPassant.col) : '-';
+  return `${rows.join('/')} ${side} ${castling} ${ep} 0 1`;
+}
+
+function chGetStockfishMove(fen, difficulty) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(STOCKFISH_CLI_PATH)) {
+      reject(new Error('Stockfish engine is unavailable'));
+      return;
+    }
+    const skill = Math.max(1, Math.min(20, Number(difficulty) || 10));
+    const movetime = 120 + skill * 40;
+    const engine = spawn(process.execPath, [STOCKFISH_CLI_PATH], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let done = false;
+    let outBuffer = '';
+    const sendCmd = (cmd) => {
+      try { engine.stdin.write(`${cmd}\n`); } catch (_) {}
+    };
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timeout);
+      try { engine.stdin.end(); } catch (_) {}
+      try { engine.kill(); } catch (_) {}
+    };
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Stockfish move timeout'));
+    }, 6000);
+    const handleLine = (lineRaw) => {
+      const line = String(lineRaw || '').trim();
+      if (!line || done) return;
+      if (line === 'uciok') {
+        sendCmd(`setoption name Skill Level value ${skill}`);
+        sendCmd('isready');
+      } else if (line === 'readyok') {
+        sendCmd(`position fen ${fen}`);
+        sendCmd(`go movetime ${movetime}`);
+      } else if (line.startsWith('bestmove ')) {
+        const move = line.split(' ')[1];
+        cleanup();
+        if (!move || move === '(none)') return reject(new Error('Stockfish returned no move'));
+        resolve(move);
+      }
+    };
+    engine.stdout.on('data', (chunk) => {
+      outBuffer += chunk.toString();
+      const lines = outBuffer.split(/\r?\n/);
+      outBuffer = lines.pop() || '';
+      lines.forEach(handleLine);
+    });
+    engine.on('error', (err) => {
+      if (done) return;
+      cleanup();
+      reject(err);
+    });
+    engine.on('exit', (code) => {
+      if (!done && code !== 0) {
+        cleanup();
+        reject(new Error(`Stockfish exited with code ${code}`));
+      }
+    });
+    sendCmd('uci');
+  });
+}
+
+function chAwardWinner(room, winnerColor) {
+  if (!winnerColor || !room.chPlayers || !room.chPlayersList) return;
+  const winnerId = room.chPlayers[winnerColor];
+  const winnerP = room.chPlayersList.find((p) => p.id === winnerId);
+  if (!winnerP) return;
+  const wager = room.chWager || 0;
+  if (wager <= 0) return;
+  if (room.chVsComputer) {
+    if (winnerP.id !== CHESS_STOCKFISH_ID) {
+      winnerP.chips = (winnerP.chips || 0) + wager;
+    }
+  } else {
+    winnerP.chips = (winnerP.chips || 0) + wager * 2;
+  }
+}
+
+function chScheduleBotMove(roomKey, delayMs = 350) {
+  const room = getRoom(roomKey);
+  if (!room.chVsComputer || room.chPhase !== 'playing') return;
+  const botColor = room.chPlayers?.white === CHESS_STOCKFISH_ID ? 'white' : 'black';
+  if (room.chTurn !== botColor) return;
+  chClearTurnTimer(room);
+  chClearBotMoveTimer(room);
+  room.chBotMoveTimer = setTimeout(async () => {
+    room.chBotMoveTimer = null;
+    const current = getRoom(roomKey);
+    if (!current.chVsComputer || current.chPhase !== 'playing') return;
+    const currentBotColor = current.chPlayers?.white === CHESS_STOCKFISH_ID ? 'white' : 'black';
+    if (current.chTurn !== currentBotColor) return;
+    const fen = chBoardToFen(current);
+    try {
+      const bestMove = await chGetStockfishMove(fen, current.chDifficulty || 10);
+      const from = chUciToSquare(bestMove.slice(0, 2));
+      const to = chUciToSquare(bestMove.slice(2, 4));
+      if (!from || !to) return;
+      chMakeMove(roomKey, CHESS_STOCKFISH_ID, from, to);
+    } catch (err) {
+      console.error('Stockfish move error:', err.message || err);
+    }
+  }, Math.max(100, delayMs));
+}
+
 function chClearTurnTimer(room) {
   if (room.chTurnTimeout) {
     clearTimeout(room.chTurnTimeout);
@@ -1766,6 +2170,10 @@ function chClearTurnTimer(room) {
 function chStartTurnTimer(roomKey) {
   const room = getRoom(roomKey);
   chClearTurnTimer(room);
+  if (room.chVsComputer && room.chPlayers?.[room.chTurn] === CHESS_STOCKFISH_ID) {
+    chScheduleBotMove(roomKey);
+    return;
+  }
   if (!room.chTimerMs || room.chTimerMs <= 0) return;
   room.chTurnDeadline = Date.now() + room.chTimerMs;
   room.chTurnTimeout = setTimeout(() => {
@@ -1775,12 +2183,9 @@ function chStartTurnTimer(roomKey) {
     const losingColor = r.chTurn;
     const winnerColor = losingColor === 'white' ? 'black' : 'white';
     r.chPhase = 'over';
+    chClearBotMoveTimer(r);
     const wager = r.chWager || 0;
-    if (wager > 0 && r.chPlayers && r.chPlayersList) {
-      const winnerId = r.chPlayers[winnerColor];
-      const winnerP = r.chPlayersList.find((p) => p.id === winnerId);
-      if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
-    }
+    chAwardWinner(r, winnerColor);
     const winnerP = r.chPlayersList?.find((p) => p.id === r.chPlayers[winnerColor]);
     const loserP = r.chPlayersList?.find((p) => p.id === r.chPlayers[losingColor]);
     broadcastToRoom(roomKey, {
@@ -1799,6 +2204,8 @@ function chStartGame(roomKey, timerSeconds) {
   const room = getRoom(roomKey);
   const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
   if (chPlayers.length !== 2) return;
+  room.chVsComputer = false;
+  chClearBotMoveTimer(room);
 
   let wager = 0;
   const locked = room.chWagerLocked || {};
@@ -1859,6 +2266,60 @@ function chStartGame(roomKey, timerSeconds) {
       p.ws.send(JSON.stringify({ type: 'chYourColor', color }));
     }
   });
+}
+
+function chStartGameVsComputer(roomKey, humanId, timerSeconds, difficulty) {
+  const room = getRoom(roomKey);
+  const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+  const human = chPlayers.find((p) => p.id === humanId);
+  if (!human) return;
+  const level = Math.max(1, Math.min(20, Math.floor(Number(difficulty) || 10)));
+  room.chMode = 'computer';
+  room.chDifficulty = level;
+  room.chVsComputer = true;
+  chClearBotMoveTimer(room);
+  room.chWager = level * 100;
+  room.chWagerProposals = {};
+  room.chWagerReady = {};
+  room.chWagerLocked = {};
+  const botPlayer = {
+    id: CHESS_STOCKFISH_ID,
+    nickname: `Computer Lv${level}`,
+    chips: 0,
+    isBot: true,
+  };
+  room.chPlayersList = [human, botPlayer];
+  room.chBoard = chCreateBoard();
+  room.chTurn = 'white';
+  room.chPhase = 'playing';
+  room.chCastling = {
+    white: { kingSide: true, queenSide: true },
+    black: { kingSide: true, queenSide: true },
+  };
+  room.chEnPassant = null;
+  room.chTimerMs = (timerSeconds && timerSeconds > 0) ? timerSeconds * 1000 : 0;
+  room.chTurnDeadline = 0;
+  room.chPlayers = { white: human.id, black: CHESS_STOCKFISH_ID };
+  const playersInfo = [
+    { id: human.id, nickname: human.nickname, color: 'white' },
+    { id: CHESS_STOCKFISH_ID, nickname: botPlayer.nickname, color: 'black' },
+  ];
+  chStartTurnTimer(roomKey);
+  broadcastToRoom(roomKey, {
+    type: 'chGameStarted',
+    board: room.chBoard,
+    turn: 'white',
+    players: playersInfo,
+    castling: room.chCastling,
+    enPassant: null,
+    timerSeconds: room.chTimerMs > 0 ? room.chTimerMs / 1000 : 0,
+    timerMs: room.chTimerMs || 0,
+    wager: room.chWager || 0,
+    playersChips: { [human.id]: human.chips || 0, [CHESS_STOCKFISH_ID]: 0 },
+  });
+  if (human.ws?.readyState === 1) {
+    human.ws.send(JSON.stringify({ type: 'chYourColor', color: 'white' }));
+  }
 }
 
 function chMakeMove(roomKey, playerId, from, to) {
@@ -1948,13 +2409,10 @@ function chMakeMove(roomKey, playerId, from, to) {
   if (result) {
     room.chPhase = 'over';
     chClearTurnTimer(room);
+    chClearBotMoveTimer(room);
     const winner = result === 'checkmate' ? currentColor : null;
     const wager = room.chWager || 0;
-    if (winner && wager > 0 && room.chPlayers && room.chPlayersList) {
-      const winnerId = room.chPlayers[winner];
-      const winnerP = room.chPlayersList.find((p) => p.id === winnerId);
-      if (winnerP) winnerP.chips = (winnerP.chips || 0) + wager * 2;
-    }
+    chAwardWinner(room, winner);
     const winnerP = room.chPlayersList?.find((p) => p.id === room.chPlayers[winner]);
     const loserColor = winner === 'white' ? 'black' : 'white';
     const loserP = room.chPlayersList?.find((p) => p.id === room.chPlayers[loserColor]);
@@ -2081,6 +2539,20 @@ wss.on('connection', async (ws, req) => {
           chatHistory: (room.chatHistory || []).slice(-LOBBY_CHAT_MAX),
           theme: room.theme || null,
         }));
+        if (targetGameType === 'checkers') {
+          ws.send(JSON.stringify({
+            type: 'ckModeState',
+            mode: room.ckMode === 'computer' ? 'computer' : 'player',
+            difficulty: Math.max(1, Math.min(3, Number(room.ckDifficulty) || 1)),
+          }));
+        }
+        if (targetGameType === 'chess') {
+          ws.send(JSON.stringify({
+            type: 'chModeState',
+            mode: room.chMode === 'computer' ? 'computer' : 'player',
+            difficulty: Math.max(1, Math.min(20, Number(room.chDifficulty) || 10)),
+          }));
+        }
 
         broadcastToRoom(safeRoom, {
           type: 'userJoined',
@@ -2123,6 +2595,7 @@ wss.on('connection', async (ws, req) => {
 
         if (prevGameType === 'checkers' && room.ckPhase === 'playing') {
           ckClearTurnTimer(room);
+          ckClearBotMoveTimer(room);
           const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
           const losingColor = remainingColor === 'red' ? 'white' : 'red';
           room.ckPhase = 'over';
@@ -2142,6 +2615,7 @@ wss.on('connection', async (ws, req) => {
 
         if (prevGameType === 'chess' && room.chPhase === 'playing') {
           chClearTurnTimer(room);
+          chClearBotMoveTimer(room);
           const chRemainingColor = room.chPlayers?.white === ws.id ? 'black' : 'white';
           const chLosingColor = chRemainingColor === 'white' ? 'black' : 'white';
           room.chPhase = 'over';
@@ -2204,8 +2678,16 @@ wss.on('connection', async (ws, req) => {
         });
         const ckCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers').length;
         const chCount = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess').length;
-        if (newType === 'checkers' && ckCount === 2) broadcastCkWagerState(data.roomKey, room);
-        if (newType === 'chess' && chCount === 2) broadcastChWagerState(data.roomKey, room);
+        if (newType === 'checkers') {
+          if (ckCount >= 2) room.ckMode = 'player';
+          ckBroadcastModeState(data.roomKey, room);
+          if (ckCount === 2) broadcastCkWagerState(data.roomKey, room);
+        }
+        if (newType === 'chess') {
+          if (chCount >= 2) room.chMode = 'player';
+          broadcastChModeState(data.roomKey, room);
+          if (chCount === 2) broadcastChWagerState(data.roomKey, room);
+        }
         ws.send(JSON.stringify({
           type: 'gameSwitched',
           id: ws.id,
@@ -2227,6 +2709,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.ckMode === 'computer') return;
         const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
         if (ckPlayers.length !== 2) return;
         const p = ckPlayers.find((x) => x.ws === ws);
@@ -2242,6 +2725,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.ckMode === 'computer') return;
         const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
         if (ckPlayers.length !== 2) return;
         const p = ckPlayers.find((x) => x.ws === ws);
@@ -2253,6 +2737,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.ckMode === 'computer') return;
         const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
         if (ckPlayers.length !== 2) return;
         const p = ckPlayers.find((x) => x.ws === ws);
@@ -2268,6 +2753,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.ckMode === 'computer') return;
         const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
         if (ckPlayers.length !== 2) return;
         if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
@@ -2283,10 +2769,37 @@ wss.on('connection', async (ws, req) => {
         const sec = Math.max(0, Math.min(300, Math.floor(Number(msg.timerSeconds) || 0)));
         room.ckTimerProposal = sec;
         broadcastToRoom(data.roomKey, { type: 'ckTimerChanged', timerSeconds: sec });
+      } else if (type === 'ckSetMode') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        const mode = msg.mode === 'computer' ? 'computer' : 'player';
+        if (mode === 'computer' && ckPlayers.length > 1) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Computer mode needs only one human in Checkers' }));
+          return;
+        }
+        room.ckMode = mode;
+        if (mode === 'computer') {
+          room.ckWagerProposals = {};
+          room.ckWagerReady = {};
+          room.ckWagerLocked = {};
+        }
+        ckBroadcastModeState(data.roomKey, room);
+      } else if (type === 'ckSetDifficulty') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+        if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.ckDifficulty = Math.max(1, Math.min(3, Math.floor(Number(msg.difficulty) || 1)));
+        ckBroadcastModeState(data.roomKey, room);
       } else if (type === 'chWagerProposal') {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.chMode === 'computer') return;
         const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
         if (chPlayers.length !== 2) return;
         const p = chPlayers.find((x) => x.ws === ws);
@@ -2302,6 +2815,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.chMode === 'computer') return;
         const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
         if (chPlayers.length !== 2) return;
         if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
@@ -2312,6 +2826,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.chMode === 'computer') return;
         const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
         if (chPlayers.length !== 2) return;
         const p = chPlayers.find((x) => x.ws === ws);
@@ -2327,6 +2842,7 @@ wss.on('connection', async (ws, req) => {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
+        if (room.chMode === 'computer') return;
         const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
         if (chPlayers.length !== 2) return;
         if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
@@ -2342,30 +2858,68 @@ wss.on('connection', async (ws, req) => {
         const sec = Math.max(0, Math.min(300, Math.floor(Number(msg.timerSeconds) || 0)));
         room.chTimerProposal = sec;
         broadcastToRoom(data.roomKey, { type: 'chTimerChanged', timerSeconds: sec });
+      } else if (type === 'chSetMode') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        const mode = msg.mode === 'computer' ? 'computer' : 'player';
+        if (mode === 'computer' && chPlayers.length > 1) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Computer mode needs only one human in Chess' }));
+          return;
+        }
+        room.chMode = mode;
+        if (mode === 'computer') {
+          room.chWagerProposals = {};
+          room.chWagerReady = {};
+          room.chWagerLocked = {};
+        }
+        broadcastChModeState(data.roomKey, room);
+      } else if (type === 'chSetDifficulty') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+        if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
+        room.chDifficulty = Math.max(1, Math.min(20, Math.floor(Number(msg.difficulty) || 10)));
+        broadcastChModeState(data.roomKey, room);
       } else if (type === 'ckRematch') {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
         const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
-        if (ckPlayers.length !== 2) return;
+        if (room.ckMode === 'computer') {
+          if (ckPlayers.length < 1) return;
+        } else if (ckPlayers.length !== 2) {
+          return;
+        }
         if (ckPlayers.findIndex((x) => x.ws === ws) < 0) return;
         room.ckPhase = 'waiting';
         room.ckWagerLocked = {};
         room.ckWagerReady = {};
+        ckClearBotMoveTimer(room);
         broadcastToRoom(data.roomKey, { type: 'ckWaiting' });
-        broadcastCkWagerState(data.roomKey, room);
+        ckBroadcastModeState(data.roomKey, room);
+        if (room.ckMode !== 'computer') broadcastCkWagerState(data.roomKey, room);
       } else if (type === 'chRematch') {
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
         const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
-        if (chPlayers.length !== 2) return;
+        if (room.chMode === 'computer') {
+          if (chPlayers.length < 1) return;
+        } else if (chPlayers.length !== 2) {
+          return;
+        }
         if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
         room.chPhase = 'waiting';
         room.chWagerLocked = {};
         room.chWagerReady = {};
+        chClearBotMoveTimer(room);
         broadcastToRoom(data.roomKey, { type: 'chWaiting' });
-        broadcastChWagerState(data.roomKey, room);
+        broadcastChModeState(data.roomKey, room);
+        if (room.chMode !== 'computer') broadcastChWagerState(data.roomKey, room);
       } else if (type === 'startGame') {
         const data = clients.get(ws);
         if (!data) return;
@@ -2376,6 +2930,15 @@ wss.on('connection', async (ws, req) => {
           bjStartGame(data.roomKey);
         } else if (gameType === 'checkers') {
           const ckPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'checkers');
+          if (room.ckMode === 'computer') {
+            if (ckPlayers.length !== 1) {
+              ws.send(JSON.stringify({ type: 'error', message: 'Computer mode needs exactly one player in Checkers' }));
+              return;
+            }
+            const starter = ckPlayers.find((p) => p.ws === ws) || ckPlayers[0];
+            ckStartGameVsComputer(data.roomKey, starter.id, room.ckTimerProposal ?? msg.timerSeconds, room.ckDifficulty);
+            return;
+          }
           if (ckPlayers.length === 2) {
             const locked = room.ckWagerLocked || {};
             const l1 = locked[ckPlayers[0].id];
@@ -2392,6 +2955,15 @@ wss.on('connection', async (ws, req) => {
           ckStartGame(data.roomKey, room.ckTimerProposal ?? msg.timerSeconds);
         } else if (gameType === 'chess') {
           const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
+          if (room.chMode === 'computer') {
+            if (chPlayers.length !== 1) {
+              ws.send(JSON.stringify({ type: 'error', message: 'Computer mode needs exactly one player in Chess' }));
+              return;
+            }
+            const starter = chPlayers.find((p) => p.ws === ws) || chPlayers[0];
+            chStartGameVsComputer(data.roomKey, starter.id, room.chTimerProposal ?? msg.timerSeconds, room.chDifficulty);
+            return;
+          }
           if (chPlayers.length === 2) {
             const locked = room.chWagerLocked || {};
             const l1 = locked[chPlayers[0].id];
@@ -2974,6 +3546,7 @@ wss.on('connection', async (ws, req) => {
 
           if (room.ckPhase === 'playing') {
             ckClearTurnTimer(room);
+            ckClearBotMoveTimer(room);
             const remainingColor = room.ckPlayers?.red === ws.id ? 'white' : 'red';
             const losingColor = remainingColor === 'red' ? 'white' : 'red';
             room.ckPhase = 'over';
@@ -2993,6 +3566,7 @@ wss.on('connection', async (ws, req) => {
 
           if (room.chPhase === 'playing') {
             chClearTurnTimer(room);
+            chClearBotMoveTimer(room);
             const chRemainingColor = room.chPlayers?.white === ws.id ? 'black' : 'white';
             const chLosingColor = chRemainingColor === 'white' ? 'black' : 'white';
             room.chPhase = 'over';
