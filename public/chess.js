@@ -41,6 +41,8 @@
   var chInCheck = false;
   var chMode = 'player';
   var chDifficulty = 10;
+  var chLeaderboardEntries = [];
+  var chLeaderboardLastRequestAt = 0;
 
   /* ── DOM refs (lazy) ── */
 
@@ -389,9 +391,17 @@
         'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
       '.ch-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
         'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
+      '.ch-leaderboard-panel.ch-hidden{display:none}' +
       '.ch-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
       '.ch-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
       '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ch-leaderboard-list{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
+      '.ch-leaderboard-row{display:flex;align-items:center;justify-content:space-between;gap:.35rem;padding:.22rem .1rem;border-bottom:.05rem solid rgba(255,255,255,.06)}' +
+      '.ch-leaderboard-row:last-child{border-bottom:none}' +
+      '.ch-leaderboard-rank{color:#8b949e;min-width:1.2rem}' +
+      '.ch-leaderboard-name{color:#ddd;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.ch-leaderboard-level{color:#c9b896}' +
+      '.ch-leaderboard-empty{color:#8b949e;font-style:italic}' +
       '.ch-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
       '.ch-chat-msg.you .ch-chat-nick{color:#4ade80}' +
       '.ch-chat-nick{color:#8b949e}' +
@@ -555,6 +565,10 @@
           '<div class="ch-config-chat-header">Chat</div>' +
           '<div class="ch-config-chat-messages" id="ch-config-chat-messages"></div>' +
           '<input type="text" id="ch-config-chat-input" class="ch-config-chat-input" placeholder="Send message..." maxlength="100">' +
+        '</div>' +
+        '<div class="ch-config-chat ch-leaderboard-panel ch-hidden" id="ch-computer-leaderboard">' +
+          '<div class="ch-config-chat-header">Computer Leaderboard</div>' +
+          '<div class="ch-leaderboard-list" id="ch-leaderboard-list"></div>' +
         '</div>' +
         '</div>' +
       '</div>' +
@@ -872,10 +886,12 @@
     var difficultySlider = document.getElementById('ch-difficulty-slider');
     var difficultyValue = document.getElementById('ch-difficulty-value');
     var payoutValue = document.getElementById('ch-computer-payout');
+    var leaderboardPanel = document.getElementById('ch-computer-leaderboard');
     if (modePlayerBtn) modePlayerBtn.classList.toggle('ch-active', chMode !== 'computer');
     if (modeComputerBtn) modeComputerBtn.classList.toggle('ch-active', chMode === 'computer');
     if (wagersEl) wagersEl.style.display = chMode === 'computer' ? 'none' : '';
     if (computerEl) computerEl.classList.toggle('ch-hidden', chMode !== 'computer');
+    if (leaderboardPanel) leaderboardPanel.classList.toggle('ch-hidden', chMode !== 'computer');
     if (difficultySlider) difficultySlider.value = String(chDifficulty);
     if (difficultyValue) difficultyValue.textContent = String(chDifficulty);
     if (payoutValue) payoutValue.textContent = 'Win payout: $' + (chDifficulty * 100);
@@ -889,6 +905,43 @@
       if (oppName) oppName.textContent = other ? (chWagerNicknames[other.id] || other.nickname || 'Opponent') : 'Waiting...';
       if (oppChipsEl) oppChipsEl.textContent = other ? '$' + (chWagerChips[other.id] ?? other.chips ?? 0) : '';
     }
+  }
+
+  function requestComputerLeaderboard(force) {
+    var now = Date.now();
+    if (!force && now - chLeaderboardLastRequestAt < 4000) return;
+    chLeaderboardLastRequestAt = now;
+    send({ type: 'chRequestComputerLeaderboard' });
+  }
+
+  function renderComputerLeaderboard() {
+    var list = document.getElementById('ch-leaderboard-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!Array.isArray(chLeaderboardEntries) || !chLeaderboardEntries.length) {
+      var empty = document.createElement('div');
+      empty.className = 'ch-leaderboard-empty';
+      empty.textContent = 'No ranked wins yet.';
+      list.appendChild(empty);
+      return;
+    }
+    chLeaderboardEntries.slice(0, 10).forEach(function (row, idx) {
+      var entry = document.createElement('div');
+      entry.className = 'ch-leaderboard-row';
+      var rank = document.createElement('span');
+      rank.className = 'ch-leaderboard-rank';
+      rank.textContent = '#' + (idx + 1);
+      var name = document.createElement('span');
+      name.className = 'ch-leaderboard-name';
+      name.textContent = row.username || 'Player';
+      var level = document.createElement('span');
+      level.className = 'ch-leaderboard-level';
+      level.textContent = 'Lv ' + (Number(row.level) || 0);
+      entry.appendChild(rank);
+      entry.appendChild(name);
+      entry.appendChild(level);
+      list.appendChild(entry);
+    });
   }
 
   /* ── Timer ── */
@@ -1008,6 +1061,12 @@
         chDifficulty = Math.max(1, Math.min(20, parseInt(msg.difficulty, 10) || 10));
         updateChConfigPanel();
         updateChWagerSlider();
+        if (chMode === 'computer') requestComputerLeaderboard(true);
+        break;
+
+      case 'chComputerLeaderboard':
+        chLeaderboardEntries = Array.isArray(msg.entries) ? msg.entries : [];
+        renderComputerLeaderboard();
         break;
 
       case 'chWagerMismatch':
@@ -1124,6 +1183,7 @@
           if (goAmount) goAmount.textContent = (msg.reason !== 'stalemate' && wager > 0) ? winnerName + ' won $' + wager : '';
           if (goLoser) goLoser.textContent = (msg.reason !== 'stalemate' && wager > 0) ? loserName + ' lost $' + wager : '';
         }
+        if (chMode === 'computer') requestComputerLeaderboard(true);
         if ((chWagerChips[chMyId] || 0) === 0 && typeof window !== 'undefined' && window.scheduleBrokeKickToLobby) {
           window.scheduleBrokeKickToLobby();
         }

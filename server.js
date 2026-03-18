@@ -60,6 +60,9 @@ async function saveUserChips(userId, chips) {
   }
 }
 
+pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS chess_best_computer_level INTEGER NOT NULL DEFAULT 0')
+  .catch((err) => console.error('Failed to ensure chess leaderboard column:', err.message));
+
 async function saveUserCosmetics(userId, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter) {
   if (!userId) return;
   try {
@@ -70,6 +73,72 @@ async function saveUserCosmetics(userId, purchasedOutfits, equippedOutfit, purch
   } catch (err) {
     console.error('Failed to save cosmetics:', err.message);
   }
+}
+
+async function saveChessComputerBestLevel(userId, difficulty) {
+  if (!userId) return;
+  const level = Math.max(1, Math.min(20, Math.floor(Number(difficulty) || 1)));
+  try {
+    await pool.query(
+      'UPDATE users SET chess_best_computer_level = GREATEST(COALESCE(chess_best_computer_level, 0), $1) WHERE id = $2',
+      [level, userId]
+    );
+  } catch (err) {
+    console.error('Failed to save chess computer best level:', err.message);
+  }
+}
+
+async function getChessComputerLeaderboard(limit = 10) {
+  try {
+    const n = Math.max(1, Math.min(50, Math.floor(Number(limit) || 10)));
+    const result = await pool.query(
+      `SELECT username, chess_best_computer_level
+       FROM users
+       WHERE COALESCE(chess_best_computer_level, 0) > 0
+       ORDER BY chess_best_computer_level DESC, username ASC
+       LIMIT $1`,
+      [n]
+    );
+    return result.rows.map((r) => ({
+      username: r.username,
+      level: Number(r.chess_best_computer_level) || 0,
+    }));
+  } catch (err) {
+    console.error('Failed to fetch chess leaderboard:', err.message);
+    return [];
+  }
+}
+
+async function sendChessComputerLeaderboard(ws) {
+  if (!ws || ws.readyState !== 1) return;
+  const entries = await getChessComputerLeaderboard(10);
+  try {
+    ws.send(JSON.stringify({ type: 'chComputerLeaderboard', entries }));
+  } catch (_) {}
+}
+
+async function broadcastChessComputerLeaderboard(roomKey) {
+  const room = getRoom(roomKey);
+  const viewers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess' && p.ws?.readyState === 1);
+  if (!viewers.length) return;
+  const entries = await getChessComputerLeaderboard(10);
+  viewers.forEach((p) => {
+    try {
+      p.ws.send(JSON.stringify({ type: 'chComputerLeaderboard', entries }));
+    } catch (_) {}
+  });
+}
+
+async function broadcastChessComputerLeaderboardAllChessViewers() {
+  const entries = await getChessComputerLeaderboard(10);
+  rooms.forEach((room) => {
+    room.players.forEach((p) => {
+      if ((p.currentView ?? 'lobby') !== 'chess' || p.ws?.readyState !== 1) return;
+      try {
+        p.ws.send(JSON.stringify({ type: 'chComputerLeaderboard', entries }));
+      } catch (_) {}
+    });
+  });
 }
 
 function parseSessionFromWs(ws, req) {
@@ -2166,6 +2235,18 @@ function chAwardWinner(room, winnerColor) {
   }
 }
 
+function chRecordComputerWinIfEligible(roomKey, room, winnerColor) {
+  if (!room?.chVsComputer || !winnerColor) return;
+  const winnerId = room.chPlayers?.[winnerColor];
+  if (!winnerId || winnerId === CHESS_STOCKFISH_ID) return;
+  const winnerP = room.chPlayersList?.find((p) => p.id === winnerId);
+  if (!winnerP?.dbUserId) return;
+  const level = Math.max(1, Math.min(20, Number(room.chDifficulty) || 10));
+  saveChessComputerBestLevel(winnerP.dbUserId, level)
+    .then(() => broadcastChessComputerLeaderboard(roomKey))
+    .catch(() => {});
+}
+
 function chScheduleBotMove(roomKey, delayMs = 350) {
   const room = getRoom(roomKey);
   if (!room.chVsComputer || room.chPhase !== 'playing') return;
@@ -2218,6 +2299,7 @@ function chStartTurnTimer(roomKey) {
     chClearBotMoveTimer(r);
     const wager = r.chWager || 0;
     chAwardWinner(r, winnerColor);
+    chRecordComputerWinIfEligible(roomKey, r, winnerColor);
     const winnerP = r.chPlayersList?.find((p) => p.id === r.chPlayers[winnerColor]);
     const loserP = r.chPlayersList?.find((p) => p.id === r.chPlayers[losingColor]);
     broadcastToRoom(roomKey, {
@@ -2445,6 +2527,7 @@ function chMakeMove(roomKey, playerId, from, to) {
     const winner = result === 'checkmate' ? currentColor : null;
     const wager = room.chWager || 0;
     chAwardWinner(room, winner);
+    chRecordComputerWinIfEligible(roomKey, room, winner);
     const winnerP = room.chPlayersList?.find((p) => p.id === room.chPlayers[winner]);
     const loserColor = winner === 'white' ? 'black' : 'white';
     const loserP = room.chPlayersList?.find((p) => p.id === room.chPlayers[loserColor]);
@@ -2597,6 +2680,7 @@ wss.on('connection', async (ws, req) => {
             mode: room.chMode === 'computer' ? 'computer' : 'player',
             difficulty: Math.max(1, Math.min(20, Number(room.chDifficulty) || 10)),
           }));
+          sendChessComputerLeaderboard(ws);
         }
 
         broadcastToRoom(safeRoom, {
@@ -2921,6 +3005,7 @@ wss.on('connection', async (ws, req) => {
           room.chWagerLocked = {};
         }
         broadcastChModeState(data.roomKey, room);
+        if (mode === 'computer') sendChessComputerLeaderboard(ws);
       } else if (type === 'chSetDifficulty') {
         const data = clients.get(ws);
         if (!data) return;
@@ -2929,6 +3014,13 @@ wss.on('connection', async (ws, req) => {
         if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
         room.chDifficulty = Math.max(1, Math.min(20, Math.floor(Number(msg.difficulty) || 10)));
         broadcastChModeState(data.roomKey, room);
+      } else if (type === 'chRequestComputerLeaderboard') {
+        const data = clients.get(ws);
+        if (!data) return;
+        const room = getRoom(data.roomKey);
+        const viewer = room.players.find((p) => p.ws === ws);
+        if (!viewer || (viewer.currentView ?? 'lobby') !== 'chess') return;
+        sendChessComputerLeaderboard(ws);
       } else if (type === 'ckRematch') {
         const data = clients.get(ws);
         if (!data) return;
@@ -3196,6 +3288,7 @@ wss.on('connection', async (ws, req) => {
               return;
             }
             await pool.query('UPDATE users SET username = $1 WHERE id = $2', [safeNick, player.dbUserId]);
+            broadcastChessComputerLeaderboardAllChessViewers().catch(() => {});
           } catch (err) {
             console.error('Failed to update username:', err.message);
             ws.send(JSON.stringify({ type: 'error', message: 'Could not update username right now' }));
