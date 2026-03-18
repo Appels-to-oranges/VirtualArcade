@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(20) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  chips INTEGER NOT NULL DEFAULT 100,
+  chips INTEGER NOT NULL DEFAULT 10,
   purchased_outfits TEXT[] NOT NULL DEFAULT '{}',
   equipped_outfit VARCHAR(50),
   purchased_characters TEXT[] NOT NULL DEFAULT '{}',
@@ -26,6 +26,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_outfit VARCHAR(50);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS purchased_characters TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_character VARCHAR(50);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS chess_best_computer_level INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ALTER COLUMN chips SET DEFAULT 10;
 
 -- Session store for connect-pg-simple
 CREATE TABLE IF NOT EXISTS "session" (

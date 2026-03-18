@@ -587,7 +587,7 @@
     return {
       id: p.id,
       nickname: p.nickname || p.id,
-      chips: p.chips ?? 100,
+      chips: p.chips ?? 10,
       hand: p.hand || [],
       bet: p.bet || 0,
       total: p.total || 0,

@@ -67,7 +67,7 @@ function normalizeCharacterList(list) {
 
 function normalizeProgress(progress) {
   const safeProgress = (progress && typeof progress === 'object') ? progress : {};
-  const chips = Math.max(0, Math.min(1000000000, Math.floor(Number(safeProgress.chips) || 100)));
+  const chips = Math.max(0, Math.min(1000000000, Math.floor(Number(safeProgress.chips) || 10)));
   const purchasedOutfits = normalizeOutfitList(safeProgress.purchasedOutfits);
   const equippedOutfit = purchasedOutfits.includes(safeProgress.equippedOutfit) ? safeProgress.equippedOutfit : null;
   const purchasedCharacters = normalizeCharacterList(safeProgress.purchasedCharacters);

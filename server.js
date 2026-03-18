@@ -210,9 +210,9 @@ const LOBBY_CHAT_MAX = 100;
 const MAX_PLAYERS = { holdem: 6, blackjack: 6, checkers: 2, chess: 2, slots: 999 };
 const OUTFIT_PRICES = {};
 const CHARACTER_PRICES = {
-  agent: 100,
+  agent: 150,
   alt_girl: 100,
-  army: 100,
+  army: 150,
   default_boy_1: 0,
   default_boy_2: 0,
   default_boy_3: 0,
@@ -224,22 +224,22 @@ const CHARACTER_PRICES = {
   default_girl_5: 0,
   default_girl_6: 0,
   default_girl_7: 0,
-  football_1: 100,
-  football_2: 100,
-  football_3: 100,
-  football_4: 100,
-  gator: 100,
-  ghost: 100,
-  king: 100,
-  knight: 100,
-  monopoly_man: 100,
-  queen: 100,
+  football_1: 150,
+  football_2: 150,
+  football_3: 150,
+  football_4: 150,
+  gator: 200,
+  ghost: 150,
+  king: 300,
+  knight: 250,
+  monopoly_man: 300,
+  queen: 250,
   robot: 1000,
   sheriff: 1000,
-  skeleton: 100,
-  skeleton_2: 100,
-  swimsuit_girl: 100,
-  vampire: 100,
+  skeleton: 200,
+  skeleton_2: 200,
+  swimsuit_girl: 150,
+  vampire: 250,
 };
 const DEFAULT_CHARACTER_IDS = Object.keys(CHARACTER_PRICES).filter((id) => id.includes('default'));
 
@@ -502,7 +502,7 @@ function startGame(roomKey, resetStreaks = false, resetChips = false) {
     p.totalBet = 0;
     p.folded = false;
     p.allIn = false;
-    p.chips = p.chips ?? 100;
+    p.chips = p.chips ?? 10;
   });
 
   const sbPay = Math.min(room.smallBlind, Math.max(0, holdemPlayers[sbIdx].chips));
@@ -2575,7 +2575,7 @@ wss.on('connection', async (ws, req) => {
           gameFull = true;
         }
 
-        let startingChips = 100;
+        let startingChips = 10;
         let startingPurchasedOutfits = [];
         let startingOutfit = null;
         let startingPurchasedCharacters = [];

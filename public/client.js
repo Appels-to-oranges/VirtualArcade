@@ -732,7 +732,7 @@ async function doLogin() {
 function collectCurrentProgressSnapshot() {
   const me = getMyPlayer();
   return {
-    chips: me?.chips ?? 100,
+    chips: me?.chips ?? 10,
     purchasedOutfits: normalizeOutfitList(me?.purchasedOutfits || myPurchasedOutfits),
     equippedOutfit: me?.outfit || myEquippedOutfit || '',
     purchasedCharacters: normalizeCharacterList(me?.purchasedCharacters || myPurchasedCharacters),
@@ -878,7 +878,7 @@ const lobbyRebuyBtn = document.getElementById('lobby-rebuy-btn');
 
 function updateLobbyChipDisplay() {
   const me = lobbyPlayers.find((p) => p.id === myId);
-  const chips = me?.chips ?? 100;
+  const chips = me?.chips ?? 10;
   if (lobbyChipsDisplay) lobbyChipsDisplay.textContent = '$' + chips;
   if (lobbyRebuyBtn) {
     lobbyRebuyBtn.classList.toggle('hidden', chips > 0);
@@ -922,9 +922,9 @@ const GAME_NAMES = { holdem: "Texas Hold'em", blackjack: 'Blackjack', checkers: 
 const DEFAULT_LOBBY_CHARACTER_SRC = '/pixel-characters/Default_Boy_1.png';
 const OUTFIT_CATALOG = [];
 const CHARACTER_CATALOG = [
-  { id: 'agent', name: 'Agent', src: '/pixel-characters/Agent.png', price: 100 },
+  { id: 'agent', name: 'Agent', src: '/pixel-characters/Agent.png', price: 150 },
   { id: 'alt_girl', name: 'Alt Girl', src: '/pixel-characters/Alt_Girl.png', price: 100 },
-  { id: 'army', name: 'Army', src: '/pixel-characters/Army.png', price: 100 },
+  { id: 'army', name: 'Army', src: '/pixel-characters/Army.png', price: 150 },
   { id: 'default_boy_1', name: 'Default Boy 1', src: '/pixel-characters/Default_Boy_1.png', price: 0 },
   { id: 'default_boy_2', name: 'Default Boy 2', src: '/pixel-characters/Default_Boy_2.png', price: 0 },
   { id: 'default_boy_3', name: 'Default Boy 3', src: '/pixel-characters/Default_Boy_3.PNG', price: 0 },
@@ -936,22 +936,22 @@ const CHARACTER_CATALOG = [
   { id: 'default_girl_5', name: 'Default Girl 5', src: '/pixel-characters/Default_Girl_5.png', price: 0 },
   { id: 'default_girl_6', name: 'Default Girl 6', src: '/pixel-characters/Default_Girl_6.PNG', price: 0 },
   { id: 'default_girl_7', name: 'Default Girl 7', src: '/pixel-characters/Default_Girl_7.PNG', price: 0 },
-  { id: 'football_1', name: 'Football 1', src: '/pixel-characters/Football_1.png', price: 100 },
-  { id: 'football_2', name: 'Football 2', src: '/pixel-characters/Football_2.png', price: 100 },
-  { id: 'football_3', name: 'Football 3', src: '/pixel-characters/Football_3.png', price: 100 },
-  { id: 'football_4', name: 'Football 4', src: '/pixel-characters/Football_4.png', price: 100 },
-  { id: 'gator', name: 'Gator', src: '/pixel-characters/Gator.png', price: 100 },
-  { id: 'ghost', name: 'Ghost', src: '/pixel-characters/Ghost.png', price: 100 },
-  { id: 'king', name: 'King', src: '/pixel-characters/King.png', price: 100 },
-  { id: 'knight', name: 'Knight', src: '/pixel-characters/Knight.png', price: 100 },
-  { id: 'monopoly_man', name: 'Monopoly Man', src: '/pixel-characters/Monopoly_Man.png', price: 100 },
-  { id: 'queen', name: 'Queen', src: '/pixel-characters/Queen.png', price: 100 },
+  { id: 'football_1', name: 'Football 1', src: '/pixel-characters/Football_1.png', price: 150 },
+  { id: 'football_2', name: 'Football 2', src: '/pixel-characters/Football_2.png', price: 150 },
+  { id: 'football_3', name: 'Football 3', src: '/pixel-characters/Football_3.png', price: 150 },
+  { id: 'football_4', name: 'Football 4', src: '/pixel-characters/Football_4.png', price: 150 },
+  { id: 'gator', name: 'Gator', src: '/pixel-characters/Gator.png', price: 200 },
+  { id: 'ghost', name: 'Ghost', src: '/pixel-characters/Ghost.png', price: 150 },
+  { id: 'king', name: 'King', src: '/pixel-characters/King.png', price: 300 },
+  { id: 'knight', name: 'Knight', src: '/pixel-characters/Knight.png', price: 250 },
+  { id: 'monopoly_man', name: 'Monopoly Man', src: '/pixel-characters/Monopoly_Man.png', price: 300 },
+  { id: 'queen', name: 'Queen', src: '/pixel-characters/Queen.png', price: 250 },
   { id: 'robot', name: 'Robot', src: '/pixel-characters/Robot.gif', price: 1000 },
   { id: 'sheriff', name: 'Sheriff', src: '/pixel-characters/Sheriff.gif', price: 1000 },
-  { id: 'skeleton', name: 'Skeleton', src: '/pixel-characters/Skeleton.png', price: 100 },
-  { id: 'skeleton_2', name: 'Skeleton 2', src: '/pixel-characters/Skeleton_2.png', price: 100 },
-  { id: 'swimsuit_girl', name: 'Swimsuit Girl', src: '/pixel-characters/Swimsuit_Girl.png', price: 100 },
-  { id: 'vampire', name: 'Vampire', src: '/pixel-characters/Vampire.png', price: 100 },
+  { id: 'skeleton', name: 'Skeleton', src: '/pixel-characters/Skeleton.png', price: 200 },
+  { id: 'skeleton_2', name: 'Skeleton 2', src: '/pixel-characters/Skeleton_2.png', price: 200 },
+  { id: 'swimsuit_girl', name: 'Swimsuit Girl', src: '/pixel-characters/Swimsuit_Girl.png', price: 150 },
+  { id: 'vampire', name: 'Vampire', src: '/pixel-characters/Vampire.png', price: 250 },
 ];
 const OUTFIT_BY_ID = {};
 const CHARACTER_BY_ID = CHARACTER_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
@@ -1421,7 +1421,7 @@ function handleMessage(msg) {
       players.push({
         id: msg.id,
         nickname: msg.nickname,
-        chips: msg.chips ?? 100,
+        chips: msg.chips ?? 10,
         winStreak: msg.winStreak ?? 0,
         maxWinStreak: msg.maxWinStreak ?? 0,
         currentView: msg.currentView ?? 'lobby',
@@ -1438,7 +1438,7 @@ function handleMessage(msg) {
         return;
       }
       if (currentGameType === 'blackjack' && window.blackjack && (msg.currentView ?? 'lobby') === 'blackjack') {
-        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 100 });
+        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 10 });
       }
       renderTable();
       break;
@@ -1725,7 +1725,7 @@ function handleMessage(msg) {
               id: up.id,
               nickname: up.nickname,
               currentView: newView,
-              chips: up.chips ?? 100,
+              chips: up.chips ?? 10,
               outfit: up.outfit || null,
               purchasedOutfits: normalizeOutfitList(up.purchasedOutfits),
               character: up.character || null,
@@ -1741,7 +1741,7 @@ function handleMessage(msg) {
               id: up.id,
               nickname: up.nickname,
               currentView: up.currentView ?? 'lobby',
-              chips: up.chips ?? ex?.chips ?? 100,
+              chips: up.chips ?? ex?.chips ?? 10,
               outfit: up.outfit ?? ex?.outfit ?? null,
               purchasedOutfits: normalizeOutfitList(up.purchasedOutfits ?? ex?.purchasedOutfits),
               character: up.character ?? ex?.character ?? null,
@@ -1756,7 +1756,7 @@ function handleMessage(msg) {
           const existingIds = new Set(window.blackjack.getPlayerIds());
           bjNow.forEach((p) => {
             if (!existingIds.has(p.id)) {
-              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 100 });
+              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 10 });
             }
           });
           existingIds.forEach((id) => {
@@ -3363,7 +3363,10 @@ function renderStoreOverlay() {
   if (!CHARACTER_BY_ID[storePreviewCharacter]) storePreviewCharacter = myEquippedCharacter;
   storeItemsEl.innerHTML = '';
   const query = (storeSearchInput?.value || '').trim().toLowerCase();
-  const filteredCharacters = CHARACTER_CATALOG.filter((character) => catalogMatches(character, query));
+  const filteredCharacters = CHARACTER_CATALOG
+    .filter((character) => catalogMatches(character, query))
+    .slice()
+    .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
   createCatalogSection(
     storeItemsEl,
     'Characters',
@@ -3399,7 +3402,9 @@ function renderClosetOverlay() {
   const ownedCharacters = myPurchasedCharacters
     .map((characterId) => CHARACTER_BY_ID[characterId])
     .filter(Boolean)
-    .filter((character) => catalogMatches(character, query));
+    .filter((character) => catalogMatches(character, query))
+    .slice()
+    .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
   createCatalogSection(
     closetItemsEl,
     'Characters',
