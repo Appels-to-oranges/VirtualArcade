@@ -50,6 +50,8 @@
   let ckWagerChips = {};
   let ckWagerNicknames = {};
   let ckWagerAmount = 0;
+  let ckMode = 'player';
+  let ckDifficulty = 1;
 
   /* ── DOM refs (lazily initialised) ── */
 
@@ -233,6 +235,19 @@
       '.ck-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
         'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
       '.ck-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
+      '.ck-mode-tabs{display:flex;gap:.4rem;margin-bottom:.6rem}' +
+      ".ck-mode-tab{flex:1;font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.35rem .4rem;" +
+        'border:.1rem solid #30363d;background:#0d1117;color:#8b949e;cursor:pointer;border-radius:.2rem}' +
+      '.ck-mode-tab.ck-active{background:#238636;color:#fff;border-color:#2ea043}' +
+      '.ck-computer-settings{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
+      '.ck-computer-settings.ck-hidden{display:none}' +
+      '.ck-computer-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}' +
+      '.ck-computer-label{font-size:.4rem;color:#888}' +
+      '.ck-computer-payout{font-size:.35rem;color:#4ade80;margin-top:.4rem}' +
+      '.ck-difficulty-buttons{display:flex;gap:.35rem}' +
+      ".ck-difficulty-btn{flex:1;font-family:'Press Start 2P',monospace;font-size:.32rem;padding:.28rem .25rem;" +
+        'border:.1rem solid #30363d;background:#1a1a1a;color:#bbb;cursor:pointer;border-radius:.18rem}' +
+      '.ck-difficulty-btn.ck-active{background:#2ea043;color:#fff;border-color:#3fb950}' +
       '.ck-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
       '.ck-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
       '.ck-config-opponent-name{font-size:.5rem;color:#ddd}' +
@@ -286,6 +301,55 @@
 
   /* ── DOM setup ── */
 
+  function difficultyLabel(level) {
+    if (level === 1) return 'Easy';
+    if (level === 2) return 'Medium';
+    return 'Hard';
+  }
+
+  function ensureModeControls() {
+    if (!screenEl) return;
+    var panel = screenEl.querySelector('.ck-config-panel');
+    if (!panel) return;
+    if (document.getElementById('ck-mode-tabs')) return;
+    var title = panel.querySelector('.ck-config-title');
+    var opponent = document.getElementById('ck-config-opponent');
+    var tabs = document.createElement('div');
+    tabs.className = 'ck-mode-tabs';
+    tabs.id = 'ck-mode-tabs';
+    tabs.innerHTML =
+      '<button type="button" id="ck-mode-player-btn" class="ck-mode-tab ck-active">Vs Player</button>' +
+      '<button type="button" id="ck-mode-computer-btn" class="ck-mode-tab">Vs Computer</button>';
+    if (title && title.nextSibling) panel.insertBefore(tabs, title.nextSibling);
+    else panel.appendChild(tabs);
+
+    var computer = document.createElement('div');
+    computer.className = 'ck-computer-settings ck-hidden';
+    computer.id = 'ck-computer-settings';
+    computer.innerHTML =
+      '<div class="ck-computer-row"><span class="ck-computer-label">Difficulty</span></div>' +
+      '<div class="ck-difficulty-buttons">' +
+        '<button type="button" id="ck-diff-1" class="ck-difficulty-btn ck-active">Easy</button>' +
+        '<button type="button" id="ck-diff-2" class="ck-difficulty-btn">Medium</button>' +
+        '<button type="button" id="ck-diff-3" class="ck-difficulty-btn">Hard</button>' +
+      '</div>' +
+      '<div class="ck-computer-payout" id="ck-computer-payout">Win payout: $100</div>';
+    if (opponent) panel.insertBefore(computer, opponent.nextSibling);
+    else panel.appendChild(computer);
+
+    var playerBtn = document.getElementById('ck-mode-player-btn');
+    var computerBtn = document.getElementById('ck-mode-computer-btn');
+    if (playerBtn) playerBtn.addEventListener('click', function () { send({ type: 'ckSetMode', mode: 'player' }); });
+    if (computerBtn) computerBtn.addEventListener('click', function () { send({ type: 'ckSetMode', mode: 'computer' }); });
+    [1, 2, 3].forEach(function (level) {
+      var btn = document.getElementById('ck-diff-' + level);
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        send({ type: 'ckSetDifficulty', difficulty: level });
+      });
+    });
+  }
+
   function buildScreen() {
     screenEl = document.getElementById('ck-screen');
     if (screenEl) {
@@ -293,6 +357,7 @@
       statusEl = document.getElementById('ck-status');
       roomLabelEl = document.getElementById('ck-room-label');
       playersAreaEl = document.getElementById('ck-players-area');
+      ensureModeControls();
       return;
     }
 
@@ -474,6 +539,7 @@
     statusEl = document.getElementById('ck-status');
     roomLabelEl = document.getElementById('ck-room-label');
     playersAreaEl = document.getElementById('ck-players-area');
+    ensureModeControls();
   }
 
   /* ── Rendering ── */
@@ -606,6 +672,11 @@
   }
 
   function updateCkWagerSlider() {
+    if (ckMode === 'computer') {
+      var configStartBtnComputer = document.getElementById('ck-config-start-btn');
+      if (configStartBtnComputer) configStartBtnComputer.disabled = false;
+      return;
+    }
     var slider = document.getElementById('ck-wager-slider');
     var valEl = document.getElementById('ck-wager-value');
     var lockBtn = document.getElementById('ck-wager-lock-btn');
@@ -653,9 +724,30 @@
   function updateCkConfigPanel() {
     var oppName = document.getElementById('ck-config-opponent-name');
     var oppChipsEl = document.getElementById('ck-config-opponent-chips');
+    var modePlayerBtn = document.getElementById('ck-mode-player-btn');
+    var modeComputerBtn = document.getElementById('ck-mode-computer-btn');
+    var wagersEl = screenEl ? screenEl.querySelector('.ck-config-wagers') : null;
+    var computerEl = document.getElementById('ck-computer-settings');
+    var payoutEl = document.getElementById('ck-computer-payout');
+    if (modePlayerBtn) modePlayerBtn.classList.toggle('ck-active', ckMode !== 'computer');
+    if (modeComputerBtn) modeComputerBtn.classList.toggle('ck-active', ckMode === 'computer');
+    if (wagersEl) wagersEl.style.display = ckMode === 'computer' ? 'none' : '';
+    if (computerEl) computerEl.classList.toggle('ck-hidden', ckMode !== 'computer');
+    [1, 2, 3].forEach(function (level) {
+      var btn = document.getElementById('ck-diff-' + level);
+      if (btn) btn.classList.toggle('ck-active', level === ckDifficulty);
+    });
+    if (payoutEl) payoutEl.textContent = 'Win payout: $' + (ckDifficulty * 100);
     var other = ckPlayers.find(function (p) { return p.id !== ckMyId; });
-    if (oppName) oppName.textContent = other ? (ckWagerNicknames[other.id] || other.nickname || 'Opponent') : 'Waiting...';
-    if (oppChipsEl) oppChipsEl.textContent = other ? '$' + (ckWagerChips[other.id] ?? other.chips ?? 0) : '';
+    if (ckMode === 'computer') {
+      if (oppName) oppName.textContent = 'Computer (' + difficultyLabel(ckDifficulty) + ')';
+      if (oppChipsEl) oppChipsEl.textContent = 'Payout $' + (ckDifficulty * 100);
+      var mismatchMsg = document.getElementById('ck-wager-mismatch-msg');
+      if (mismatchMsg) mismatchMsg.classList.remove('ck-show');
+    } else {
+      if (oppName) oppName.textContent = other ? (ckWagerNicknames[other.id] || other.nickname || 'Opponent') : 'Waiting...';
+      if (oppChipsEl) oppChipsEl.textContent = other ? '$' + (ckWagerChips[other.id] ?? other.chips ?? 0) : '';
+    }
   }
 
   /* ── Timer display ── */
@@ -778,6 +870,13 @@
         ckWagerNicknames = msg.nicknames || {};
         updateCkWagerSlider();
         updateCkConfigPanel();
+        break;
+
+      case 'ckModeState':
+        ckMode = msg.mode === 'computer' ? 'computer' : 'player';
+        ckDifficulty = Math.max(1, Math.min(3, parseInt(msg.difficulty, 10) || 1));
+        updateCkConfigPanel();
+        updateCkWagerSlider();
         break;
 
       case 'ckWagerMismatch':
@@ -939,6 +1038,8 @@
     ckWinner = null;
     ckMustContinue = null;
     ckMyColor = null;
+    ckMode = 'player';
+    ckDifficulty = 1;
     ckTimerSeconds = 0;
     ckTurnDeadline = 0;
     stopCkTimer();

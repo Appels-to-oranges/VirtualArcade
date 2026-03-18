@@ -179,7 +179,7 @@ function playSfx(audio, vol) {
 
 function getMasterVolume() {
   const raw = parseInt(localStorage.getItem(MASTER_VOLUME_KEY), 10);
-  return (isNaN(raw) ? 100 : Math.max(0, Math.min(100, raw))) / 100;
+  return (isNaN(raw) ? 50 : Math.max(0, Math.min(100, raw))) / 100;
 }
 
 function playSound(audio, volumeKey) {
@@ -530,6 +530,25 @@ let turnTimerInterval = null;
 let turnStartedAt = 0;
 let prevTurnIdx = -1;
 let currentGameType = 'holdem';
+
+let browserBackPendingLobby = false;
+let historyReady = false;
+
+function setViewHistoryState(screen, gameType, replace) {
+  if (typeof window === 'undefined' || !window.history) return;
+  const next = { vaScreen: screen };
+  if (gameType) next.gameType = gameType;
+  const prev = window.history.state || {};
+  const sameScreen = prev.vaScreen === next.vaScreen;
+  const sameGameType = (prev.gameType || null) === (next.gameType || null);
+  if (sameScreen && sameGameType) return;
+  if (replace || !historyReady) {
+    window.history.replaceState(next, '', window.location.href);
+    historyReady = true;
+  } else {
+    window.history.pushState(next, '', window.location.href);
+  }
+}
 let hasPlayedGame = false;
 let nextHandInterval = null;
 const NEXT_HAND_DELAY_S = 30;
@@ -710,17 +729,29 @@ async function doLogin() {
   }
 }
 
+function collectCurrentProgressSnapshot() {
+  const me = getMyPlayer();
+  return {
+    chips: me?.chips ?? 100,
+    purchasedOutfits: normalizeOutfitList(me?.purchasedOutfits || myPurchasedOutfits),
+    equippedOutfit: me?.outfit || myEquippedOutfit || '',
+    purchasedCharacters: normalizeCharacterList(me?.purchasedCharacters || myPurchasedCharacters),
+    equippedCharacter: me?.character || myEquippedCharacter || '',
+  };
+}
+
 async function doRegister() {
   clearAuthError();
   const username = document.getElementById('auth-reg-username')?.value?.trim();
   const email = document.getElementById('auth-reg-email')?.value?.trim();
   const password = document.getElementById('auth-reg-password')?.value;
   if (!username || !email || !password) { showAuthError('All fields are required'); return; }
+  const progress = collectCurrentProgressSnapshot();
   try {
     const res = await fetch('/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, email, password, progress }),
     });
     const data = await res.json();
     if (!res.ok) { showAuthError(data.error || 'Registration failed'); return; }
@@ -761,6 +792,27 @@ document.getElementById('auth-password')?.addEventListener('keydown', (e) => { i
 document.getElementById('auth-reg-username')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRegister(); });
 document.getElementById('auth-reg-email')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRegister(); });
 document.getElementById('auth-reg-password')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRegister(); });
+
+async function startOAuthFlow(url) {
+  if (!url) return;
+  try {
+    const progress = collectCurrentProgressSnapshot();
+    await fetch('/auth/pending-progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ progress }),
+      keepalive: true,
+    });
+  } catch (_) {}
+  window.location.href = url;
+}
+
+document.querySelectorAll('.oauth-btn').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    startOAuthFlow(btn.getAttribute('href'));
+  });
+});
 
 // ── Join flow ──
 
@@ -927,6 +979,11 @@ function renderParticipants() {
     nameEl.textContent = name;
     chip.appendChild(nameEl);
 
+    const chipsEl = document.createElement('span');
+    chipsEl.className = 'participant-chips';
+    chipsEl.textContent = '$' + (p.chips ?? 0);
+    chip.appendChild(chipsEl);
+
     participantsList.appendChild(chip);
   });
 }
@@ -1072,6 +1129,15 @@ function goBackToLobby() {
   ws.send(JSON.stringify({ type: 'backToLobby' }));
 }
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    if (currentGameType !== 'lobby' && ws && ws.readyState === 1) {
+      browserBackPendingLobby = true;
+      goBackToLobby();
+    }
+  });
+}
+
 const holdemBackBtn = document.getElementById('holdem-back-btn');
 const bjBackBtn = document.getElementById('bj-back-btn');
 const slotsBackBtn = document.getElementById('slots-back-btn');
@@ -1182,6 +1248,7 @@ function handleMessage(msg) {
       if (currentGameType === 'lobby') {
         lobbyPlayers = (players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
         showGameSelectScreen(players, msg.chatHistory);
+        setViewHistoryState('lobby', null, true);
         if (msg.radio) playRadio(msg.radio);
         initRadioVolume();
         if (msg.theme) applyTheme(msg.theme);
@@ -1244,6 +1311,7 @@ function handleMessage(msg) {
           initRadioVolume();
         }
       }
+      setViewHistoryState('game', currentGameType, false);
       break;
 
     case 'holdemBusted':
@@ -1337,6 +1405,8 @@ function handleMessage(msg) {
           initRadioVolume();
         }
       }
+      if (currentGameType === 'lobby') setViewHistoryState('lobby', null, true);
+      else setViewHistoryState('game', currentGameType, false);
       break;
 
     case 'userJoined':
@@ -1717,6 +1787,8 @@ function handleMessage(msg) {
       lobbyPlayers = (msg.players || []).map((p) => ({ ...p, currentView: p.currentView ?? 'lobby' }));
       refreshMyCosmeticState();
       showGameSelectScreen(msg.players, msg.chatHistory);
+      setViewHistoryState('lobby', null, browserBackPendingLobby);
+      browserBackPendingLobby = false;
       if (msg.theme) applyTheme(msg.theme);
       else applyTheme(currentTheme);
       break;
@@ -1798,6 +1870,7 @@ function handleMessage(msg) {
 
 function showJoinScreen() {
   cancelBrokeKickTimer();
+  browserBackPendingLobby = false;
   hideAllGameScreens();
   if (window.blackjack) window.blackjack.hide();
   if (window.checkers) window.checkers.hide();
@@ -1815,6 +1888,7 @@ function showJoinScreen() {
   ws = null;
   if (joinScreen) joinScreen.classList.remove('hidden');
   updateJoinUI();
+  setViewHistoryState('join', null, true);
 }
 
 function showGameScreen() {
@@ -3581,7 +3655,11 @@ if (roomParam && roomKeyInput) {
   roomKeyInput.value = roomParam;
 }
 if (params.has('authed')) {
-  window.history.replaceState({}, '', window.location.pathname + (roomParam ? '?room=' + encodeURIComponent(roomParam) : ''));
+  window.history.replaceState({ vaScreen: 'join' }, '', window.location.pathname + (roomParam ? '?room=' + encodeURIComponent(roomParam) : ''));
+  historyReady = true;
+}
+if (!historyReady) {
+  setViewHistoryState('join', null, true);
 }
 
 checkAuth();

@@ -39,6 +39,8 @@
   var chEnPassant = null;
   var chLastMove = null;
   var chInCheck = false;
+  var chMode = 'player';
+  var chDifficulty = 10;
 
   /* ── DOM refs (lazy) ── */
 
@@ -394,6 +396,17 @@
       '.ch-chat-msg.you .ch-chat-nick{color:#4ade80}' +
       '.ch-chat-nick{color:#8b949e}' +
       '.ch-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
+      '.ch-mode-tabs{display:flex;gap:.4rem;margin-bottom:.6rem}' +
+      ".ch-mode-tab{flex:1;font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.35rem .4rem;" +
+        'border:.1rem solid #30363d;background:#0d1117;color:#8b949e;cursor:pointer;border-radius:.2rem}' +
+      '.ch-mode-tab.ch-active{background:#238636;color:#fff;border-color:#2ea043}' +
+      '.ch-computer-settings{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
+      '.ch-computer-settings.ch-hidden{display:none}' +
+      '.ch-computer-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}' +
+      '.ch-computer-label{font-size:.4rem;color:#888}' +
+      '.ch-computer-value{font-size:.45rem;color:#c9b896}' +
+      '.ch-computer-settings input[type=range]{width:100%}' +
+      '.ch-computer-payout{font-size:.35rem;color:#4ade80;margin-top:.3rem}' +
       '.ch-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
       '.ch-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
       '.ch-config-opponent-name{font-size:.5rem;color:#ddd}' +
@@ -438,6 +451,44 @@
     document.head.appendChild(s);
   }
 
+  function ensureModeControls() {
+    if (!screenEl) return;
+    var panel = screenEl.querySelector('.ch-config-panel');
+    if (!panel) return;
+    if (document.getElementById('ch-mode-tabs')) return;
+    var title = panel.querySelector('.ch-config-title');
+    var opponent = document.getElementById('ch-config-opponent');
+    var tabs = document.createElement('div');
+    tabs.className = 'ch-mode-tabs';
+    tabs.id = 'ch-mode-tabs';
+    tabs.innerHTML =
+      '<button type="button" id="ch-mode-player-btn" class="ch-mode-tab ch-active">Vs Player</button>' +
+      '<button type="button" id="ch-mode-computer-btn" class="ch-mode-tab">Vs Computer</button>';
+    if (title && title.nextSibling) panel.insertBefore(tabs, title.nextSibling);
+    else panel.appendChild(tabs);
+    var computer = document.createElement('div');
+    computer.className = 'ch-computer-settings ch-hidden';
+    computer.id = 'ch-computer-settings';
+    computer.innerHTML =
+      '<div class="ch-computer-row"><span class="ch-computer-label">Difficulty</span><span id="ch-difficulty-value" class="ch-computer-value">10</span></div>' +
+      '<input type="range" id="ch-difficulty-slider" min="1" max="20" value="10" step="1">' +
+      '<div class="ch-computer-payout" id="ch-computer-payout">Win payout: $1000</div>';
+    if (opponent) panel.insertBefore(computer, opponent.nextSibling);
+    else panel.appendChild(computer);
+
+    var playerBtn = document.getElementById('ch-mode-player-btn');
+    var computerBtn = document.getElementById('ch-mode-computer-btn');
+    if (playerBtn) playerBtn.addEventListener('click', function () { send({ type: 'chSetMode', mode: 'player' }); });
+    if (computerBtn) computerBtn.addEventListener('click', function () { send({ type: 'chSetMode', mode: 'computer' }); });
+    var difficultySlider = document.getElementById('ch-difficulty-slider');
+    if (difficultySlider) difficultySlider.addEventListener('input', function () {
+      var level = parseInt(difficultySlider.value, 10);
+      chDifficulty = Math.max(1, Math.min(20, level || 10));
+      send({ type: 'chSetDifficulty', difficulty: chDifficulty });
+      updateChConfigPanel();
+    });
+  }
+
   /* ── DOM setup ── */
 
   function buildScreen() {
@@ -447,6 +498,7 @@
       statusEl = document.getElementById('ch-status');
       roomLabelEl = document.getElementById('ch-room-label');
       playersAreaEl = document.getElementById('ch-players-area');
+      ensureModeControls();
       return;
     }
 
@@ -630,6 +682,7 @@
     statusEl = document.getElementById('ch-status');
     roomLabelEl = document.getElementById('ch-room-label');
     playersAreaEl = document.getElementById('ch-players-area');
+    ensureModeControls();
   }
 
   /* ── Rendering ── */
@@ -760,6 +813,11 @@
   }
 
   function updateChWagerSlider() {
+    if (chMode === 'computer') {
+      var configStartBtnComputer = document.getElementById('ch-config-start-btn');
+      if (configStartBtnComputer) configStartBtnComputer.disabled = false;
+      return;
+    }
     var slider = document.getElementById('ch-wager-slider');
     var valEl = document.getElementById('ch-wager-value');
     var lockBtn = document.getElementById('ch-wager-lock-btn');
@@ -807,9 +865,30 @@
   function updateChConfigPanel() {
     var oppName = document.getElementById('ch-config-opponent-name');
     var oppChipsEl = document.getElementById('ch-config-opponent-chips');
+    var modePlayerBtn = document.getElementById('ch-mode-player-btn');
+    var modeComputerBtn = document.getElementById('ch-mode-computer-btn');
+    var wagersEl = screenEl ? screenEl.querySelector('.ch-config-wagers') : null;
+    var computerEl = document.getElementById('ch-computer-settings');
+    var difficultySlider = document.getElementById('ch-difficulty-slider');
+    var difficultyValue = document.getElementById('ch-difficulty-value');
+    var payoutValue = document.getElementById('ch-computer-payout');
+    if (modePlayerBtn) modePlayerBtn.classList.toggle('ch-active', chMode !== 'computer');
+    if (modeComputerBtn) modeComputerBtn.classList.toggle('ch-active', chMode === 'computer');
+    if (wagersEl) wagersEl.style.display = chMode === 'computer' ? 'none' : '';
+    if (computerEl) computerEl.classList.toggle('ch-hidden', chMode !== 'computer');
+    if (difficultySlider) difficultySlider.value = String(chDifficulty);
+    if (difficultyValue) difficultyValue.textContent = String(chDifficulty);
+    if (payoutValue) payoutValue.textContent = 'Win payout: $' + (chDifficulty * 100);
     var other = chPlayers.find(function (p) { return p.id !== chMyId; });
-    if (oppName) oppName.textContent = other ? (chWagerNicknames[other.id] || other.nickname || 'Opponent') : 'Waiting...';
-    if (oppChipsEl) oppChipsEl.textContent = other ? '$' + (chWagerChips[other.id] ?? other.chips ?? 0) : '';
+    if (chMode === 'computer') {
+      if (oppName) oppName.textContent = 'Computer';
+      if (oppChipsEl) oppChipsEl.textContent = 'Level ' + chDifficulty + ' (payout $' + (chDifficulty * 100) + ')';
+      var mismatchMsg = document.getElementById('ch-wager-mismatch-msg');
+      if (mismatchMsg) mismatchMsg.classList.remove('ch-show');
+    } else {
+      if (oppName) oppName.textContent = other ? (chWagerNicknames[other.id] || other.nickname || 'Opponent') : 'Waiting...';
+      if (oppChipsEl) oppChipsEl.textContent = other ? '$' + (chWagerChips[other.id] ?? other.chips ?? 0) : '';
+    }
   }
 
   /* ── Timer ── */
@@ -922,6 +1001,13 @@
         chWagerNicknames = msg.nicknames || {};
         updateChWagerSlider();
         updateChConfigPanel();
+        break;
+
+      case 'chModeState':
+        chMode = msg.mode === 'computer' ? 'computer' : 'player';
+        chDifficulty = Math.max(1, Math.min(20, parseInt(msg.difficulty, 10) || 10));
+        updateChConfigPanel();
+        updateChWagerSlider();
         break;
 
       case 'chWagerMismatch':
@@ -1094,6 +1180,8 @@
     chEnPassant = null;
     chLastMove = null;
     chInCheck = false;
+    chMode = 'player';
+    chDifficulty = 10;
     chTimerSeconds = 0;
     chTurnDeadline = 0;
     stopChTimer();

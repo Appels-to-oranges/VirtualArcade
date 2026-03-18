@@ -17,6 +17,7 @@
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.20.0",
     "pokersolver": "^2.0.6",
+    "stockfish": "^18.0.5",
     "ws": "^8.14.2"
   }
 }

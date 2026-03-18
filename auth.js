@@ -7,6 +7,10 @@ const pool = require('./db');
 
 const router = express.Router();
 
+const ALLOWED_OUTFITS = new Set(['outfit1', 'outfit2']);
+const CHARACTER_ALIASES = { k_dots: 'boy_i', a_dots: 'girl_a', dots: 'boy_p' };
+const ALLOWED_CHARACTERS = new Set(['boy_i', 'girl_a', 'boy_p']);
+
 router.use(express.json());
 router.use(passport.initialize());
 router.use(passport.session());
@@ -21,7 +25,32 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-async function findOrCreateOAuthUser(provider, profileId, email, displayName) {
+function normalizeOutfitList(list) {
+  if (!Array.isArray(list)) return [];
+  return [...new Set(list.filter((id) => ALLOWED_OUTFITS.has(id)))];
+}
+
+function normalizeCharacterList(list) {
+  if (!Array.isArray(list)) return [];
+  return [...new Set(
+    list
+      .map((id) => CHARACTER_ALIASES[id] || id)
+      .filter((id) => ALLOWED_CHARACTERS.has(id))
+  )];
+}
+
+function normalizeProgress(progress) {
+  const safeProgress = (progress && typeof progress === 'object') ? progress : {};
+  const chips = Math.max(0, Math.min(1000000000, Math.floor(Number(safeProgress.chips) || 100)));
+  const purchasedOutfits = normalizeOutfitList(safeProgress.purchasedOutfits);
+  const equippedOutfit = purchasedOutfits.includes(safeProgress.equippedOutfit) ? safeProgress.equippedOutfit : null;
+  const purchasedCharacters = normalizeCharacterList(safeProgress.purchasedCharacters);
+  const normalizedCharacter = CHARACTER_ALIASES[safeProgress.equippedCharacter] || safeProgress.equippedCharacter;
+  const equippedCharacter = purchasedCharacters.includes(normalizedCharacter) ? normalizedCharacter : null;
+  return { chips, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter };
+}
+
+async function findOrCreateOAuthUser(provider, profileId, email, displayName, pendingProgress) {
   const oauthCol = provider + '_id';
 
   const byOAuth = await pool.query(
@@ -44,13 +73,38 @@ async function findOrCreateOAuthUser(provider, profileId, email, displayName) {
   let username = (displayName || provider + '_user').replace(/[^a-zA-Z0-9_]/g, '').slice(0, 18);
   const existing = await pool.query('SELECT id FROM users WHERE LOWER(username) = LOWER($1)', [username]);
   if (existing.rows.length > 0) username += Math.floor(Math.random() * 999);
+  const {
+    chips,
+    purchasedOutfits,
+    equippedOutfit,
+    purchasedCharacters,
+    equippedCharacter,
+  } = normalizeProgress(pendingProgress);
 
   const result = await pool.query(
-    `INSERT INTO users (username, email, password_hash, ${oauthCol}) VALUES ($1, $2, $3, $4) RETURNING id, username, email, chips`,
-    [username.slice(0, 20), email || `${provider}_${profileId}@oauth.local`, 'oauth_no_password', profileId]
+    `INSERT INTO users (username, email, password_hash, ${oauthCol}, chips, purchased_outfits, equipped_outfit, purchased_characters, equipped_character)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING id, username, email, chips`,
+    [
+      username.slice(0, 20),
+      email || `${provider}_${profileId}@oauth.local`,
+      'oauth_no_password',
+      profileId,
+      chips,
+      purchasedOutfits,
+      equippedOutfit,
+      purchasedCharacters,
+      equippedCharacter,
+    ]
   );
   return result.rows[0];
 }
+
+router.post('/pending-progress', (req, res) => {
+  const normalized = normalizeProgress(req.body?.progress);
+  req.session.pendingProgress = normalized;
+  req.session.save(() => res.json({ ok: true }));
+});
 
 // Google OAuth
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -58,10 +112,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: '/auth/google/callback',
-  }, async (accessToken, refreshToken, profile, done) => {
+    passReqToCallback: true,
+  }, async (req, accessToken, refreshToken, profile, done) => {
     try {
       const email = profile.emails?.[0]?.value;
-      const user = await findOrCreateOAuthUser('google', profile.id, email, profile.displayName);
+      const pendingProgress = req.session?.pendingProgress || null;
+      const user = await findOrCreateOAuthUser('google', profile.id, email, profile.displayName, pendingProgress);
       done(null, user);
     } catch (err) {
       done(err, null);
@@ -74,6 +130,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport.authenticate('google', { failureRedirect: '/?auth_error=google' }),
     (req, res) => {
       req.session.userId = req.user.id;
+      delete req.session.pendingProgress;
       req.session.save(() => res.redirect('/?authed=1'));
     }
   );
@@ -86,10 +143,12 @@ if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: '/auth/discord/callback',
     scope: ['identify', 'email'],
-  }, async (accessToken, refreshToken, profile, done) => {
+    passReqToCallback: true,
+  }, async (req, accessToken, refreshToken, profile, done) => {
     try {
       const email = profile.email;
-      const user = await findOrCreateOAuthUser('discord', profile.id, email, profile.username);
+      const pendingProgress = req.session?.pendingProgress || null;
+      const user = await findOrCreateOAuthUser('discord', profile.id, email, profile.username, pendingProgress);
       done(null, user);
     } catch (err) {
       done(err, null);
@@ -102,6 +161,7 @@ if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
     passport.authenticate('discord', { failureRedirect: '/?auth_error=discord' }),
     (req, res) => {
       req.session.userId = req.user.id;
+      delete req.session.pendingProgress;
       req.session.save(() => res.redirect('/?authed=1'));
     }
   );
@@ -115,7 +175,7 @@ router.get('/providers', (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, progress } = req.body;
 
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -144,9 +204,16 @@ router.post('/register', async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 12);
+    const {
+      chips,
+      purchasedOutfits,
+      equippedOutfit,
+      purchasedCharacters,
+      equippedCharacter,
+    } = normalizeProgress(progress);
     const result = await pool.query(
-      'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, chips',
-      [trimmedUser, trimmedEmail, hash]
+      'INSERT INTO users (username, email, password_hash, chips, purchased_outfits, equipped_outfit, purchased_characters, equipped_character) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, chips',
+      [trimmedUser, trimmedEmail, hash, chips, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter]
     );
 
     const user = result.rows[0];
