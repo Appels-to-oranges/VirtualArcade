@@ -2157,18 +2157,14 @@ function chBoardToFen(room) {
   return `${rows.join('/')} ${side} ${castling} ${ep} 0 1`;
 }
 
-function eloToSkillLevel(elo) {
-  return Math.max(0, Math.min(20, Math.round((elo - 200) / 140)));
-}
-
 function chGetStockfishMove(fen, difficulty) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(STOCKFISH_CLI_PATH)) {
       reject(new Error('Stockfish engine is unavailable'));
       return;
     }
-    const skill = eloToSkillLevel(Number(difficulty) || 1200);
-    const movetime = 120 + skill * 40;
+    const elo = Math.max(200, Math.min(3000, Number(difficulty) || 1200));
+    const movetime = 200 + Math.round((elo - 200) / 2800 * 800);
     const engine = spawn(process.execPath, [STOCKFISH_CLI_PATH], { stdio: ['pipe', 'pipe', 'pipe'] });
     let done = false;
     let outBuffer = '';
@@ -2190,7 +2186,8 @@ function chGetStockfishMove(fen, difficulty) {
       const line = String(lineRaw || '').trim();
       if (!line || done) return;
       if (line === 'uciok') {
-        sendCmd(`setoption name Skill Level value ${skill}`);
+        sendCmd('setoption name UCI_LimitStrength value true');
+        sendCmd(`setoption name UCI_Elo value ${elo}`);
         sendCmd('isready');
       } else if (line === 'readyok') {
         sendCmd(`position fen ${fen}`);
