@@ -3,6 +3,10 @@ const CHIPS_BASE = '/chips';
 const SOUNDS_BASE = '/sounds';
 const TURN_TIMEOUT_MS = 60 * 1000;
 
+if (typeof adConfig === 'function') {
+  adConfig({ preloadAdBreaks: 'on', sound: 'on' });
+}
+
 const SOUND_FILES = {
   shuffle: ['shuffle.wav', 'shuffle.mp3'],
   cardPutDown: ['card_put_down.wav', 'card put down.wav', 'card_put_down.mp3'],

@@ -75,13 +75,13 @@ async function saveUserCosmetics(userId, purchasedOutfits, equippedOutfit, purch
   }
 }
 
-async function saveChessComputerBestLevel(userId, difficulty) {
+async function saveChessComputerBestLevel(userId, elo) {
   if (!userId) return;
-  const level = Math.max(1, Math.min(20, Math.floor(Number(difficulty) || 1)));
+  const clamped = Math.max(200, Math.min(3000, Math.floor(Number(elo) || 200)));
   try {
     await pool.query(
       'UPDATE users SET chess_best_computer_level = GREATEST(COALESCE(chess_best_computer_level, 0), $1) WHERE id = $2',
-      [level, userId]
+      [clamped, userId]
     );
   } catch (err) {
     console.error('Failed to save chess computer best level:', err.message);
@@ -330,7 +330,7 @@ function getRoom(roomKey) {
       ckVsComputer: false,
       ckBotMoveTimer: null,
       chMode: 'player',
-      chDifficulty: 10,
+      chDifficulty: 1200,
       chVsComputer: false,
       chBotMoveTimer: null,
     });
@@ -1709,7 +1709,7 @@ function broadcastChWagerState(roomKey, room) {
 
 function broadcastChModeState(roomKey, room) {
   const mode = room.chMode === 'computer' ? 'computer' : 'player';
-  const difficulty = Math.max(1, Math.min(20, Number(room.chDifficulty) || 10));
+  const difficulty = Math.max(200, Math.min(3000, Number(room.chDifficulty) || 1200));
   broadcastToRoom(roomKey, { type: 'chModeState', mode, difficulty }, null, (p) => (p.currentView ?? 'lobby') === 'chess');
 }
 
@@ -2157,13 +2157,17 @@ function chBoardToFen(room) {
   return `${rows.join('/')} ${side} ${castling} ${ep} 0 1`;
 }
 
+function eloToSkillLevel(elo) {
+  return Math.max(0, Math.min(20, Math.round((elo - 200) / 140)));
+}
+
 function chGetStockfishMove(fen, difficulty) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(STOCKFISH_CLI_PATH)) {
       reject(new Error('Stockfish engine is unavailable'));
       return;
     }
-    const skill = Math.max(1, Math.min(20, Number(difficulty) || 10));
+    const skill = eloToSkillLevel(Number(difficulty) || 1200);
     const movetime = 120 + skill * 40;
     const engine = spawn(process.execPath, [STOCKFISH_CLI_PATH], { stdio: ['pipe', 'pipe', 'pipe'] });
     let done = false;
@@ -2241,8 +2245,8 @@ function chRecordComputerWinIfEligible(roomKey, room, winnerColor) {
   if (!winnerId || winnerId === CHESS_STOCKFISH_ID) return;
   const winnerP = room.chPlayersList?.find((p) => p.id === winnerId);
   if (!winnerP?.dbUserId) return;
-  const level = Math.max(1, Math.min(20, Number(room.chDifficulty) || 10));
-  saveChessComputerBestLevel(winnerP.dbUserId, level)
+  const elo = Math.max(200, Math.min(3000, Number(room.chDifficulty) || 1200));
+  saveChessComputerBestLevel(winnerP.dbUserId, elo)
     .then(() => broadcastChessComputerLeaderboard(roomKey))
     .catch(() => {});
 }
@@ -2387,18 +2391,18 @@ function chStartGameVsComputer(roomKey, humanId, timerSeconds, difficulty) {
   const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
   const human = chPlayers.find((p) => p.id === humanId);
   if (!human) return;
-  const level = Math.max(1, Math.min(20, Math.floor(Number(difficulty) || 10)));
+  const elo = Math.max(200, Math.min(3000, Math.floor(Number(difficulty) || 1200)));
   room.chMode = 'computer';
-  room.chDifficulty = level;
+  room.chDifficulty = elo;
   room.chVsComputer = true;
   chClearBotMoveTimer(room);
-  room.chWager = level * 100;
+  room.chWager = elo;
   room.chWagerProposals = {};
   room.chWagerReady = {};
   room.chWagerLocked = {};
   const botPlayer = {
     id: CHESS_STOCKFISH_ID,
-    nickname: `Computer Lv${level}`,
+    nickname: `Computer ${elo} ELO`,
     chips: 0,
     isBot: true,
   };
@@ -2678,7 +2682,7 @@ wss.on('connection', async (ws, req) => {
           ws.send(JSON.stringify({
             type: 'chModeState',
             mode: room.chMode === 'computer' ? 'computer' : 'player',
-            difficulty: Math.max(1, Math.min(20, Number(room.chDifficulty) || 10)),
+            difficulty: Math.max(200, Math.min(3000, Number(room.chDifficulty) || 1200)),
           }));
           sendChessComputerLeaderboard(ws);
         }
@@ -3012,7 +3016,7 @@ wss.on('connection', async (ws, req) => {
         const room = getRoom(data.roomKey);
         const chPlayers = room.players.filter((p) => (p.currentView ?? 'lobby') === 'chess');
         if (chPlayers.findIndex((x) => x.ws === ws) < 0) return;
-        room.chDifficulty = Math.max(1, Math.min(20, Math.floor(Number(msg.difficulty) || 10)));
+        room.chDifficulty = Math.max(200, Math.min(3000, Math.floor(Number(msg.difficulty) || 1200)));
         broadcastChModeState(data.roomKey, room);
       } else if (type === 'chRequestComputerLeaderboard') {
         const data = clients.get(ws);

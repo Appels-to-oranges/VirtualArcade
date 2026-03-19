@@ -40,7 +40,7 @@
   var chLastMove = null;
   var chInCheck = false;
   var chMode = 'player';
-  var chDifficulty = 10;
+  var chDifficulty = 1200;
   var chLeaderboardEntries = [];
   var chLeaderboardLastRequestAt = 0;
 
@@ -480,9 +480,9 @@
     computer.className = 'ch-computer-settings ch-hidden';
     computer.id = 'ch-computer-settings';
     computer.innerHTML =
-      '<div class="ch-computer-row"><span class="ch-computer-label">Difficulty</span><span id="ch-difficulty-value" class="ch-computer-value">10</span></div>' +
-      '<input type="range" id="ch-difficulty-slider" min="1" max="20" value="10" step="1">' +
-      '<div class="ch-computer-payout" id="ch-computer-payout">Win payout: $1000</div>';
+      '<div class="ch-computer-row"><span class="ch-computer-label">ELO</span><span id="ch-difficulty-value" class="ch-computer-value">1200</span></div>' +
+      '<input type="range" id="ch-difficulty-slider" min="200" max="3000" value="1200" step="100">' +
+      '<div class="ch-computer-payout" id="ch-computer-payout">Win payout: $1200</div>';
     if (opponent) panel.insertBefore(computer, opponent.nextSibling);
     else panel.appendChild(computer);
 
@@ -492,8 +492,8 @@
     if (computerBtn) computerBtn.addEventListener('click', function () { send({ type: 'chSetMode', mode: 'computer' }); });
     var difficultySlider = document.getElementById('ch-difficulty-slider');
     if (difficultySlider) difficultySlider.addEventListener('input', function () {
-      var level = parseInt(difficultySlider.value, 10);
-      chDifficulty = Math.max(1, Math.min(20, level || 10));
+      var elo = parseInt(difficultySlider.value, 10);
+      chDifficulty = Math.max(200, Math.min(3000, elo || 1200));
       send({ type: 'chSetDifficulty', difficulty: chDifficulty });
       updateChConfigPanel();
     });
@@ -894,11 +894,11 @@
     if (leaderboardPanel) leaderboardPanel.classList.toggle('ch-hidden', chMode !== 'computer');
     if (difficultySlider) difficultySlider.value = String(chDifficulty);
     if (difficultyValue) difficultyValue.textContent = String(chDifficulty);
-    if (payoutValue) payoutValue.textContent = 'Win payout: $' + (chDifficulty * 100);
+    if (payoutValue) payoutValue.textContent = 'Win payout: $' + chDifficulty;
     var other = chPlayers.find(function (p) { return p.id !== chMyId; });
     if (chMode === 'computer') {
       if (oppName) oppName.textContent = 'Computer';
-      if (oppChipsEl) oppChipsEl.textContent = 'Level ' + chDifficulty + ' (payout $' + (chDifficulty * 100) + ')';
+      if (oppChipsEl) oppChipsEl.textContent = chDifficulty + ' ELO (payout $' + chDifficulty + ')';
       var mismatchMsg = document.getElementById('ch-wager-mismatch-msg');
       if (mismatchMsg) mismatchMsg.classList.remove('ch-show');
     } else {
@@ -936,7 +936,7 @@
       name.textContent = row.username || 'Player';
       var level = document.createElement('span');
       level.className = 'ch-leaderboard-level';
-      level.textContent = 'Lv ' + (Number(row.level) || 0);
+      level.textContent = (Number(row.level) || 0) + ' ELO';
       entry.appendChild(rank);
       entry.appendChild(name);
       entry.appendChild(level);
@@ -1058,7 +1058,7 @@
 
       case 'chModeState':
         chMode = msg.mode === 'computer' ? 'computer' : 'player';
-        chDifficulty = Math.max(1, Math.min(20, parseInt(msg.difficulty, 10) || 10));
+        chDifficulty = Math.max(200, Math.min(3000, parseInt(msg.difficulty, 10) || 1200));
         updateChConfigPanel();
         updateChWagerSlider();
         if (chMode === 'computer') requestComputerLeaderboard(true);
@@ -1169,19 +1169,36 @@
           );
         }
         var wager = msg.wager || 0;
+        var isComputerMatch = chMode === 'computer';
         var goOverlay = document.getElementById('ch-gameover-overlay');
         var goTitle = document.getElementById('ch-gameover-title');
         var goWinner = document.getElementById('ch-gameover-winner');
         var goAmount = document.getElementById('ch-gameover-amount');
         var goLoser = document.getElementById('ch-gameover-loser');
+        var goRematchBtn = document.getElementById('ch-gameover-rematch-btn');
         if (goOverlay) {
           goOverlay.classList.remove('ch-hidden');
           var winnerName = chWinner === chMyColor ? 'You' : (msg.winnerNickname || chWinner || 'Winner');
           var loserName = chWinner === chMyColor ? (msg.loserNickname || 'Opponent') : 'You';
           if (goTitle) goTitle.textContent = msg.reason === 'stalemate' ? 'Draw' : 'Game Over';
+          if (goRematchBtn) {
+            goRematchBtn.textContent = (isComputerMatch && chWinner && chWinner !== chMyColor) ? 'New Game' : 'Rematch';
+          }
           if (goWinner) goWinner.textContent = msg.reason === 'stalemate' ? 'Stalemate - Draw!' : (winnerName + ' won!');
-          if (goAmount) goAmount.textContent = (msg.reason !== 'stalemate' && wager > 0) ? winnerName + ' won $' + wager : '';
-          if (goLoser) goLoser.textContent = (msg.reason !== 'stalemate' && wager > 0) ? loserName + ' lost $' + wager : '';
+          if (goAmount) {
+            if (msg.reason !== 'stalemate' && wager > 0 && (!isComputerMatch || chWinner === chMyColor)) {
+              goAmount.textContent = winnerName + ' won $' + wager;
+            } else {
+              goAmount.textContent = '';
+            }
+          }
+          if (goLoser) {
+            if (msg.reason !== 'stalemate' && wager > 0 && !isComputerMatch) {
+              goLoser.textContent = loserName + ' lost $' + wager;
+            } else {
+              goLoser.textContent = '';
+            }
+          }
         }
         if (chMode === 'computer') requestComputerLeaderboard(true);
         if ((chWagerChips[chMyId] || 0) === 0 && typeof window !== 'undefined' && window.scheduleBrokeKickToLobby) {
@@ -1241,7 +1258,7 @@
     chLastMove = null;
     chInCheck = false;
     chMode = 'player';
-    chDifficulty = 10;
+    chDifficulty = 1200;
     chTimerSeconds = 0;
     chTurnDeadline = 0;
     stopChTimer();
