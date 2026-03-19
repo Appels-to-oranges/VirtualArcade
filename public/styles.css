@@ -1287,19 +1287,14 @@ body.lobby-retro .welcome-badge {
   --join-btn-bg: #238636;
   --join-btn-hover: #2ea043;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   min-height: 100vh;
-  height: auto;
   padding: 1.5rem;
-  padding-top: max(1.5rem, 12vh);
-  overflow-y: auto;
   background: linear-gradient(135deg, #0a0a0a 0%, #0f1419 100%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
   position: relative;
 }
 
@@ -1457,103 +1452,6 @@ body.lobby-retro .welcome-badge {
   color: #6e7681;
   line-height: 1.6;
   text-align: center;
-}
-
-/* ── Join-screen publisher content section ── */
-.join-about {
-  width: 100%;
-  max-width: 48rem;
-  margin-top: 2rem;
-  padding: 0 0.5rem 2rem;
-}
-
-.join-about-inner {
-  background: rgba(22, 27, 34, 0.88);
-  border: 0.0625rem solid #30363d;
-  border-radius: 0.75rem;
-  padding: 1.5rem 1.75rem;
-  backdrop-filter: blur(4px);
-}
-
-.join-about-heading {
-  font-size: 0.6rem;
-  color: var(--join-accent, #c9b896);
-  text-transform: uppercase;
-  letter-spacing: 0.08rem;
-  margin-bottom: 0.6rem;
-  text-align: center;
-}
-
-.join-about-lead {
-  font-size: 0.34rem;
-  color: #aeb9c6;
-  line-height: 1.8;
-  text-align: center;
-  margin-bottom: 1.2rem;
-  max-width: 36rem;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.join-about-games {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1.2rem;
-}
-
-.join-about-game {
-  background: rgba(13, 17, 23, 0.7);
-  border: 0.0625rem solid #21262d;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  text-align: center;
-}
-
-.join-about-game-icon {
-  width: 2rem;
-  height: 2rem;
-  object-fit: contain;
-  margin-bottom: 0.4rem;
-  image-rendering: pixelated;
-}
-
-.join-about-game h3 {
-  font-size: 0.34rem;
-  color: #c9d1d9;
-  margin-bottom: 0.3rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03rem;
-}
-
-.join-about-game p {
-  font-size: 0.28rem;
-  color: #8b949e;
-  line-height: 1.7;
-}
-
-.join-about-features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 0.75rem;
-}
-
-.join-about-feature {
-  padding: 0.6rem 0.5rem;
-}
-
-.join-about-feature h3 {
-  font-size: 0.32rem;
-  color: var(--join-accent, #c9b896);
-  margin-bottom: 0.3rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03rem;
-}
-
-.join-about-feature p {
-  font-size: 0.28rem;
-  color: #8b949e;
-  line-height: 1.7;
 }
 
 /* ── Policy/Info footer links ── */
