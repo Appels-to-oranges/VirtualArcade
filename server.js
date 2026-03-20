@@ -2164,7 +2164,7 @@ function chGetStockfishMove(fen, difficulty) {
       return;
     }
     const elo = Math.max(200, Math.min(3000, Number(difficulty) || 1200));
-    const movetime = 200 + Math.round((elo - 200) / 2800 * 800);
+    const useNativeElo = elo >= 1320;
     const engine = spawn(process.execPath, [STOCKFISH_CLI_PATH], { stdio: ['pipe', 'pipe', 'pipe'] });
     let done = false;
     let outBuffer = '';
@@ -2186,12 +2186,24 @@ function chGetStockfishMove(fen, difficulty) {
       const line = String(lineRaw || '').trim();
       if (!line || done) return;
       if (line === 'uciok') {
-        sendCmd('setoption name UCI_LimitStrength value true');
-        sendCmd(`setoption name UCI_Elo value ${elo}`);
+        if (useNativeElo) {
+          sendCmd('setoption name UCI_LimitStrength value true');
+          sendCmd(`setoption name UCI_Elo value ${Math.min(elo, 3190)}`);
+        } else {
+          const skill = Math.max(0, Math.round((elo - 200) / 1120 * 5));
+          sendCmd(`setoption name Skill Level value ${skill}`);
+        }
         sendCmd('isready');
       } else if (line === 'readyok') {
         sendCmd(`position fen ${fen}`);
-        sendCmd(`go movetime ${movetime}`);
+        if (useNativeElo) {
+          const movetime = 200 + Math.round((elo - 1320) / 1680 * 800);
+          sendCmd(`go movetime ${movetime}`);
+        } else {
+          const depth = Math.max(1, Math.round(1 + (elo - 200) / 1120 * 4));
+          const movetime = Math.max(10, Math.round(10 + (elo - 200) / 1120 * 150));
+          sendCmd(`go depth ${depth} movetime ${movetime}`);
+        }
       } else if (line.startsWith('bestmove ')) {
         const move = line.split(' ')[1];
         cleanup();
