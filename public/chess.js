@@ -579,6 +579,7 @@
           '<div class="ch-gameover-amount" id="ch-gameover-amount"></div>' +
           '<div class="ch-gameover-loser" id="ch-gameover-loser"></div>' +
           '<div class="ch-gameover-buttons">' +
+            '<button id="ch-gameover-dismiss-btn" class="btn-dismiss">View Board</button>' +
             '<button id="ch-gameover-back-btn" class="btn-back">Back to Lobby</button>' +
             '<button id="ch-gameover-rematch-btn" class="btn-start">Rematch</button>' +
           '</div>' +
@@ -650,6 +651,11 @@
           chConfigChatInput.value = '';
         }
       }
+    });
+    var chGameoverDismissBtn = document.getElementById('ch-gameover-dismiss-btn');
+    if (chGameoverDismissBtn) chGameoverDismissBtn.addEventListener('click', function () {
+      var overlay = document.getElementById('ch-gameover-overlay');
+      if (overlay) overlay.classList.add('ch-hidden');
     });
     var chGameoverBackBtn = document.getElementById('ch-gameover-back-btn');
     if (chGameoverBackBtn) chGameoverBackBtn.addEventListener('click', function () { send({ type: 'backToLobby' }); });
@@ -1265,6 +1271,9 @@
 
     injectStyles();
     buildScreen();
+
+    var goOv = document.getElementById('ch-gameover-overlay');
+    if (goOv) goOv.classList.add('ch-hidden');
 
     if (roomLabelEl) roomLabelEl.textContent = 'Chess \u2014 ' + chRoomKey;
     setStatus('Waiting for opponent...');
