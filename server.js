@@ -2157,14 +2157,35 @@ function chBoardToFen(room) {
   return `${rows.join('/')} ${side} ${castling} ${ep} 0 1`;
 }
 
+function chGetAllLegalMoves(board, color, castling, enPassant) {
+  const moves = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (board[r][c]?.color === color) {
+        for (const m of chGetLegalMoves(board, r, c, color, castling, enPassant)) {
+          moves.push({ from: { row: r, col: c }, to: { row: m.row, col: m.col } });
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+function chPickRandomMove(room) {
+  const botColor = room.chPlayers?.white === CHESS_STOCKFISH_ID ? 'white' : 'black';
+  const moves = chGetAllLegalMoves(room.chBoard, botColor, room.chCastling, room.chEnPassant);
+  if (!moves.length) return null;
+  return moves[Math.floor(Math.random() * moves.length)];
+}
+
 function chGetStockfishMove(fen, difficulty) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(STOCKFISH_CLI_PATH)) {
       reject(new Error('Stockfish engine is unavailable'));
       return;
     }
-    const elo = Math.max(200, Math.min(3000, Number(difficulty) || 1200));
-    const useNativeElo = elo >= 1320;
+    const elo = Math.max(1320, Math.min(3190, Number(difficulty) || 1320));
+    const movetime = 200 + Math.round((elo - 1320) / 1870 * 800);
     const engine = spawn(process.execPath, [STOCKFISH_CLI_PATH], { stdio: ['pipe', 'pipe', 'pipe'] });
     let done = false;
     let outBuffer = '';
@@ -2186,24 +2207,12 @@ function chGetStockfishMove(fen, difficulty) {
       const line = String(lineRaw || '').trim();
       if (!line || done) return;
       if (line === 'uciok') {
-        if (useNativeElo) {
-          sendCmd('setoption name UCI_LimitStrength value true');
-          sendCmd(`setoption name UCI_Elo value ${Math.min(elo, 3190)}`);
-        } else {
-          const skill = Math.max(0, Math.round((elo - 200) / 1120 * 5));
-          sendCmd(`setoption name Skill Level value ${skill}`);
-        }
+        sendCmd('setoption name UCI_LimitStrength value true');
+        sendCmd(`setoption name UCI_Elo value ${elo}`);
         sendCmd('isready');
       } else if (line === 'readyok') {
         sendCmd(`position fen ${fen}`);
-        if (useNativeElo) {
-          const movetime = 200 + Math.round((elo - 1320) / 1680 * 800);
-          sendCmd(`go movetime ${movetime}`);
-        } else {
-          const depth = Math.max(1, Math.round(1 + (elo - 200) / 1120 * 4));
-          const movetime = Math.max(10, Math.round(10 + (elo - 200) / 1120 * 150));
-          sendCmd(`go depth ${depth} movetime ${movetime}`);
-        }
+        sendCmd(`go movetime ${movetime}`);
       } else if (line.startsWith('bestmove ')) {
         const move = line.split(' ')[1];
         cleanup();
@@ -2273,9 +2282,20 @@ function chScheduleBotMove(roomKey, delayMs = 350) {
     if (!current.chVsComputer || current.chPhase !== 'playing') return;
     const currentBotColor = current.chPlayers?.white === CHESS_STOCKFISH_ID ? 'white' : 'black';
     if (current.chTurn !== currentBotColor) return;
+    const elo = Math.max(200, Math.min(3000, Number(current.chDifficulty) || 1200));
+    if (elo < 1320) {
+      const randomChance = (1320 - elo) / 1120;
+      if (Math.random() < randomChance) {
+        const pick = chPickRandomMove(current);
+        if (pick) {
+          chMakeMove(roomKey, CHESS_STOCKFISH_ID, pick.from, pick.to);
+          return;
+        }
+      }
+    }
     const fen = chBoardToFen(current);
     try {
-      const bestMove = await chGetStockfishMove(fen, current.chDifficulty || 10);
+      const bestMove = await chGetStockfishMove(fen, elo);
       const from = chUciToSquare(bestMove.slice(0, 2));
       const to = chUciToSquare(bestMove.slice(2, 4));
       if (!from || !to) return;
