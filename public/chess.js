@@ -392,6 +392,7 @@
       '.ch-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
         'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
       '.ch-leaderboard-panel.ch-hidden{display:none}' +
+      '.ch-config-chat-player.ch-hidden{display:none}' +
       '.ch-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
       '.ch-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
       '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
@@ -561,7 +562,7 @@
             '<button id="ch-config-start-btn" class="btn-start">Start Game</button>' +
           '</div>' +
         '</div>' +
-        '<div class="ch-config-chat">' +
+        '<div class="ch-config-chat ch-config-chat-player" id="ch-config-player-chat">' +
           '<div class="ch-config-chat-header">Chat</div>' +
           '<div class="ch-config-chat-messages" id="ch-config-chat-messages"></div>' +
           '<input type="text" id="ch-config-chat-input" class="ch-config-chat-input" placeholder="Send message..." maxlength="100">' +
@@ -893,10 +894,12 @@
     var difficultyValue = document.getElementById('ch-difficulty-value');
     var payoutValue = document.getElementById('ch-computer-payout');
     var leaderboardPanel = document.getElementById('ch-computer-leaderboard');
+    var playerChatPanel = document.getElementById('ch-config-player-chat');
     if (modePlayerBtn) modePlayerBtn.classList.toggle('ch-active', chMode !== 'computer');
     if (modeComputerBtn) modeComputerBtn.classList.toggle('ch-active', chMode === 'computer');
     if (wagersEl) wagersEl.style.display = chMode === 'computer' ? 'none' : '';
     if (computerEl) computerEl.classList.toggle('ch-hidden', chMode !== 'computer');
+    if (playerChatPanel) playerChatPanel.classList.toggle('ch-hidden', chMode === 'computer');
     if (leaderboardPanel) leaderboardPanel.classList.toggle('ch-hidden', chMode !== 'computer');
     if (difficultySlider) difficultySlider.value = String(chDifficulty);
     if (difficultyValue) difficultyValue.textContent = String(chDifficulty);

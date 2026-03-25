@@ -9,6 +9,9 @@ html {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--lobby-accent, #c9b896) 65%, var(--lobby-border, #30363d))
+    var(--lobby-input-bg, #0d1117);
 }
 
 body {
@@ -182,6 +185,31 @@ body.theme-fireflies { --lobby-accent: #5ca882; --lobby-border: #2a4a3e; --lobby
 body.theme-snowy-lot { --lobby-accent: #8a92b8; --lobby-border: #3a3848; --lobby-text: #cccad8; --lobby-input-bg: #100e16; }
 body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lobby-text: #c8d4c0; --lobby-input-bg: #1a1e14; }
 
+/* WebKit/Chromium scrollbars — inherit --lobby-* from body or #game-select-screen */
+*::-webkit-scrollbar {
+  width: 0.45rem;
+  height: 0.45rem;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--lobby-input-bg, #0d1117);
+  border-radius: 0.25rem;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--lobby-accent, #c9b896) 55%, var(--lobby-border, #30363d));
+  border-radius: 0.25rem;
+  border: 0.125rem solid var(--lobby-input-bg, #0d1117);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--lobby-accent, #c9b896);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--lobby-input-bg, #0d1117);
+}
+
 .game-select-layout {
   display: flex;
   flex-direction: column;
@@ -212,7 +240,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   height: var(--lobby-top-control-height);
   font-size: 0.4rem;
   color: var(--lobby-muted);
-  padding: 0 0.5rem;
+  padding: 0 0.45rem 0 0.5rem;
   background: transparent;
   border: 0.0625rem solid var(--lobby-border);
   border-radius: 0.35rem;
@@ -220,6 +248,55 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.2rem;
+  max-width: min(22rem, 52vw);
+  min-width: 0;
+}
+
+.game-select-room-key {
+  flex-shrink: 0;
+}
+
+.lobby-room-badge-sep {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.lobby-nickname-btn {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--lobby-accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem 0.15rem;
+  margin: 0;
+  min-width: 0;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--lobby-accent) 45%, transparent);
+  text-underline-offset: 0.15em;
+  border-radius: 0.2rem;
+}
+
+.lobby-nickname-btn:hover:not(:disabled) {
+  color: var(--lobby-text);
+  text-decoration-color: color-mix(in srgb, var(--lobby-text) 50%, transparent);
+}
+
+.lobby-nickname-btn:focus-visible {
+  outline: 0.125rem solid var(--lobby-accent);
+  outline-offset: 0.1rem;
+}
+
+.lobby-nickname-btn:disabled {
+  cursor: default;
+  color: var(--lobby-muted);
+  text-decoration: none;
 }
 
 .lobby-invite-btn {
@@ -247,36 +324,28 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 
 .lobby-invite-btn svg { flex-shrink: 0; }
 
-.lobby-chips-display {
-  height: var(--lobby-top-control-height);
-  font-size: 0.4rem;
-  color: var(--lobby-accent);
-  padding: 0 0.4rem;
-  background: transparent;
-  border: 0.0625rem solid var(--lobby-border);
-  border-radius: 0.35rem;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .lobby-rebuy-btn {
   height: var(--lobby-top-control-height);
-  padding: 0 0.5rem;
+  padding: 0 0.45rem;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.35rem;
-  background: #238636;
-  color: #fff;
-  border: 0.0625rem solid #2ea043;
+  font-size: 0.26rem;
+  line-height: 1.25;
+  max-width: 9rem;
+  text-align: center;
+  background: var(--lobby-accent, #c9b896);
+  color: #0d0d0d;
+  border: 0.0625rem solid color-mix(in srgb, var(--lobby-accent, #c9b896) 72%, #0a0a0a);
   border-radius: 0.35rem;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: filter 0.15s ease;
 }
-.lobby-rebuy-btn:hover { background: #2ea043; }
+.lobby-rebuy-btn:hover {
+  filter: brightness(1.1) saturate(1.06);
+}
 .lobby-rebuy-btn.hidden { display: none !important; }
 
 .lobby-top-spacer { flex: 1; }
@@ -846,6 +915,89 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 
 .settings-contact a:hover {
   text-decoration: underline;
+}
+
+/* ── Room switch overlay ── */
+.room-overlay-current {
+  font-size: 0.4rem;
+  color: var(--lobby-text, #c9d1d9);
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0,0,0,0.25);
+  border-radius: 0.4rem;
+}
+
+.room-overlay-current strong {
+  color: var(--lobby-accent, #c9b896);
+}
+
+.room-overlay-hint {
+  font-size: 0.35rem;
+  color: #8b949e;
+  margin-top: 0.75rem;
+}
+
+/* ── Account overlay ── */
+#account-overlay .lobby-overlay-panel {
+  max-width: 24rem;
+}
+
+.account-logout-btn {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+#account-overlay .form-group {
+  margin-bottom: 0.75rem;
+}
+
+#account-overlay .form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.38rem;
+  color: #8b949e;
+}
+
+#account-overlay .form-control {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: var(--lobby-input-bg, #161b22);
+  color: var(--lobby-text, #c9d1d9);
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.375rem;
+  font-size: 0.42rem;
+  box-sizing: border-box;
+}
+
+#account-overlay .form-control:focus {
+  outline: none;
+  border-color: var(--lobby-accent, #c9b896);
+  box-shadow: 0 0 0 0.1875rem color-mix(in srgb, var(--lobby-accent, #c9b896) 22%, transparent);
+}
+
+#account-overlay .btn-join {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.6rem;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 600;
+  color: #0d0d0d;
+  background: var(--lobby-accent, #c9b896);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.125rem;
+  transition: filter 0.2s, transform 0.1s;
+}
+
+#account-overlay .btn-join:hover {
+  filter: brightness(1.1) saturate(1.05);
+}
+
+#account-overlay .btn-join:active {
+  transform: scale(0.98);
 }
 
 .theme-group label {
@@ -4128,6 +4280,11 @@ body.info-page {
    hard drop shadows, no smooth transitions
    ══════════════════════════════════════════ */
 
+body.lobby-retro *::-webkit-scrollbar-track,
+body.lobby-retro *::-webkit-scrollbar-thumb {
+  border-radius: 0;
+}
+
 /* ── Join / splash screen ── */
 body.lobby-retro .join-card,
 body.lobby-retro .auth-card {
@@ -4167,6 +4324,28 @@ body.lobby-retro .join-form .btn-join:active {
   transform: translate(2px, 2px);
 }
 
+body.lobby-retro #account-overlay .form-control:focus {
+  box-shadow: none;
+  border-color: var(--lobby-accent, #c9b896);
+}
+
+body.lobby-retro #account-overlay .btn-join {
+  border-radius: 0;
+  border: 2px solid rgba(0, 0, 0, 0.35);
+  transition: none;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+}
+
+body.lobby-retro #account-overlay .btn-join:hover {
+  filter: brightness(1.06);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+body.lobby-retro #account-overlay .btn-join:active {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.6);
+  transform: translate(2px, 2px);
+}
+
 /* ── Lobby screen ── */
 body.lobby-retro .game-select-layout {
   max-width: 60rem;
@@ -4202,9 +4381,9 @@ body.lobby-retro .lobby-room-badge {
   border-width: 2px;
 }
 
-body.lobby-retro .lobby-chips-display {
+body.lobby-retro .lobby-nickname-btn:focus-visible {
+  outline-width: 2px;
   border-radius: 0;
-  border-width: 2px;
 }
 
 body.lobby-retro .lobby-invite-btn {
@@ -4227,6 +4406,25 @@ body.lobby-retro .lobby-header-btn {
 
 body.lobby-retro .lobby-header-btn:hover {
   background: var(--lobby-accent);
+}
+
+body.lobby-retro .lobby-rebuy-btn {
+  border-radius: 0;
+  border-width: 2px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--lobby-accent, #c9b896) 72%, #0a0a0a);
+  transition: none;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+body.lobby-retro .lobby-rebuy-btn:hover {
+  filter: brightness(1.06);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+body.lobby-retro .lobby-rebuy-btn:active {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.45);
+  transform: translate(2px, 2px);
 }
 
 body.lobby-retro .game-select-card {

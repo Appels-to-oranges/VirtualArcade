@@ -60,9 +60,6 @@ async function saveUserChips(userId, chips) {
   }
 }
 
-pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS chess_best_computer_level INTEGER NOT NULL DEFAULT 0')
-  .catch((err) => console.error('Failed to ensure chess leaderboard column:', err.message));
-
 async function saveUserCosmetics(userId, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter) {
   if (!userId) return;
   try {
@@ -3369,16 +3366,16 @@ wss.on('connection', async (ws, req) => {
         const idx = room.players.findIndex((p) => p.ws === ws);
         if (idx < 0) return;
         const player = room.players[idx];
-        if (player.chips > 0) return;
         if (room.phase !== 'lobby') return;
-        player.chips = 10;
-        if (player.dbUserId) saveUserChips(player.dbUserId, 10);
-        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: 10 }));
+        const nextChips = Math.max(0, (player.chips || 0) + 10);
+        player.chips = nextChips;
+        if (player.dbUserId) saveUserChips(player.dbUserId, nextChips);
+        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: nextChips }));
         broadcastToRoom(data.roomKey, {
           type: 'userRebuy',
           id: ws.id,
           nickname: player.nickname,
-          chips: 10,
+          chips: nextChips,
           players: room.players.map((p) => ({ id: p.id, nickname: p.nickname, chips: p.chips })),
         });
       } else if (type === 'slotSpin') {

@@ -36,6 +36,9 @@ async function ensureTables() {
     await pool.query(`ALTER TABLE users ALTER COLUMN chips SET DEFAULT 10`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(255) UNIQUE`).catch(() => {});
+    await pool.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS chess_best_computer_level INTEGER NOT NULL DEFAULT 0`
+    ).catch(() => {});
     await pool.query(`
       CREATE TABLE IF NOT EXISTS favorite_stations (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
