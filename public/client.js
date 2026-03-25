@@ -3,8 +3,22 @@ const CHIPS_BASE = '/chips';
 const SOUNDS_BASE = '/sounds';
 const TURN_TIMEOUT_MS = 60 * 1000;
 
-if (typeof adConfig === 'function') {
-  adConfig({ preloadAdBreaks: 'on', sound: 'on' });
+let adSenseInitialized = false;
+function initAdSense() {
+  if (adSenseInitialized) return;
+  adSenseInitialized = true;
+  window.adsbygoogle = window.adsbygoogle || [];
+  window.adBreak = window.adConfig = function(o) { window.adsbygoogle.push(o); };
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7503474617543610';
+  s.crossOrigin = 'anonymous';
+  s.onload = function() {
+    if (typeof window.adConfig === 'function') {
+      window.adConfig({ preloadAdBreaks: 'on', sound: 'on' });
+    }
+  };
+  document.head.appendChild(s);
 }
 
 const SOUND_FILES = {
@@ -890,6 +904,7 @@ function updateLobbyChipDisplay() {
 }
 
 function showGameSelectScreen(players, chatHistory) {
+  initAdSense();
   const opacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
   const opacityVal = isNaN(opacity) ? 70 : Math.max(0, Math.min(100, opacity));
   if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (opacityVal / 100).toFixed(2));
