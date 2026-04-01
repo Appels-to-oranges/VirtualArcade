@@ -12,6 +12,14 @@
 <body>
   <div class="message-toast" id="message-toast"></div>
 
+  <div id="mock-ad-overlay" class="mock-ad-overlay hidden" role="dialog" aria-modal="true" aria-label="Ad player">
+    <div class="mock-ad-box">
+      <p class="mock-ad-label">Ad playing...</p>
+      <p class="mock-ad-timer" id="mock-ad-timer">0s</p>
+      <button type="button" id="mock-ad-skip" class="mock-ad-skip hidden">Skip Ad</button>
+    </div>
+  </div>
+
   <script>
     (function() {
       if (localStorage.getItem('arcade_lobby_style') === 'retro') document.body.classList.add('lobby-retro');

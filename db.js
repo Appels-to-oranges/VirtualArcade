@@ -19,7 +19,7 @@ async function ensureTables() {
         username VARCHAR(20) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        chips INTEGER NOT NULL DEFAULT 10,
+        chips INTEGER NOT NULL DEFAULT 100,
         purchased_outfits TEXT[] NOT NULL DEFAULT '{}',
         equipped_outfit VARCHAR(50),
         purchased_characters TEXT[] NOT NULL DEFAULT '{}',
@@ -33,11 +33,14 @@ async function ensureTables() {
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_outfit VARCHAR(50)`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS purchased_characters TEXT[] NOT NULL DEFAULT '{}'`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_character VARCHAR(50)`).catch(() => {});
-    await pool.query(`ALTER TABLE users ALTER COLUMN chips SET DEFAULT 10`).catch(() => {});
+    await pool.query(`ALTER TABLE users ALTER COLUMN chips SET DEFAULT 100`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE`).catch(() => {});
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id VARCHAR(255) UNIQUE`).catch(() => {});
     await pool.query(
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS chess_best_computer_level INTEGER NOT NULL DEFAULT 0`
+    ).catch(() => {});
+    await pool.query(
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_bonus DATE`
     ).catch(() => {});
     await pool.query(`
       CREATE TABLE IF NOT EXISTS favorite_stations (

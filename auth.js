@@ -67,7 +67,7 @@ function normalizeCharacterList(list) {
 
 function normalizeProgress(progress) {
   const safeProgress = (progress && typeof progress === 'object') ? progress : {};
-  const chips = Math.max(0, Math.min(1000000000, Math.floor(Number(safeProgress.chips) || 10)));
+  const chips = Math.max(0, Math.min(1000000000, Math.floor(Number(safeProgress.chips) || 100)));
   const purchasedOutfits = normalizeOutfitList(safeProgress.purchasedOutfits);
   const equippedOutfit = purchasedOutfits.includes(safeProgress.equippedOutfit) ? safeProgress.equippedOutfit : null;
   const purchasedCharacters = normalizeCharacterList(safeProgress.purchasedCharacters);
@@ -106,6 +106,7 @@ async function findOrCreateOAuthUser(provider, profileId, email, displayName, pe
     equippedCharacter,
   } = normalizeProgress(pendingProgress);
 
+  const registrationChips = chips + 500;
   const result = await pool.query(
     `INSERT INTO users (username, email, password_hash, ${oauthCol}, chips, purchased_outfits, equipped_outfit, purchased_characters, equipped_character)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -115,7 +116,7 @@ async function findOrCreateOAuthUser(provider, profileId, email, displayName, pe
       email || `${provider}_${profileId}@oauth.local`,
       'oauth_no_password',
       profileId,
-      chips,
+      registrationChips,
       purchasedOutfits,
       equippedOutfit,
       purchasedCharacters,
@@ -236,9 +237,10 @@ router.post('/register', async (req, res) => {
       purchasedCharacters,
       equippedCharacter,
     } = normalizeProgress(progress);
+    const registrationChips = chips + 500;
     const result = await pool.query(
       'INSERT INTO users (username, email, password_hash, chips, purchased_outfits, equipped_outfit, purchased_characters, equipped_character) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, username, email, chips',
-      [trimmedUser, trimmedEmail, hash, chips, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter]
+      [trimmedUser, trimmedEmail, hash, registrationChips, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter]
     );
 
     const user = result.rows[0];

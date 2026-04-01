@@ -8,10 +8,9 @@ function initAdSense() {
   if (adSenseInitialized) return;
   adSenseInitialized = true;
   window.adsbygoogle = window.adsbygoogle || [];
-  window.adBreak = window.adConfig = function(o) { window.adsbygoogle.push(o); };
-  if (typeof window.adConfig === 'function') {
-    window.adConfig({ preloadAdBreaks: 'on', sound: 'on' });
-  }
+  window.adBreak = window.adBreak || function(o) { window.adsbygoogle.push(o); };
+  window.adConfig = window.adConfig || function(o) { window.adsbygoogle.push(o); };
+  window.adConfig({ preloadAdBreaks: 'on' });
 }
 
 const GUEST_NICK_KEY = 'arcade_guest_nickname';
@@ -774,7 +773,7 @@ async function doLogin() {
 function collectCurrentProgressSnapshot() {
   const me = getMyPlayer();
   return {
-    chips: me?.chips ?? 10,
+    chips: me?.chips ?? 1000,
     purchasedOutfits: normalizeOutfitList(me?.purchasedOutfits || myPurchasedOutfits),
     equippedOutfit: me?.outfit || myEquippedOutfit || '',
     purchasedCharacters: normalizeCharacterList(me?.purchasedCharacters || myPurchasedCharacters),
@@ -1295,10 +1294,12 @@ function handleMessage(msg) {
         initRadioVolume();
         if (msg.theme) applyTheme(msg.theme);
         else applyTheme(localStorage.getItem(THEME_STORAGE_KEY) || 'rolling-fog');
+        if (msg.dailyBonus) showToast('Daily bonus claimed! +25 coins 🎰');
         if (msg.gameFull) {
           const name = GAME_NAMES[msg.gameFull] || msg.gameFull;
           showToast(`${name} is full. You've been placed in the lobby.`);
         }
+        updateRebuyButtonState();
         return;
       }
       {
@@ -1457,7 +1458,7 @@ function handleMessage(msg) {
       players.push({
         id: msg.id,
         nickname: msg.nickname,
-        chips: msg.chips ?? 10,
+        chips: msg.chips ?? 100,
         winStreak: msg.winStreak ?? 0,
         maxWinStreak: msg.maxWinStreak ?? 0,
         currentView: msg.currentView ?? 'lobby',
@@ -1474,7 +1475,7 @@ function handleMessage(msg) {
         return;
       }
       if (currentGameType === 'blackjack' && window.blackjack && (msg.currentView ?? 'lobby') === 'blackjack') {
-        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 10 });
+        window.blackjack.handleMessage({ type: 'bjUserJoined', id: msg.id, nickname: msg.nickname, chips: msg.chips ?? 100 });
       }
       renderTable();
       break;
@@ -1504,6 +1505,7 @@ function handleMessage(msg) {
           if (lp) lp.chips = p.chips;
         });
       }
+      updateRebuyButtonState();
       renderTable();
       updateControls();
       break;
@@ -1560,7 +1562,7 @@ function handleMessage(msg) {
         communityCards: [],
         pot: msg.pot,
         currentBet: msg.currentBet,
-        minRaise: msg.minRaise ?? 10,
+        minRaise: msg.minRaise ?? 100,
         turnIdx: msg.turnIdx,
         dealerIdx: msg.dealerIdx,
       };
@@ -1703,6 +1705,8 @@ function handleMessage(msg) {
         const lp = lobbyPlayers.find((p) => p.id === myId);
         if (lp) lp.chips = msg.chips;
       }
+      if (msg.coinsAdded) showToast(`You earned ${msg.coinsAdded} coins!`);
+      updateRebuyButtonState();
       renderTable();
       updateControls();
       break;
@@ -1758,7 +1762,7 @@ function handleMessage(msg) {
               id: up.id,
               nickname: up.nickname,
               currentView: newView,
-              chips: up.chips ?? 10,
+              chips: up.chips ?? 100,
               outfit: up.outfit || null,
               purchasedOutfits: normalizeOutfitList(up.purchasedOutfits),
               character: up.character || null,
@@ -1774,7 +1778,7 @@ function handleMessage(msg) {
               id: up.id,
               nickname: up.nickname,
               currentView: up.currentView ?? 'lobby',
-              chips: up.chips ?? ex?.chips ?? 10,
+              chips: up.chips ?? ex?.chips ?? 100,
               outfit: up.outfit ?? ex?.outfit ?? null,
               purchasedOutfits: normalizeOutfitList(up.purchasedOutfits ?? ex?.purchasedOutfits),
               character: up.character ?? ex?.character ?? null,
@@ -1789,7 +1793,7 @@ function handleMessage(msg) {
           const existingIds = new Set(window.blackjack.getPlayerIds());
           bjNow.forEach((p) => {
             if (!existingIds.has(p.id)) {
-              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 10 });
+              window.blackjack.handleMessage({ type: 'bjUserJoined', id: p.id, nickname: p.nickname, chips: p.chips ?? 100 });
             }
           });
           existingIds.forEach((id) => {
@@ -3270,37 +3274,63 @@ function openRegisterFromOutfitOverlay() {
   showAccountPanel('register');
 }
 
-let rebuyAdInProgress = false;
+// ── Ad Rebuy System ──
+// playAdForRebuy is the single entry point for showing a rewarded ad.
+// Swap this function body for a real ad SDK (e.g. Google IMA) without
+// touching any of the surrounding reward or button logic.
+//
+// onComplete(coins) — coins is 10 / 20 / 35 on success, null on failure.
 
-function triggerRebuyAd(onRewardEarned) {
-  if (rebuyAdInProgress) return;
-  if (typeof onRewardEarned !== 'function') return;
-  try {
-    if (typeof window.adBreak !== 'function') {
-      showToast('Rewarded ad is unavailable right now');
-      return;
-    }
-    rebuyAdInProgress = true;
-    window.adBreak({
-      type: 'reward',
-      name: 'rebuy',
-      beforeReward: (showAdFn) => {
-        try { if (typeof showAdFn === 'function') showAdFn(); } catch (_) {}
-      },
-      adViewed: () => {
-        onRewardEarned();
-      },
-      adDismissed: () => {
-        showToast('Watch the full ad to earn $10');
-      },
-      afterAd: () => {
-        rebuyAdInProgress = false;
-      },
-    });
-  } catch (_) {
-    rebuyAdInProgress = false;
-    showToast('Rewarded ad failed to load');
+let _adInProgress = false;
+let _mockAdInterval = null;
+
+function playAdForRebuy(onComplete) {
+  if (_adInProgress) return;
+  _adInProgress = true;
+
+  const overlay = document.getElementById('mock-ad-overlay');
+  const timerEl = document.getElementById('mock-ad-timer');
+  const skipBtn = document.getElementById('mock-ad-skip');
+
+  if (!overlay || !timerEl || !skipBtn) {
+    _adInProgress = false;
+    onComplete(null);
+    return;
   }
+
+  const MOCK_DURATION = 30;
+  let elapsed = 0;
+
+  timerEl.textContent = '0s';
+  skipBtn.classList.add('hidden');
+  overlay.classList.remove('hidden');
+
+  function finish(watchedSeconds) {
+    clearInterval(_mockAdInterval);
+    _mockAdInterval = null;
+    overlay.classList.add('hidden');
+    skipBtn.classList.add('hidden');
+    skipBtn.onclick = null;
+    _adInProgress = false;
+
+    const coins = watchedSeconds >= MOCK_DURATION ? 35 : watchedSeconds >= 15 ? 20 : 10;
+    onComplete(coins);
+  }
+
+  skipBtn.onclick = () => finish(elapsed);
+
+  _mockAdInterval = setInterval(() => {
+    elapsed++;
+    timerEl.textContent = elapsed + 's';
+    if (elapsed >= 5) skipBtn.classList.remove('hidden');
+    if (elapsed >= MOCK_DURATION) finish(elapsed);
+  }, 1000);
+}
+
+function updateRebuyButtonState() {
+  if (!lobbyRebuyBtn) return;
+  const me = players.find((p) => p.id === myId) || lobbyPlayers.find((p) => p.id === myId);
+  lobbyRebuyBtn.disabled = (me?.chips ?? 1) > 0;
 }
 
 function catalogMatches(item, query) {
@@ -3535,16 +3565,23 @@ document.querySelectorAll('.theme-opt').forEach((btn) => {
 
 if (lobbyRebuyBtn) {
   lobbyRebuyBtn.addEventListener('click', () => {
+    if (lobbyRebuyBtn.disabled) return;
     if (!gameSelectScreen || gameSelectScreen.classList.contains('hidden')) {
-      showToast('Open the lobby to watch an ad for $10');
+      showToast('Open the lobby to watch an ad');
       return;
     }
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       showToast('Not connected');
       return;
     }
-    triggerRebuyAd(() => {
-      ws.send(JSON.stringify({ type: 'rebuy' }));
+    lobbyRebuyBtn.disabled = true;
+    playAdForRebuy((coins) => {
+      if (coins === null) {
+        showToast('Ad unavailable. Try again later.');
+        updateRebuyButtonState();
+        return;
+      }
+      ws.send(JSON.stringify({ type: 'rebuy', coins }));
       if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
         soundRebuy.volume = 0.5;
         soundRebuy.currentTime = 0;

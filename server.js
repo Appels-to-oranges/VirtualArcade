@@ -499,7 +499,7 @@ function startGame(roomKey, resetStreaks = false, resetChips = false) {
     p.totalBet = 0;
     p.folded = false;
     p.allIn = false;
-    p.chips = p.chips ?? 10;
+    p.chips = p.chips ?? 100;
   });
 
   const sbPay = Math.min(room.smallBlind, Math.max(0, holdemPlayers[sbIdx].chips));
@@ -2605,15 +2605,16 @@ wss.on('connection', async (ws, req) => {
           gameFull = true;
         }
 
-        let startingChips = 10;
+        let startingChips = 100;
         let startingPurchasedOutfits = [];
         let startingOutfit = null;
         let startingPurchasedCharacters = [];
         let startingCharacter = null;
+        let dailyBonus = false;
         if (ws._userId) {
           try {
             const dbResult = await pool.query(
-              'SELECT chips, purchased_outfits, equipped_outfit, purchased_characters, equipped_character FROM users WHERE id = $1',
+              'SELECT chips, last_daily_bonus, purchased_outfits, equipped_outfit, purchased_characters, equipped_character FROM users WHERE id = $1',
               [ws._userId]
             );
             if (dbResult.rows.length > 0) {
@@ -2627,6 +2628,13 @@ wss.on('connection', async (ws, req) => {
               startingCharacter = normalizedDbCharacter && startingPurchasedCharacters.includes(normalizedDbCharacter)
                 ? normalizedDbCharacter
                 : null;
+
+              const today = new Date().toISOString().split('T')[0];
+              const lb = dbResult.rows[0].last_daily_bonus;
+              const lbStr = lb ? new Date(lb).toISOString().split('T')[0] : null;
+              if (lbStr !== today) {
+                dailyBonus = true;
+              }
             }
           } catch (e) {
             console.error('Failed to load user profile:', e.message);
@@ -2653,7 +2661,21 @@ wss.on('connection', async (ws, req) => {
               existing.character = randomDefault;
             }
           }
+          if (dailyBonus) {
+            existing.chips = (existing.chips || 0) + 25;
+            pool.query(
+              'UPDATE users SET chips = $1, last_daily_bonus = CURRENT_DATE WHERE id = $2',
+              [existing.chips, ws._userId]
+            ).catch(() => {});
+          }
         } else {
+          if (dailyBonus) {
+            startingChips += 25;
+            pool.query(
+              'UPDATE users SET chips = $1, last_daily_bonus = CURRENT_DATE WHERE id = $2',
+              [startingChips, ws._userId]
+            ).catch(() => {});
+          }
           room.players.push({
             id: ws.id,
             ws,
@@ -2684,6 +2706,7 @@ wss.on('connection', async (ws, req) => {
           roomKey: safeRoom,
           gameType: targetGameType === 'lobby' ? 'lobby' : (targetGameType || 'holdem'),
           ...(gameFull && { gameFull: msg.gameType }),
+          ...(dailyBonus && { dailyBonus: true }),
           players: room.players.map(serializePlayer),
           gameState: room.phase === 'lobby' ? null : {
             phase: room.phase,
@@ -3367,10 +3390,13 @@ wss.on('connection', async (ws, req) => {
         if (idx < 0) return;
         const player = room.players[idx];
         if (room.phase !== 'lobby') return;
-        const nextChips = Math.max(0, (player.chips || 0) + 10);
+        const VALID_REBUY_AMOUNTS = [10, 20, 35];
+        const requested = typeof msg.coins === 'number' ? msg.coins : 10;
+        const coinsToAdd = VALID_REBUY_AMOUNTS.includes(requested) ? requested : 10;
+        const nextChips = Math.max(0, (player.chips || 0) + coinsToAdd);
         player.chips = nextChips;
         if (player.dbUserId) saveUserChips(player.dbUserId, nextChips);
-        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: nextChips }));
+        ws.send(JSON.stringify({ type: 'rebuySuccess', chips: nextChips, coinsAdded: coinsToAdd }));
         broadcastToRoom(data.roomKey, {
           type: 'userRebuy',
           id: ws.id,

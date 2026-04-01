@@ -343,8 +343,13 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   justify-content: center;
   transition: filter 0.15s ease;
 }
-.lobby-rebuy-btn:hover {
+.lobby-rebuy-btn:hover:not(:disabled) {
   filter: brightness(1.1) saturate(1.06);
+}
+.lobby-rebuy-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  filter: none;
 }
 .lobby-rebuy-btn.hidden { display: none !important; }
 
@@ -1734,8 +1739,10 @@ body.info-page {
   color: #aeb9c6;
 }
 
-.info-section ul {
+.info-section ul,
+.info-section ol {
   margin: 0.35rem 0 0.2rem 1rem;
+  padding-left: 1.2rem;
 }
 
 .info-top-links {
@@ -4939,4 +4946,60 @@ body.lobby-retro .ch-config-panel input[type="range"] {
   .lobby-top-bar {
     flex-wrap: wrap;
   }
+}
+
+/* ── Mock Ad Overlay ── */
+.mock-ad-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+}
+.mock-ad-overlay.hidden {
+  display: none;
+}
+.mock-ad-box {
+  background: #1c1c1c;
+  border: 1px solid #383838;
+  border-radius: 10px;
+  padding: 44px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  min-width: 280px;
+  text-align: center;
+}
+.mock-ad-label {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #999;
+  letter-spacing: 0.03em;
+}
+.mock-ad-timer {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  font-variant-numeric: tabular-nums;
+}
+.mock-ad-skip {
+  padding: 8px 22px;
+  background: #3a3a3a;
+  color: #ddd;
+  border: 1px solid #555;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.15s;
+}
+.mock-ad-skip:hover {
+  background: #4a4a4a;
+}
+.mock-ad-skip.hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
