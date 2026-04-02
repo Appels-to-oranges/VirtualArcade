@@ -3869,14 +3869,15 @@ async function loadStatsView() {
   };
 
   if (data.history.length) {
-    const pts = data.history.map(h => [new Date(h.played_at).getTime(), h.chips_after]);
+    const pts = data.history.map(h => h.chips_after);
     Highcharts.chart('stats-chart-chips', {
       ...hcDefaults,
-      chart: { ...hcDefaults.chart, type: 'area', zooming: { type: 'x' } },
-      xAxis: { ...hcDefaults.xAxis, type: 'datetime', dateTimeLabelFormats: { hour: '%l:%M %p', day: '%b %e', month: '%b \'%y' } },
+      chart: { ...hcDefaults.chart, type: 'area' },
+      xAxis: { ...hcDefaults.xAxis, title: { text: 'Games Played', style: { color: textColor, opacity: 0.4, fontSize: '12px' } }, labels: { style: { color: textColor, opacity: 0.4, fontSize: '12px' } }, tickInterval: Math.max(1, Math.floor(pts.length / 10)) },
       yAxis: { ...hcDefaults.yAxis, title: { text: null }, min: 0 },
-      series: [{ name: 'Chips', data: pts, color: accentColor, fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 }, stops: [[0, accentColor + '45'],[1, accentColor + '00']] }, marker: { enabled: false }, lineWidth: 2.5 }],
+      series: [{ name: 'Chips', data: pts, color: accentColor, fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 }, stops: [[0, accentColor + '45'],[1, accentColor + '00']] }, marker: { enabled: pts.length < 30 }, lineWidth: 2.5 }],
       legend: { enabled: false },
+      tooltip: { ...hcDefaults.tooltip, headerFormat: 'Game {point.x}<br/>', pointFormat: '<b>{point.y} chips</b>' },
     });
   }
 
