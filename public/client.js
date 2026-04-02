@@ -2112,7 +2112,8 @@ function renderTable() {
   prevMyHandCount = myHand.length;
 
   playersContainer.innerHTML = '';
-  const count = players.length;
+  const visiblePlayers = gameState ? players : players.filter((p) => (p.currentView ?? 'lobby') === 'holdem');
+  const count = visiblePlayers.length;
   if (count === 0) return;
 
   const CX = 50, CY = 36;
@@ -2144,18 +2145,18 @@ function renderTable() {
   }
 
   const positions = sidePositions(count);
-  const myPosIdx = players.findIndex((p) => p.id === myId);
+  const myPosIdx = visiblePlayers.findIndex((p) => p.id === myId);
   const rotateBy = myPosIdx > 0 ? myPosIdx : 0;
 
   document.querySelectorAll('.seat-chat-bubble').forEach((el) => {
     const pid = el.dataset.chatFor;
-    const inGame = pid && players.some((p) => p.id === pid);
+    const inGame = pid && visiblePlayers.some((p) => p.id === pid);
     const chatData = pid && playerChatMessages[pid];
     const valid = chatData && chatData.expiresAt > Date.now() && chatData.text === el.textContent;
     if (!inGame || !valid) el.remove();
   });
 
-  players.forEach((p, i) => {
+  visiblePlayers.forEach((p, i) => {
     const seatSlot = (i - rotateBy + count) % count;
     const pos = positions[seatSlot];
     const [x, y] = pos.seat;
@@ -3699,19 +3700,34 @@ if (accountBtn) accountBtn.addEventListener('click', () => {
 if (accountOverlayClose) accountOverlayClose.addEventListener('click', () => { if (accountOverlay) accountOverlay.classList.add('hidden'); });
 
 const statsBtn = document.getElementById('lobby-stats-btn');
-const statsOverlay = document.getElementById('stats-overlay');
-const statsOverlayClose = document.getElementById('stats-overlay-close');
-const statsBody = document.getElementById('stats-overlay-body');
+const statsView = document.getElementById('stats-view');
+const statsBackBtn = document.getElementById('stats-back-btn');
+const statsViewBody = document.getElementById('stats-view-body');
+const lobbyCards = document.querySelector('.lobby-cards');
+const lobbyParticipantsBar = document.querySelector('.lobby-participants-bar');
 
-if (statsBtn) statsBtn.addEventListener('click', () => {
-  if (statsOverlay) statsOverlay.classList.remove('hidden');
-  loadStatsOverlay();
-});
-if (statsOverlayClose) statsOverlayClose.addEventListener('click', () => { if (statsOverlay) statsOverlay.classList.add('hidden'); });
+function showStatsView() {
+  if (lobbyCards) lobbyCards.classList.add('hidden');
+  if (lobbyParticipantsBar) lobbyParticipantsBar.classList.add('hidden');
+  if (statsView) statsView.classList.remove('hidden');
+  if (statsBackBtn) statsBackBtn.classList.remove('hidden');
+  if (statsBtn) statsBtn.classList.add('hidden');
+  loadStatsView();
+}
+function hideStatsView() {
+  if (statsView) statsView.classList.add('hidden');
+  if (lobbyCards) lobbyCards.classList.remove('hidden');
+  if (lobbyParticipantsBar) lobbyParticipantsBar.classList.remove('hidden');
+  if (statsBackBtn) statsBackBtn.classList.add('hidden');
+  if (statsBtn) statsBtn.classList.remove('hidden');
+}
 
-async function loadStatsOverlay() {
-  if (!statsBody) return;
-  statsBody.innerHTML = '<p class="stats-loading">Loading stats...</p>';
+if (statsBtn) statsBtn.addEventListener('click', showStatsView);
+if (statsBackBtn) statsBackBtn.addEventListener('click', hideStatsView);
+
+async function loadStatsView() {
+  if (!statsViewBody) return;
+  statsViewBody.innerHTML = '<p class="stats-empty">Loading...</p>';
 
   const GAME_LABELS = { holdem: "Texas Hold'em", blackjack: 'Blackjack', slots: 'Slots', checkers: 'Checkers', chess: 'Chess' };
   const GAME_COLORS = { holdem: '#f0d78c', blackjack: '#6fcf6f', slots: '#e06060', checkers: '#9cc5ff', chess: '#c8b478' };
@@ -3720,13 +3736,13 @@ async function loadStatsOverlay() {
   try {
     const resp = await fetch('/api/stats', { credentials: 'same-origin' });
     if (resp.status === 401) {
-      statsBody.innerHTML = '<p class="stats-empty">Log in to view your stats.</p>';
+      statsViewBody.innerHTML = '<p class="stats-empty">Log in to view your stats.</p>';
       return;
     }
     data = await resp.json();
     if (data.error) throw new Error(data.error);
   } catch (e) {
-    statsBody.innerHTML = '<p class="stats-empty">Failed to load stats.</p>';
+    statsViewBody.innerHTML = '<p class="stats-empty">Failed to load stats.</p>';
     return;
   }
 
@@ -3738,6 +3754,7 @@ async function loadStatsOverlay() {
   const memberSince = new Date(data.createdAt).toLocaleDateString();
   const fmtChips = (n) => n > 0 ? '+' + n : '' + n;
   const chipsCls = (n) => n > 0 ? 'stats-pos' : n < 0 ? 'stats-neg' : 'stats-zero';
+  const statCard = (val, label) => '<div class="stat-card"><div class="stat-value">' + val + '</div><div class="stat-label">' + label + '</div></div>';
 
   let h = '';
 
@@ -3768,7 +3785,7 @@ async function loadStatsOverlay() {
 
   // Charts
   h += '<div class="stats-section"><p class="stats-section-title">Chip Balance</p><div id="stats-chart-chips" class="stats-chart"></div></div>';
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;">';
+  h += '<div class="stats-chart-row">';
   h += '<div class="stats-section"><p class="stats-section-title">Win Rate</p><div id="stats-chart-winrate" class="stats-chart"></div></div>';
   h += '<div class="stats-section"><p class="stats-section-title">Games Played</p><div id="stats-chart-pie" class="stats-chart"></div></div>';
   h += '</div>';
@@ -3780,7 +3797,7 @@ async function loadStatsOverlay() {
     for (const g of data.recent) {
       const badge = 'stats-badge-' + g.result;
       const time = new Date(g.played_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-      h += '<li><span><span class="stats-badge ' + badge + '">' + g.result + '</span> ' + (GAME_LABELS[g.game_type] || g.game_type) + '</span><span><span class="' + chipsCls(g.chips_change) + '">' + fmtChips(g.chips_change) + '</span> &middot; ' + time + '</span></li>';
+      h += '<li><span><span class="stats-badge ' + badge + '">' + g.result + '</span>' + (GAME_LABELS[g.game_type] || g.game_type) + '</span><span class="' + chipsCls(g.chips_change) + '">' + fmtChips(g.chips_change) + '</span></li>';
     }
     h += '</ul>';
   } else {
@@ -3788,7 +3805,7 @@ async function loadStatsOverlay() {
   }
   h += '</div>';
 
-  statsBody.innerHTML = h;
+  statsViewBody.innerHTML = h;
 
   // Render charts
   if (typeof Highcharts === 'undefined') return;
@@ -3798,13 +3815,14 @@ async function loadStatsOverlay() {
   const textColor = style.getPropertyValue('--lobby-text').trim() || '#c9d1d9';
   const borderColor = style.getPropertyValue('--lobby-border').trim() || '#30363d';
   const bgColor = style.getPropertyValue('--lobby-input-bg').trim() || '#0d1117';
+  const colorAlpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
 
   const hcDefaults = {
     chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' } },
     title: { text: null },
     credits: { enabled: false },
     xAxis: { lineColor: borderColor, tickColor: borderColor, labels: { style: { color: textColor, opacity: 0.5 } } },
-    yAxis: { gridLineColor: color_mix(borderColor, 0.4), labels: { style: { color: textColor, opacity: 0.5 } }, title: { style: { color: textColor } } },
+    yAxis: { gridLineColor: colorAlpha(borderColor, 0.4), labels: { style: { color: textColor, opacity: 0.5 } }, title: { style: { color: textColor } } },
     legend: { itemStyle: { color: textColor }, itemHoverStyle: { color: '#fff' } },
     tooltip: { backgroundColor: bgColor, borderColor: borderColor, style: { color: textColor } },
   };
@@ -3842,13 +3860,6 @@ async function loadStatsOverlay() {
       series: [{ name: 'Games', data: data.summary.map((r,i) => ({ name: GAME_LABELS[r.game_type] || r.game_type, y: r.total, color: pieColors[i] })) }],
       plotOptions: { pie: { borderColor: borderColor, borderWidth: 1, dataLabels: { color: textColor, style: { textOutline: 'none', fontSize: '10px' } } } },
     });
-  }
-
-  function statCard(val, label) {
-    return '<div class="stat-card"><div class="stat-value">' + val + '</div><div class="stat-label">' + label + '</div></div>';
-  }
-  function color_mix(hex, alpha) {
-    return hex + Math.round(alpha * 255).toString(16).padStart(2, '0');
   }
 }
 
