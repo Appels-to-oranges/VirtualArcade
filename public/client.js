@@ -3706,6 +3706,7 @@ const statsBackHeaderBtn = document.getElementById('stats-back-header-btn');
 const statsViewBody = document.getElementById('stats-view-body');
 const lobbyCards = document.querySelector('.lobby-cards');
 const lobbyParticipantsBar = document.querySelector('.lobby-participants-bar');
+const gameSelectLayout = document.querySelector('.game-select-layout');
 
 function showStatsView() {
   if (lobbyCards) lobbyCards.classList.add('hidden');
@@ -3714,6 +3715,7 @@ function showStatsView() {
   if (statsBackBtn) statsBackBtn.classList.remove('hidden');
   if (statsBackHeaderBtn) statsBackHeaderBtn.classList.remove('hidden');
   if (statsBtn) statsBtn.classList.add('hidden');
+  if (gameSelectLayout) gameSelectLayout.classList.add('stats-expanded');
   loadStatsView();
 }
 function hideStatsView() {
@@ -3723,6 +3725,7 @@ function hideStatsView() {
   if (statsBackBtn) statsBackBtn.classList.add('hidden');
   if (statsBackHeaderBtn) statsBackHeaderBtn.classList.add('hidden');
   if (statsBtn) statsBtn.classList.remove('hidden');
+  if (gameSelectLayout) gameSelectLayout.classList.remove('stats-expanded');
 }
 
 if (statsBtn) statsBtn.addEventListener('click', showStatsView);
@@ -3734,7 +3737,6 @@ async function loadStatsView() {
   statsViewBody.innerHTML = '<p class="stats-empty">Loading...</p>';
 
   const GAME_LABELS = { holdem: "Texas Hold'em", blackjack: 'Blackjack', slots: 'Slots', checkers: 'Checkers', chess: 'Chess' };
-  const GAME_COLORS = { holdem: '#f0d78c', blackjack: '#6fcf6f', slots: '#e06060', checkers: '#9cc5ff', chess: '#c8b478' };
 
   let data;
   try {
@@ -3833,14 +3835,37 @@ async function loadStatsView() {
   const bgColor = style.getPropertyValue('--lobby-input-bg').trim() || '#0d1117';
   const colorAlpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
 
+  function hexToHSL(hex) {
+    let r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+    let h = 0, s = 0, l = (max+min)/2;
+    if (d > 0) { s = l > 0.5 ? d/(2-max-min) : d/(max+min); h = max===r ? ((g-b)/d+(g<b?6:0))*60 : max===g ? ((b-r)/d+2)*60 : ((r-g)/d+4)*60; }
+    return [h, s*100, l*100];
+  }
+  function hslToHex(h,s,l) {
+    s /= 100; l /= 100;
+    const k = n => (n+h/30) % 12;
+    const a = s * Math.min(l, 1-l);
+    const f = n => Math.round(255*(l - a*Math.max(-1, Math.min(k(n)-3, 9-k(n), 1))));
+    return '#' + [f(0),f(8),f(4)].map(v => v.toString(16).padStart(2,'0')).join('');
+  }
+  const [ah, as, al] = hexToHSL(accentColor);
+  const gameColors = [
+    accentColor,
+    hslToHex((ah + 90) % 360, Math.min(as + 10, 80), Math.min(al + 8, 70)),
+    hslToHex((ah + 180) % 360, Math.min(as + 5, 70), Math.min(al + 5, 65)),
+    hslToHex((ah + 45) % 360, Math.min(as + 15, 75), Math.min(al + 12, 72)),
+    hslToHex((ah + 270) % 360, Math.min(as + 8, 70), Math.min(al + 3, 68)),
+  ];
+
   const hcDefaults = {
-    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit', fontSize: '11px' } },
+    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit', fontSize: '13px' } },
     title: { text: null },
     credits: { enabled: false },
-    xAxis: { lineColor: borderColor, tickColor: borderColor, labels: { style: { color: textColor, opacity: 0.5, fontSize: '10px' } } },
-    yAxis: { gridLineColor: colorAlpha(borderColor, 0.4), labels: { style: { color: textColor, opacity: 0.5, fontSize: '10px' } }, title: { style: { color: textColor, fontSize: '10px' } } },
-    legend: { itemStyle: { color: textColor, fontSize: '10px' }, itemHoverStyle: { color: '#fff' } },
-    tooltip: { backgroundColor: bgColor, borderColor: borderColor, style: { color: textColor, fontSize: '11px' } },
+    xAxis: { lineColor: colorAlpha(borderColor, 0.5), tickColor: colorAlpha(borderColor, 0.5), labels: { style: { color: textColor, opacity: 0.55, fontSize: '12px' } } },
+    yAxis: { gridLineColor: colorAlpha(borderColor, 0.25), labels: { style: { color: textColor, opacity: 0.55, fontSize: '12px' } }, title: { style: { color: textColor, fontSize: '12px' } } },
+    legend: { itemStyle: { color: textColor, fontSize: '12px' }, itemHoverStyle: { color: '#fff' } },
+    tooltip: { backgroundColor: bgColor, borderColor: accentColor + '40', style: { color: textColor, fontSize: '13px' } },
   };
 
   if (data.history.length) {
@@ -3850,7 +3875,7 @@ async function loadStatsView() {
       chart: { ...hcDefaults.chart, type: 'area', zooming: { type: 'x' } },
       xAxis: { ...hcDefaults.xAxis, type: 'datetime', dateTimeLabelFormats: { hour: '%l:%M %p', day: '%b %e', month: '%b \'%y' } },
       yAxis: { ...hcDefaults.yAxis, title: { text: null }, min: 0 },
-      series: [{ name: 'Chips', data: pts, color: accentColor, fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 }, stops: [[0, accentColor + '40'],[1, accentColor + '00']] }, marker: { enabled: false }, lineWidth: 2 }],
+      series: [{ name: 'Chips', data: pts, color: accentColor, fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 }, stops: [[0, accentColor + '45'],[1, accentColor + '00']] }, marker: { enabled: false }, lineWidth: 2.5 }],
       legend: { enabled: false },
     });
   }
@@ -3858,23 +3883,21 @@ async function loadStatsView() {
   if (data.summary.length) {
     const cats = data.summary.map(r => GAME_LABELS[r.game_type] || r.game_type);
     const wrs = data.summary.map(r => r.total ? +((r.wins / r.total) * 100).toFixed(1) : 0);
-    const barColors = data.summary.map(r => GAME_COLORS[r.game_type] || accentColor);
     Highcharts.chart('stats-chart-winrate', {
       ...hcDefaults,
       chart: { ...hcDefaults.chart, type: 'bar' },
-      xAxis: { ...hcDefaults.xAxis, categories: cats, labels: { style: { color: textColor, opacity: 0.6, fontSize: '11px' } } },
+      xAxis: { ...hcDefaults.xAxis, categories: cats, labels: { style: { color: textColor, opacity: 0.7, fontSize: '13px' } } },
       yAxis: { ...hcDefaults.yAxis, title: { text: null }, max: 100, min: 0 },
-      series: [{ name: 'Win Rate', data: wrs.map((v,i) => ({ y: v, color: barColors[i] })), colorByPoint: true }],
+      series: [{ name: 'Win Rate', data: wrs.map((v,i) => ({ y: v, color: gameColors[i % gameColors.length] })), colorByPoint: true }],
       legend: { enabled: false },
-      plotOptions: { bar: { borderRadius: 3, borderWidth: 0, dataLabels: { enabled: true, format: '{y}%', style: { color: textColor, textOutline: 'none', fontSize: '11px' } } } },
+      plotOptions: { bar: { borderRadius: 4, borderWidth: 0, dataLabels: { enabled: true, format: '{y}%', style: { color: textColor, textOutline: 'none', fontSize: '13px', fontWeight: '600' } } } },
     });
 
-    const pieColors = data.summary.map(r => GAME_COLORS[r.game_type] || accentColor);
     Highcharts.chart('stats-chart-pie', {
       ...hcDefaults,
       chart: { ...hcDefaults.chart, type: 'pie' },
-      series: [{ name: 'Games', data: data.summary.map((r,i) => ({ name: GAME_LABELS[r.game_type] || r.game_type, y: r.total, color: pieColors[i] })) }],
-      plotOptions: { pie: { borderColor: borderColor, borderWidth: 1, dataLabels: { color: textColor, style: { textOutline: 'none', fontSize: '11px' } } } },
+      series: [{ name: 'Games', data: data.summary.map((r,i) => ({ name: GAME_LABELS[r.game_type] || r.game_type, y: r.total, color: gameColors[i % gameColors.length] })) }],
+      plotOptions: { pie: { borderColor: 'transparent', borderWidth: 2, innerSize: '40%', dataLabels: { color: textColor, style: { textOutline: 'none', fontSize: '13px' } } } },
     });
   }
 }
