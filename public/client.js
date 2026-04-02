@@ -3702,6 +3702,7 @@ if (accountOverlayClose) accountOverlayClose.addEventListener('click', () => { i
 const statsBtn = document.getElementById('lobby-stats-btn');
 const statsView = document.getElementById('stats-view');
 const statsBackBtn = document.getElementById('stats-back-btn');
+const statsBackHeaderBtn = document.getElementById('stats-back-header-btn');
 const statsViewBody = document.getElementById('stats-view-body');
 const lobbyCards = document.querySelector('.lobby-cards');
 const lobbyParticipantsBar = document.querySelector('.lobby-participants-bar');
@@ -3711,6 +3712,7 @@ function showStatsView() {
   if (lobbyParticipantsBar) lobbyParticipantsBar.classList.add('hidden');
   if (statsView) statsView.classList.remove('hidden');
   if (statsBackBtn) statsBackBtn.classList.remove('hidden');
+  if (statsBackHeaderBtn) statsBackHeaderBtn.classList.remove('hidden');
   if (statsBtn) statsBtn.classList.add('hidden');
   loadStatsView();
 }
@@ -3719,11 +3721,13 @@ function hideStatsView() {
   if (lobbyCards) lobbyCards.classList.remove('hidden');
   if (lobbyParticipantsBar) lobbyParticipantsBar.classList.remove('hidden');
   if (statsBackBtn) statsBackBtn.classList.add('hidden');
+  if (statsBackHeaderBtn) statsBackHeaderBtn.classList.add('hidden');
   if (statsBtn) statsBtn.classList.remove('hidden');
 }
 
 if (statsBtn) statsBtn.addEventListener('click', showStatsView);
 if (statsBackBtn) statsBackBtn.addEventListener('click', hideStatsView);
+if (statsBackHeaderBtn) statsBackHeaderBtn.addEventListener('click', hideStatsView);
 
 async function loadStatsView() {
   if (!statsViewBody) return;
@@ -3758,21 +3762,39 @@ async function loadStatsView() {
 
   let h = '';
 
+  // Hero KPI cards
   h += '<div class="stats-grid">';
-  h += statCard(data.chips, 'Chips');
-  h += statCard(totalGames, 'Games');
-  h += statCard(totalWins, 'Wins');
-  h += statCard(totalLosses, 'Losses');
+  h += statCard('$' + data.chips, 'Chips');
+  h += statCard(totalGames, 'Games Played');
   h += statCard(winRate + '%', 'Win Rate');
   h += statCard(fmtChips(totalNet), 'Net Chips');
-  h += statCard(data.chessBestLevel || '-', 'Best Chess AI');
+  h += '</div>';
+
+  // Secondary KPI cards
+  h += '<div class="stats-grid">';
+  h += statCard(totalWins, 'Wins');
+  h += statCard(totalLosses, 'Losses');
+  h += statCard(data.chessBestLevel ? 'Level ' + data.chessBestLevel : '-', 'Best Chess AI');
   h += statCard(memberSince, 'Member Since');
   h += '</div>';
 
-  // Per-game breakdown
-  h += '<div class="stats-section"><p class="stats-section-title">Breakdown by Game</p>';
+  // Chip balance chart (full width)
+  h += '<div class="stats-row stats-row-1">';
+  h += '<div class="stats-panel"><p class="stats-panel-title">Chip Balance Over Time</p><p class="stats-panel-subtitle">Track your bankroll across all games</p><div id="stats-chart-chips" class="stats-chart"></div></div>';
+  h += '</div>';
+
+  // Win rate + pie side by side
+  h += '<div class="stats-row stats-row-2">';
+  h += '<div class="stats-panel"><p class="stats-panel-title">Win Rate by Game</p><p class="stats-panel-subtitle">Percentage of games won</p><div id="stats-chart-winrate" class="stats-chart"></div></div>';
+  h += '<div class="stats-panel"><p class="stats-panel-title">Games Played</p><p class="stats-panel-subtitle">Distribution by game type</p><div id="stats-chart-pie" class="stats-chart"></div></div>';
+  h += '</div>';
+
+  // Breakdown table + recent games side by side
+  h += '<div class="stats-row stats-row-wide-narrow">';
+
+  h += '<div class="stats-panel"><p class="stats-panel-title">Breakdown by Game</p><p class="stats-panel-subtitle">Detailed per-game statistics</p>';
   if (data.summary.length) {
-    h += '<table class="stats-table"><thead><tr><th>Game</th><th>Played</th><th>W</th><th>L</th><th>Win%</th><th>Net</th></tr></thead><tbody>';
+    h += '<table class="stats-table"><thead><tr><th>Game</th><th>Played</th><th>W</th><th>L</th><th>Win %</th><th>Net</th></tr></thead><tbody>';
     for (const r of data.summary) {
       const wr = r.total ? ((r.wins / r.total) * 100).toFixed(1) : '0.0';
       h += '<tr><td>' + (GAME_LABELS[r.game_type] || r.game_type) + '</td><td>' + r.total + '</td><td>' + r.wins + '</td><td>' + r.losses + '</td><td>' + wr + '%</td><td class="' + chipsCls(r.net_chips) + '">' + fmtChips(r.net_chips) + '</td></tr>';
@@ -3783,26 +3805,20 @@ async function loadStatsView() {
   }
   h += '</div>';
 
-  // Charts
-  h += '<div class="stats-section"><p class="stats-section-title">Chip Balance</p><div id="stats-chart-chips" class="stats-chart"></div></div>';
-  h += '<div class="stats-chart-row">';
-  h += '<div class="stats-section"><p class="stats-section-title">Win Rate</p><div id="stats-chart-winrate" class="stats-chart"></div></div>';
-  h += '<div class="stats-section"><p class="stats-section-title">Games Played</p><div id="stats-chart-pie" class="stats-chart"></div></div>';
-  h += '</div>';
-
-  // Recent games
-  h += '<div class="stats-section"><p class="stats-section-title">Recent Games</p>';
+  h += '<div class="stats-panel"><p class="stats-panel-title">Recent Games</p><p class="stats-panel-subtitle">Last 50 results</p>';
   if (data.recent.length) {
     h += '<ul class="stats-recent">';
     for (const g of data.recent) {
       const badge = 'stats-badge-' + g.result;
       const time = new Date(g.played_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-      h += '<li><span><span class="stats-badge ' + badge + '">' + g.result + '</span>' + (GAME_LABELS[g.game_type] || g.game_type) + '</span><span class="' + chipsCls(g.chips_change) + '">' + fmtChips(g.chips_change) + '</span></li>';
+      h += '<li><span class="stats-recent-left"><span class="stats-badge ' + badge + '">' + g.result + '</span>' + (GAME_LABELS[g.game_type] || g.game_type) + '</span><span class="stats-recent-right"><span class="' + chipsCls(g.chips_change) + '">' + fmtChips(g.chips_change) + '</span><span class="stats-recent-time">' + time + '</span></span></li>';
     }
     h += '</ul>';
   } else {
     h += '<p class="stats-empty">No games yet</p>';
   }
+  h += '</div>';
+
   h += '</div>';
 
   statsViewBody.innerHTML = h;
@@ -3818,13 +3834,13 @@ async function loadStatsView() {
   const colorAlpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
 
   const hcDefaults = {
-    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' } },
+    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit', fontSize: '11px' } },
     title: { text: null },
     credits: { enabled: false },
-    xAxis: { lineColor: borderColor, tickColor: borderColor, labels: { style: { color: textColor, opacity: 0.5 } } },
-    yAxis: { gridLineColor: colorAlpha(borderColor, 0.4), labels: { style: { color: textColor, opacity: 0.5 } }, title: { style: { color: textColor } } },
-    legend: { itemStyle: { color: textColor }, itemHoverStyle: { color: '#fff' } },
-    tooltip: { backgroundColor: bgColor, borderColor: borderColor, style: { color: textColor } },
+    xAxis: { lineColor: borderColor, tickColor: borderColor, labels: { style: { color: textColor, opacity: 0.5, fontSize: '10px' } } },
+    yAxis: { gridLineColor: colorAlpha(borderColor, 0.4), labels: { style: { color: textColor, opacity: 0.5, fontSize: '10px' } }, title: { style: { color: textColor, fontSize: '10px' } } },
+    legend: { itemStyle: { color: textColor, fontSize: '10px' }, itemHoverStyle: { color: '#fff' } },
+    tooltip: { backgroundColor: bgColor, borderColor: borderColor, style: { color: textColor, fontSize: '11px' } },
   };
 
   if (data.history.length) {
@@ -3832,7 +3848,7 @@ async function loadStatsView() {
     Highcharts.chart('stats-chart-chips', {
       ...hcDefaults,
       chart: { ...hcDefaults.chart, type: 'area', zooming: { type: 'x' } },
-      xAxis: { ...hcDefaults.xAxis, type: 'datetime' },
+      xAxis: { ...hcDefaults.xAxis, type: 'datetime', dateTimeLabelFormats: { hour: '%l:%M %p', day: '%b %e', month: '%b \'%y' } },
       yAxis: { ...hcDefaults.yAxis, title: { text: null }, min: 0 },
       series: [{ name: 'Chips', data: pts, color: accentColor, fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 }, stops: [[0, accentColor + '40'],[1, accentColor + '00']] }, marker: { enabled: false }, lineWidth: 2 }],
       legend: { enabled: false },
@@ -3846,11 +3862,11 @@ async function loadStatsView() {
     Highcharts.chart('stats-chart-winrate', {
       ...hcDefaults,
       chart: { ...hcDefaults.chart, type: 'bar' },
-      xAxis: { ...hcDefaults.xAxis, categories: cats },
+      xAxis: { ...hcDefaults.xAxis, categories: cats, labels: { style: { color: textColor, opacity: 0.6, fontSize: '11px' } } },
       yAxis: { ...hcDefaults.yAxis, title: { text: null }, max: 100, min: 0 },
       series: [{ name: 'Win Rate', data: wrs.map((v,i) => ({ y: v, color: barColors[i] })), colorByPoint: true }],
       legend: { enabled: false },
-      plotOptions: { bar: { borderRadius: 3, borderWidth: 0, dataLabels: { enabled: true, format: '{y}%', style: { color: textColor, textOutline: 'none', fontSize: '10px' } } } },
+      plotOptions: { bar: { borderRadius: 3, borderWidth: 0, dataLabels: { enabled: true, format: '{y}%', style: { color: textColor, textOutline: 'none', fontSize: '11px' } } } },
     });
 
     const pieColors = data.summary.map(r => GAME_COLORS[r.game_type] || accentColor);
@@ -3858,7 +3874,7 @@ async function loadStatsView() {
       ...hcDefaults,
       chart: { ...hcDefaults.chart, type: 'pie' },
       series: [{ name: 'Games', data: data.summary.map((r,i) => ({ name: GAME_LABELS[r.game_type] || r.game_type, y: r.total, color: pieColors[i] })) }],
-      plotOptions: { pie: { borderColor: borderColor, borderWidth: 1, dataLabels: { color: textColor, style: { textOutline: 'none', fontSize: '10px' } } } },
+      plotOptions: { pie: { borderColor: borderColor, borderWidth: 1, dataLabels: { color: textColor, style: { textOutline: 'none', fontSize: '11px' } } } },
     });
   }
 }
