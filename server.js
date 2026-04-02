@@ -1,4 +1,5 @@
 const express = require('express');
+const { RegExpMatcher, TextCensor, englishDataset, englishRecommendedTransformers, grawlixCensorStrategy } = require('obscenity');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -10,6 +11,13 @@ const { decideAction, getPosition } = require('./bot_decide');
 const pool = require('./db');
 const authRouter = require('./auth');
 const STOCKFISH_CLI_PATH = path.join(__dirname, 'node_modules', 'stockfish', 'scripts', 'cli.js');
+
+const profanityMatcher = new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers });
+const profanityCensor = new TextCensor().setStrategy(grawlixCensorStrategy());
+function censorText(text) {
+  const matches = profanityMatcher.getAllMatches(text);
+  return profanityCensor.applyTo(text, matches);
+}
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -36,6 +44,52 @@ app.use('/auth', authRouter);
 
 app.get('/health', (req, res) => res.send('ok'));
 
+app.get('/api/stats', async (req, res) => {
+  if (!req.session?.userId) return res.status(401).json({ error: 'Not logged in' });
+  const userId = req.session.userId;
+  try {
+    const userRes = await pool.query('SELECT chips, created_at, chess_best_computer_level FROM users WHERE id = $1', [userId]);
+    if (!userRes.rows.length) return res.status(404).json({ error: 'User not found' });
+    const user = userRes.rows[0];
+
+    const summaryRes = await pool.query(`
+      SELECT game_type,
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE result = 'win')::int AS wins,
+        COUNT(*) FILTER (WHERE result = 'loss')::int AS losses,
+        COUNT(*) FILTER (WHERE result = 'push')::int AS pushes,
+        COUNT(*) FILTER (WHERE result = 'fold')::int AS folds,
+        COALESCE(SUM(chips_change), 0)::int AS net_chips
+      FROM game_history WHERE user_id = $1
+      GROUP BY game_type
+    `, [userId]);
+
+    const historyRes = await pool.query(`
+      SELECT game_type, result, chips_change, chips_after, played_at
+      FROM game_history WHERE user_id = $1
+      ORDER BY played_at ASC
+    `, [userId]);
+
+    const recentRes = await pool.query(`
+      SELECT game_type, result, chips_change, chips_after, details, played_at
+      FROM game_history WHERE user_id = $1
+      ORDER BY played_at DESC LIMIT 50
+    `, [userId]);
+
+    res.json({
+      chips: user.chips,
+      createdAt: user.created_at,
+      chessBestLevel: user.chess_best_computer_level,
+      summary: summaryRes.rows,
+      history: historyRes.rows,
+      recent: recentRes.rows,
+    });
+  } catch (err) {
+    console.error('Stats error:', err.message);
+    res.status(500).json({ error: 'Failed to load stats' });
+  }
+});
+
 const cardsPath = path.join(__dirname, 'public', 'cards');
 const cardsPathAlt = path.join(__dirname, '..', 'cards');
 if (fs.existsSync(cardsPath)) {
@@ -58,6 +112,14 @@ async function saveUserChips(userId, chips) {
   } catch (err) {
     console.error('Failed to save chips:', err.message);
   }
+}
+
+function recordGame(userId, gameType, result, chipsChange, chipsAfter, details) {
+  if (!userId) return;
+  pool.query(
+    'INSERT INTO game_history (user_id, game_type, result, chips_change, chips_after, details) VALUES ($1,$2,$3,$4,$5,$6)',
+    [userId, gameType, result, chipsChange, chipsAfter, details ? JSON.stringify(details) : null]
+  ).catch(() => {});
 }
 
 async function saveUserCosmetics(userId, purchasedOutfits, equippedOutfit, purchasedCharacters, equippedCharacter) {
@@ -210,33 +272,41 @@ const CHARACTER_PRICES = {
   agent: 150,
   alt_girl: 100,
   army: 150,
+  aviator: 250,
   default_boy_1: 0,
   default_boy_2: 0,
   default_boy_3: 0,
   default_boy_4: 0,
+  default_boy_5: 0,
+  default_boy_6: 0,
   default_girl_1: 0,
   default_girl_2: 0,
   default_girl_3: 0,
   default_girl_4: 0,
   default_girl_5: 0,
   default_girl_6: 0,
-  default_girl_7: 0,
   football_1: 150,
   football_2: 150,
   football_3: 150,
   football_4: 150,
-  gator: 200,
-  ghost: 150,
-  king: 300,
-  knight: 250,
-  monopoly_man: 300,
-  queen: 250,
+  gator: 500,
+  ghost: 200,
+  goth_girl: 100,
+  king: 400,
+  knight: 350,
+  monopoly_man: 500,
+  park_ranger: 200,
+  party_boy: 100,
+  queen: 400,
   robot: 1000,
+  rock_girl: 100,
+  scuba_diver: 300,
   sheriff: 1000,
   skeleton: 200,
   skeleton_2: 200,
+  skateboarder: 150,
   swimsuit_girl: 150,
-  vampire: 250,
+  vampire: 300,
 };
 const DEFAULT_CHARACTER_IDS = Object.keys(CHARACTER_PRICES).filter((id) => id.includes('default'));
 
@@ -644,11 +714,13 @@ function showdown(roomKey) {
   const active = players.filter((p) => !p.folded);
 
   clearTurnTimer(room);
+  let holdemWinnerIds = [];
 
   if (active.length === 1) {
     active[0].chips += room.pot;
     const holeCards = active[0].hand;
-    const winnerIds = [active[0].id];
+    holdemWinnerIds = [active[0].id];
+    const winnerIds = holdemWinnerIds;
     players.forEach((p) => {
       if (winnerIds.includes(p.id)) {
         p.winStreak = (p.winStreak || 0) + 1;
@@ -693,6 +765,7 @@ function showdown(roomKey) {
     const winners = Hand.winners(hands.map((h) => h.hand));
     const winnerHands = hands.filter((h) => winners.includes(h.hand));
     const winnerIds = winnerHands.map((h) => h.player.id);
+    holdemWinnerIds = winnerIds;
     const winAmount = Math.floor(room.pot / winnerIds.length);
     winnerHands.forEach((h) => (h.player.chips += winAmount));
 
@@ -752,6 +825,13 @@ function showdown(roomKey) {
 
   players.forEach((p) => {
     if (p.dbUserId) saveUserChips(p.dbUserId, p.chips);
+    if (p.dbUserId) {
+      const isWinner = holdemWinnerIds.includes(p.id);
+      const winShare = isWinner ? Math.floor(room.pot / holdemWinnerIds.length) : 0;
+      const change = winShare - (p.totalBet ?? 0);
+      const result = isWinner ? 'win' : (p.folded ? 'fold' : 'loss');
+      recordGame(p.dbUserId, 'holdem', result, change, p.chips, { pot: room.pot, hand: p.hand });
+    }
   });
 
   const hasBrokeBots = room.players.some((p) => p.isBot && p.chips <= 0);
@@ -1362,6 +1442,14 @@ function bjCalculateResults(roomKey) {
   bjPl.forEach((p) => {
     if (p.dbUserId) saveUserChips(p.dbUserId, p.chips);
   });
+  results.forEach((r) => {
+    const pl = bjPl.find((p) => p.id === r.id);
+    if (pl?.dbUserId) {
+      const result = r.status === 'won' || r.status === 'blackjack' ? 'win' : r.status === 'push' ? 'push' : 'loss';
+      const change = r.payout - r.bet;
+      recordGame(pl.dbUserId, 'blackjack', result, change, r.chips, { bet: r.bet, total: r.total, dealerTotal });
+    }
+  });
 
   room.bjPhase = 'lobby';
   room.phase = 'lobby';
@@ -1912,6 +2000,12 @@ function ckMakeMove(roomKey, playerId, from, to) {
         loserNickname: loserP?.nickname || 'Opponent',
       });
       room.ckPlayersList?.forEach((p) => { if (p.dbUserId) saveUserChips(p.dbUserId, p.chips); });
+      room.ckPlayersList?.forEach((p) => {
+        if (!p.dbUserId) return;
+        const isWinner = p.id === room.ckPlayers[winner];
+        const change = isWinner ? (wager || 0) : -(wager || 0);
+        recordGame(p.dbUserId, 'checkers', isWinner ? 'win' : 'loss', change, p.chips, { wager });
+      });
     }
   }
 }
@@ -2571,6 +2665,12 @@ function chMakeMove(roomKey, playerId, from, to) {
       loserNickname: loserP?.nickname || 'Opponent',
     });
     room.chPlayersList?.forEach((p) => { if (p.dbUserId) saveUserChips(p.dbUserId, p.chips); });
+    room.chPlayersList?.forEach((p) => {
+      if (!p.dbUserId) return;
+      const isWinner = p.id === room.chPlayers[winner];
+      const change = isWinner ? (wager || 0) : -(wager || 0);
+      recordGame(p.dbUserId, 'chess', isWinner ? 'win' : 'loss', change, p.chips, { wager, reason: result, mode: room.chMode || 'player' });
+    });
   }
 }
 
@@ -3365,7 +3465,7 @@ wss.on('connection', async (ws, req) => {
         }
         const room = getRoom(data.roomKey);
         if (room.players.findIndex((p) => p.ws === ws) < 0) return;
-        const text = String(msg.text || '').trim().slice(0, 100);
+        const text = censorText(String(msg.text || '').trim().slice(0, 100));
         if (!text) return;
         const chatMsg = { playerId: ws.id, nickname: data.nickname, text };
         if (!room.chatHistory) room.chatHistory = [];
@@ -3439,6 +3539,10 @@ wss.on('connection', async (ws, req) => {
         const payout = validBet * multiplier;
         player.chips = (player.chips || 0) + payout;
         if (player.dbUserId) saveUserChips(player.dbUserId, player.chips);
+        if (player.dbUserId) {
+          const change = payout - validBet;
+          recordGame(player.dbUserId, 'slots', payout > 0 ? 'win' : 'loss', change, player.chips, { bet: validBet, reels, multiplier });
+        }
         const isJackpot = multiplier === 50;
         if (isJackpot) {
           const chatMsg = { playerId: ws.id, nickname: player.nickname, text: (player.nickname || 'Someone') + ' won the jackpot!' };

@@ -43,6 +43,21 @@ async function ensureTables() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_daily_bonus DATE`
     ).catch(() => {});
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS game_history (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game_type VARCHAR(20) NOT NULL,
+        result VARCHAR(10) NOT NULL,
+        chips_change INTEGER NOT NULL DEFAULT 0,
+        chips_after INTEGER NOT NULL DEFAULT 0,
+        details JSONB,
+        played_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_game_history_user ON game_history(user_id, played_at DESC)
+    `).catch(() => {});
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS favorite_stations (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -959,33 +959,41 @@ const CHARACTER_CATALOG = [
   { id: 'agent', name: 'Agent', src: '/pixel-characters/Agent.png', price: 150 },
   { id: 'alt_girl', name: 'Alt Girl', src: '/pixel-characters/Alt_Girl.png', price: 100 },
   { id: 'army', name: 'Army', src: '/pixel-characters/Army.png', price: 150 },
+  { id: 'aviator', name: 'Aviator', src: '/pixel-characters/Aviator.png', price: 250 },
   { id: 'default_boy_1', name: 'Default Boy 1', src: '/pixel-characters/Default_Boy_1.png', price: 0 },
   { id: 'default_boy_2', name: 'Default Boy 2', src: '/pixel-characters/Default_Boy_2.png', price: 0 },
   { id: 'default_boy_3', name: 'Default Boy 3', src: '/pixel-characters/Default_Boy_3.PNG', price: 0 },
   { id: 'default_boy_4', name: 'Default Boy 4', src: '/pixel-characters/Default_Boy_4.PNG', price: 0 },
+  { id: 'default_boy_5', name: 'Default Boy 5', src: '/pixel-characters/Default_Boy_5.png', price: 0 },
+  { id: 'default_boy_6', name: 'Default Boy 6', src: '/pixel-characters/Default_Boy_6.png', price: 0 },
   { id: 'default_girl_1', name: 'Default Girl 1', src: '/pixel-characters/Default_Girl_1.png', price: 0 },
   { id: 'default_girl_2', name: 'Default Girl 2', src: '/pixel-characters/Default_Girl_2.png', price: 0 },
   { id: 'default_girl_3', name: 'Default Girl 3', src: '/pixel-characters/Default_Girl_3.png', price: 0 },
   { id: 'default_girl_4', name: 'Default Girl 4', src: '/pixel-characters/Default_Girl_4.png', price: 0 },
-  { id: 'default_girl_5', name: 'Default Girl 5', src: '/pixel-characters/Default_Girl_5.png', price: 0 },
+  { id: 'default_girl_5', name: 'Default Girl 5', src: '/pixel-characters/Default_Girl_5.PNG', price: 0 },
   { id: 'default_girl_6', name: 'Default Girl 6', src: '/pixel-characters/Default_Girl_6.PNG', price: 0 },
-  { id: 'default_girl_7', name: 'Default Girl 7', src: '/pixel-characters/Default_Girl_7.PNG', price: 0 },
   { id: 'football_1', name: 'Football 1', src: '/pixel-characters/Football_1.png', price: 150 },
   { id: 'football_2', name: 'Football 2', src: '/pixel-characters/Football_2.png', price: 150 },
   { id: 'football_3', name: 'Football 3', src: '/pixel-characters/Football_3.png', price: 150 },
   { id: 'football_4', name: 'Football 4', src: '/pixel-characters/Football_4.png', price: 150 },
-  { id: 'gator', name: 'Gator', src: '/pixel-characters/Gator.png', price: 200 },
-  { id: 'ghost', name: 'Ghost', src: '/pixel-characters/Ghost.png', price: 150 },
-  { id: 'king', name: 'King', src: '/pixel-characters/King.png', price: 300 },
-  { id: 'knight', name: 'Knight', src: '/pixel-characters/Knight.png', price: 250 },
-  { id: 'monopoly_man', name: 'Monopoly Man', src: '/pixel-characters/Monopoly_Man.png', price: 300 },
-  { id: 'queen', name: 'Queen', src: '/pixel-characters/Queen.png', price: 250 },
+  { id: 'gator', name: 'Gator', src: '/pixel-characters/Gator.png', price: 500 },
+  { id: 'ghost', name: 'Ghost', src: '/pixel-characters/Ghost.png', price: 200 },
+  { id: 'goth_girl', name: 'Goth Girl', src: '/pixel-characters/Goth_Girl.png', price: 100 },
+  { id: 'king', name: 'King', src: '/pixel-characters/King.png', price: 400 },
+  { id: 'knight', name: 'Knight', src: '/pixel-characters/Knight.png', price: 350 },
+  { id: 'monopoly_man', name: 'Monopoly Man', src: '/pixel-characters/Monopoly_Man.png', price: 500 },
+  { id: 'park_ranger', name: 'Park Ranger', src: '/pixel-characters/Park_Ranger.png', price: 200 },
+  { id: 'party_boy', name: 'Party Boy', src: '/pixel-characters/Party_Boy.png', price: 100 },
+  { id: 'queen', name: 'Queen', src: '/pixel-characters/Queen.png', price: 400 },
   { id: 'robot', name: 'Robot', src: '/pixel-characters/Robot.gif', price: 1000 },
+  { id: 'rock_girl', name: 'Rock Girl', src: '/pixel-characters/Rock_Girl.png', price: 100 },
+  { id: 'scuba_diver', name: 'Scuba Diver', src: '/pixel-characters/Scuba_Diver.png', price: 300 },
   { id: 'sheriff', name: 'Sheriff', src: '/pixel-characters/Sheriff.gif', price: 1000 },
   { id: 'skeleton', name: 'Skeleton', src: '/pixel-characters/Skeleton.png', price: 200 },
   { id: 'skeleton_2', name: 'Skeleton 2', src: '/pixel-characters/Skeleton_2.png', price: 200 },
+  { id: 'skateboarder', name: 'Skateboarder', src: '/pixel-characters/Skateboarder.png', price: 150 },
   { id: 'swimsuit_girl', name: 'Swimsuit Girl', src: '/pixel-characters/Swimsuit_Girl.png', price: 150 },
-  { id: 'vampire', name: 'Vampire', src: '/pixel-characters/Vampire.png', price: 250 },
+  { id: 'vampire', name: 'Vampire', src: '/pixel-characters/Vampire.png', price: 300 },
 ];
 const OUTFIT_BY_ID = {};
 const CHARACTER_BY_ID = CHARACTER_CATALOG.reduce((acc, item) => { acc[item.id] = item; return acc; }, {});
@@ -3689,6 +3697,11 @@ if (accountBtn) accountBtn.addEventListener('click', () => {
   if (accountOverlay) accountOverlay.classList.remove('hidden');
 });
 if (accountOverlayClose) accountOverlayClose.addEventListener('click', () => { if (accountOverlay) accountOverlay.classList.add('hidden'); });
+
+const statsBtn = document.getElementById('lobby-stats-btn');
+if (statsBtn) statsBtn.addEventListener('click', () => {
+  window.open('/stats.html', '_blank');
+});
 
 checkAuth();
 initRadioVolume();
