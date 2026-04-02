@@ -3699,9 +3699,158 @@ if (accountBtn) accountBtn.addEventListener('click', () => {
 if (accountOverlayClose) accountOverlayClose.addEventListener('click', () => { if (accountOverlay) accountOverlay.classList.add('hidden'); });
 
 const statsBtn = document.getElementById('lobby-stats-btn');
+const statsOverlay = document.getElementById('stats-overlay');
+const statsOverlayClose = document.getElementById('stats-overlay-close');
+const statsBody = document.getElementById('stats-overlay-body');
+
 if (statsBtn) statsBtn.addEventListener('click', () => {
-  window.open('/stats.html', '_blank');
+  if (statsOverlay) statsOverlay.classList.remove('hidden');
+  loadStatsOverlay();
 });
+if (statsOverlayClose) statsOverlayClose.addEventListener('click', () => { if (statsOverlay) statsOverlay.classList.add('hidden'); });
+
+async function loadStatsOverlay() {
+  if (!statsBody) return;
+  statsBody.innerHTML = '<p class="stats-loading">Loading stats...</p>';
+
+  const GAME_LABELS = { holdem: "Texas Hold'em", blackjack: 'Blackjack', slots: 'Slots', checkers: 'Checkers', chess: 'Chess' };
+  const GAME_COLORS = { holdem: '#f0d78c', blackjack: '#6fcf6f', slots: '#e06060', checkers: '#9cc5ff', chess: '#c8b478' };
+
+  let data;
+  try {
+    const resp = await fetch('/api/stats', { credentials: 'same-origin' });
+    if (resp.status === 401) {
+      statsBody.innerHTML = '<p class="stats-empty">Log in to view your stats.</p>';
+      return;
+    }
+    data = await resp.json();
+    if (data.error) throw new Error(data.error);
+  } catch (e) {
+    statsBody.innerHTML = '<p class="stats-empty">Failed to load stats.</p>';
+    return;
+  }
+
+  const totalGames = data.summary.reduce((s, r) => s + r.total, 0);
+  const totalWins = data.summary.reduce((s, r) => s + r.wins, 0);
+  const totalLosses = data.summary.reduce((s, r) => s + r.losses, 0);
+  const totalNet = data.summary.reduce((s, r) => s + r.net_chips, 0);
+  const winRate = totalGames ? ((totalWins / totalGames) * 100).toFixed(1) : '0.0';
+  const memberSince = new Date(data.createdAt).toLocaleDateString();
+  const fmtChips = (n) => n > 0 ? '+' + n : '' + n;
+  const chipsCls = (n) => n > 0 ? 'stats-pos' : n < 0 ? 'stats-neg' : 'stats-zero';
+
+  let h = '';
+
+  h += '<div class="stats-grid">';
+  h += statCard(data.chips, 'Chips');
+  h += statCard(totalGames, 'Games');
+  h += statCard(totalWins, 'Wins');
+  h += statCard(totalLosses, 'Losses');
+  h += statCard(winRate + '%', 'Win Rate');
+  h += statCard(fmtChips(totalNet), 'Net Chips');
+  h += statCard(data.chessBestLevel || '-', 'Best Chess AI');
+  h += statCard(memberSince, 'Member Since');
+  h += '</div>';
+
+  // Per-game breakdown
+  h += '<div class="stats-section"><p class="stats-section-title">Breakdown by Game</p>';
+  if (data.summary.length) {
+    h += '<table class="stats-table"><thead><tr><th>Game</th><th>Played</th><th>W</th><th>L</th><th>Win%</th><th>Net</th></tr></thead><tbody>';
+    for (const r of data.summary) {
+      const wr = r.total ? ((r.wins / r.total) * 100).toFixed(1) : '0.0';
+      h += '<tr><td>' + (GAME_LABELS[r.game_type] || r.game_type) + '</td><td>' + r.total + '</td><td>' + r.wins + '</td><td>' + r.losses + '</td><td>' + wr + '%</td><td class="' + chipsCls(r.net_chips) + '">' + fmtChips(r.net_chips) + '</td></tr>';
+    }
+    h += '</tbody></table>';
+  } else {
+    h += '<p class="stats-empty">No games played yet</p>';
+  }
+  h += '</div>';
+
+  // Charts
+  h += '<div class="stats-section"><p class="stats-section-title">Chip Balance</p><div id="stats-chart-chips" class="stats-chart"></div></div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.35rem;">';
+  h += '<div class="stats-section"><p class="stats-section-title">Win Rate</p><div id="stats-chart-winrate" class="stats-chart"></div></div>';
+  h += '<div class="stats-section"><p class="stats-section-title">Games Played</p><div id="stats-chart-pie" class="stats-chart"></div></div>';
+  h += '</div>';
+
+  // Recent games
+  h += '<div class="stats-section"><p class="stats-section-title">Recent Games</p>';
+  if (data.recent.length) {
+    h += '<ul class="stats-recent">';
+    for (const g of data.recent) {
+      const badge = 'stats-badge-' + g.result;
+      const time = new Date(g.played_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      h += '<li><span><span class="stats-badge ' + badge + '">' + g.result + '</span> ' + (GAME_LABELS[g.game_type] || g.game_type) + '</span><span><span class="' + chipsCls(g.chips_change) + '">' + fmtChips(g.chips_change) + '</span> &middot; ' + time + '</span></li>';
+    }
+    h += '</ul>';
+  } else {
+    h += '<p class="stats-empty">No games yet</p>';
+  }
+  h += '</div>';
+
+  statsBody.innerHTML = h;
+
+  // Render charts
+  if (typeof Highcharts === 'undefined') return;
+
+  const style = getComputedStyle(document.documentElement);
+  const accentColor = style.getPropertyValue('--lobby-accent').trim() || '#c9b896';
+  const textColor = style.getPropertyValue('--lobby-text').trim() || '#c9d1d9';
+  const borderColor = style.getPropertyValue('--lobby-border').trim() || '#30363d';
+  const bgColor = style.getPropertyValue('--lobby-input-bg').trim() || '#0d1117';
+
+  const hcDefaults = {
+    chart: { backgroundColor: 'transparent', style: { fontFamily: 'inherit' } },
+    title: { text: null },
+    credits: { enabled: false },
+    xAxis: { lineColor: borderColor, tickColor: borderColor, labels: { style: { color: textColor, opacity: 0.5 } } },
+    yAxis: { gridLineColor: color_mix(borderColor, 0.4), labels: { style: { color: textColor, opacity: 0.5 } }, title: { style: { color: textColor } } },
+    legend: { itemStyle: { color: textColor }, itemHoverStyle: { color: '#fff' } },
+    tooltip: { backgroundColor: bgColor, borderColor: borderColor, style: { color: textColor } },
+  };
+
+  if (data.history.length) {
+    const pts = data.history.map(h => [new Date(h.played_at).getTime(), h.chips_after]);
+    Highcharts.chart('stats-chart-chips', {
+      ...hcDefaults,
+      chart: { ...hcDefaults.chart, type: 'area', zooming: { type: 'x' } },
+      xAxis: { ...hcDefaults.xAxis, type: 'datetime' },
+      yAxis: { ...hcDefaults.yAxis, title: { text: null }, min: 0 },
+      series: [{ name: 'Chips', data: pts, color: accentColor, fillColor: { linearGradient: { x1:0,y1:0,x2:0,y2:1 }, stops: [[0, accentColor + '40'],[1, accentColor + '00']] }, marker: { enabled: false }, lineWidth: 2 }],
+      legend: { enabled: false },
+    });
+  }
+
+  if (data.summary.length) {
+    const cats = data.summary.map(r => GAME_LABELS[r.game_type] || r.game_type);
+    const wrs = data.summary.map(r => r.total ? +((r.wins / r.total) * 100).toFixed(1) : 0);
+    const barColors = data.summary.map(r => GAME_COLORS[r.game_type] || accentColor);
+    Highcharts.chart('stats-chart-winrate', {
+      ...hcDefaults,
+      chart: { ...hcDefaults.chart, type: 'bar' },
+      xAxis: { ...hcDefaults.xAxis, categories: cats },
+      yAxis: { ...hcDefaults.yAxis, title: { text: null }, max: 100, min: 0 },
+      series: [{ name: 'Win Rate', data: wrs.map((v,i) => ({ y: v, color: barColors[i] })), colorByPoint: true }],
+      legend: { enabled: false },
+      plotOptions: { bar: { borderRadius: 3, borderWidth: 0, dataLabels: { enabled: true, format: '{y}%', style: { color: textColor, textOutline: 'none', fontSize: '10px' } } } },
+    });
+
+    const pieColors = data.summary.map(r => GAME_COLORS[r.game_type] || accentColor);
+    Highcharts.chart('stats-chart-pie', {
+      ...hcDefaults,
+      chart: { ...hcDefaults.chart, type: 'pie' },
+      series: [{ name: 'Games', data: data.summary.map((r,i) => ({ name: GAME_LABELS[r.game_type] || r.game_type, y: r.total, color: pieColors[i] })) }],
+      plotOptions: { pie: { borderColor: borderColor, borderWidth: 1, dataLabels: { color: textColor, style: { textOutline: 'none', fontSize: '10px' } } } },
+    });
+  }
+
+  function statCard(val, label) {
+    return '<div class="stat-card"><div class="stat-value">' + val + '</div><div class="stat-label">' + label + '</div></div>';
+  }
+  function color_mix(hex, alpha) {
+    return hex + Math.round(alpha * 255).toString(16).padStart(2, '0');
+  }
+}
 
 checkAuth();
 initRadioVolume();
