@@ -40,6 +40,9 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname, 'public')));
+['/about.html','/how-to-play.html','/privacy.html','/terms.html','/contact.html'].forEach(p => {
+  app.get(p, (req, res) => res.redirect('/#' + p.slice(1).replace('.html', '')));
+});
 app.use('/auth', authRouter);
 
 app.get('/health', (req, res) => res.send('ok'));
@@ -877,6 +880,16 @@ function hasHumanPlayers(room) {
 const BOT_NAMES = ['Ace', 'Blaze', 'Cobra', 'Duke', 'Echo', 'Frost', 'Ghost', 'Hawk', 'Iron', 'Jinx'];
 let botNameIdx = 0;
 
+function generateBotPersonality() {
+  // aggression: how much they raise/bet vs call/check (0.0 = passive, 1.0 = maniac)
+  // tightness: how selective with starting hands (0.0 = loose, 1.0 = rock)
+  // bluffFreq: how often they bluff (0.0 = never, 1.0 = constantly)
+  const aggression = 0.15 + Math.random() * 0.7;   // 0.15 – 0.85
+  const tightness = 0.1 + Math.random() * 0.8;     // 0.1 – 0.9
+  const bluffFreq = 0.02 + Math.random() * 0.35;   // 0.02 – 0.37
+  return { aggression, tightness, bluffFreq };
+}
+
 const BOT_PHRASES = {
   win: [
     'Thats what I thought', 'Get good', 'Easy.', 'Nice try.', 'Are you mad?',
@@ -905,7 +918,7 @@ const BOT_PHRASES = {
 };
 
 function maybeBotChat(roomKey, botId, botNickname, phrases, delayMs = 0) {
-  if (Math.random() > 0.33) return;
+  if (Math.random() > 0.25) return;
   const text = phrases[Math.floor(Math.random() * phrases.length)];
   const send = () => broadcastToRoom(roomKey, { type: 'chat', playerId: botId, nickname: botNickname, text });
   if (delayMs > 0) setTimeout(send, delayMs);
@@ -948,6 +961,7 @@ function scheduleBotAction(roomKey) {
         dealerIdx: room.dealerIdx,
         numPlayers: players.length,
         facingRaise,
+        personality: player.personality,
       });
     } catch (e) {
       decision = toCall > 0 ? { action: 'call' } : { action: 'check' };
@@ -1167,7 +1181,7 @@ function bjPlaceBet(roomKey, playerId, amount) {
   if (!player) return;
   if (room.bjPlayerHands[playerId]?.bet > 0) return;
 
-  const bet = Math.floor(Number(amount) || 0);
+  const bet = amount === 'allin' ? player.chips : Math.floor(Number(amount) || 0);
   if (bet < 10 || bet > player.chips) return;
 
   player.chips -= bet;
@@ -3307,6 +3321,7 @@ wss.on('connection', async (ws, req) => {
         const botName = BOT_NAMES[botNameIdx % BOT_NAMES.length];
         botNameIdx++;
         const botDefaultCharacter = getRandomDefaultCharacterId();
+        const botPersonality = generateBotPersonality();
         room.players.push({
           id: botId,
           ws: null,
@@ -3318,6 +3333,7 @@ wss.on('connection', async (ws, req) => {
           folded: false,
           allIn: false,
           isBot: true,
+          personality: botPersonality,
           winStreak: 0,
           maxWinStreak: 0,
           currentView: 'holdem',
@@ -3506,10 +3522,16 @@ wss.on('connection', async (ws, req) => {
         });
       } else if (type === 'slotSpin') {
         const SLOTS_DENOMS = [5, 10, 20, 100];
-        const rawBet = typeof msg.bet === 'number' ? msg.bet : parseInt(String(msg.bet || 5), 10);
-        const validBet = Number.isFinite(rawBet) && SLOTS_DENOMS.includes(rawBet) ? rawBet : 5;
         const SLOTS_SYMBOLS = ['crayfish', 'alligator', 'catfish', 'worm', 'hook'];
         const SLOTS_MULTIPLIERS = { crayfish: 10, alligator: 8, catfish: 50, worm: 4, hook: 3 };
+        const ROW_COST = { 1: 1, 2: 2, 3: 5 };
+
+        const rawBet = typeof msg.bet === 'number' ? msg.bet : parseInt(String(msg.bet || 5), 10);
+        const validBet = Number.isFinite(rawBet) && SLOTS_DENOMS.includes(rawBet) ? rawBet : 5;
+        const rows = [1, 2, 3].includes(msg.rows) ? msg.rows : 1;
+        const costMultiplier = ROW_COST[rows] || 1;
+        const totalCost = validBet * costMultiplier;
+
         const data = clients.get(ws);
         if (!data) return;
         const room = getRoom(data.roomKey);
@@ -3517,33 +3539,56 @@ wss.on('connection', async (ws, req) => {
         if (pIdx < 0) return;
         const player = room.players[pIdx];
         if ((player.currentView ?? 'lobby') !== 'slots') return;
-        if ((player.chips || 0) < validBet) return;
-        player.chips = (player.chips || 0) - validBet;
+        if ((player.chips || 0) < totalCost) return;
+        player.chips = (player.chips || 0) - totalCost;
         broadcastToRoom(data.roomKey, {
           type: 'slotSpinStarted',
           playerId: ws.id,
           nickname: player.nickname,
-          bet: validBet,
+          bet: totalCost,
         }, null, (p) => (p.currentView ?? 'lobby') === 'slots');
-        const reels = [
-          SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
-          SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
-          SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
-        ];
-        let multiplier = 0;
-        if (reels[0] === reels[1] && reels[1] === reels[2]) {
-          multiplier = SLOTS_MULTIPLIERS[reels[0]] || 0;
-        } else if ((reels[0] === 'worm' && reels[1] === 'worm') || (reels[1] === 'worm' && reels[2] === 'worm') || (reels[0] === 'worm' && reels[2] === 'worm')) {
-          multiplier = 1;
+
+        // Generate grid: rows x 3 reels
+        const grid = [];
+        for (let r = 0; r < rows; r++) {
+          grid.push([
+            SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
+            SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
+            SLOTS_SYMBOLS[Math.floor(Math.random() * SLOTS_SYMBOLS.length)],
+          ]);
         }
-        const payout = validBet * multiplier;
+        // Middle row is the "primary" reel result (sent as reels for backward compat)
+        const midRow = Math.floor(rows / 2);
+        const reels = grid[midRow];
+
+        // Evaluate paylines
+        let totalMultiplier = 0;
+        // Horizontal paylines (each row)
+        for (let r = 0; r < rows; r++) {
+          const row = grid[r];
+          if (row[0] === row[1] && row[1] === row[2]) {
+            totalMultiplier += SLOTS_MULTIPLIERS[row[0]] || 0;
+          } else if ((row[0] === 'worm' && row[1] === 'worm') || (row[1] === 'worm' && row[2] === 'worm') || (row[0] === 'worm' && row[2] === 'worm')) {
+            totalMultiplier += 1;
+          }
+        }
+        // Vertical paylines (3 rows only)
+        if (rows === 3) {
+          for (let c = 0; c < 3; c++) {
+            if (grid[0][c] === grid[1][c] && grid[1][c] === grid[2][c]) {
+              totalMultiplier += SLOTS_MULTIPLIERS[grid[0][c]] || 0;
+            }
+          }
+        }
+
+        const payout = validBet * totalMultiplier;
         player.chips = (player.chips || 0) + payout;
         if (player.dbUserId) saveUserChips(player.dbUserId, player.chips);
         if (player.dbUserId) {
-          const change = payout - validBet;
-          recordGame(player.dbUserId, 'slots', payout > 0 ? 'win' : 'loss', change, player.chips, { bet: validBet, reels, multiplier });
+          const change = payout - totalCost;
+          recordGame(player.dbUserId, 'slots', payout > 0 ? 'win' : 'loss', change, player.chips, { bet: totalCost, reels, grid, multiplier: totalMultiplier });
         }
-        const isJackpot = multiplier === 50;
+        const isJackpot = totalMultiplier >= 50;
         if (isJackpot) {
           const chatMsg = { playerId: ws.id, nickname: player.nickname, text: (player.nickname || 'Someone') + ' won the jackpot!' };
           if (!room.chatHistory) room.chatHistory = [];
@@ -3556,9 +3601,11 @@ wss.on('connection', async (ws, req) => {
           playerId: ws.id,
           nickname: player.nickname,
           reels,
+          grid,
+          rows,
           payout,
-          bet: validBet,
-          multiplier,
+          bet: totalCost,
+          multiplier: totalMultiplier,
           chips: player.chips,
         }, null, (p) => (p.currentView ?? 'lobby') === 'slots');
       } else if (type === 'action') {

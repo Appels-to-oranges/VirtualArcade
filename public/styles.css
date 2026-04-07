@@ -405,12 +405,21 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   transition: background 0.15s, opacity 0.15s;
 }
 
+.lobby-header-btn:not(.lobby-text-btn) {
+  border: none;
+}
+
 .lobby-header-icon {
   width: 0.9rem;
   height: 0.9rem;
   object-fit: contain;
   opacity: 0.85;
   transition: opacity 0.15s;
+}
+
+.lobby-header-icon-sm {
+  width: 0.7rem;
+  height: 0.7rem;
 }
 
 .lobby-header-btn:hover .lobby-header-icon {
@@ -1115,8 +1124,12 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   max-width: 24rem;
 }
 
-.account-logout-btn {
+.account-stats-btn {
   margin-top: 1rem;
+  width: 100%;
+}
+.account-logout-btn {
+  margin-top: 0.5rem;
   width: 100%;
 }
 
@@ -1210,6 +1223,34 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.store-tabs {
+  display: flex;
+  border-bottom: 0.0625rem solid var(--lobby-border);
+  gap: 0;
+}
+
+.store-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 0.125rem solid transparent;
+  color: var(--lobby-muted);
+  font-size: 0.35rem;
+  padding: 0.15rem 0.4rem;
+  margin-bottom: -0.0625rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.store-tab:hover {
+  color: var(--lobby-text);
+}
+
+.store-tab.active {
+  color: var(--lobby-accent);
+  border-bottom-color: var(--lobby-accent);
 }
 
 .store-toolbar label {
@@ -1298,7 +1339,7 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
 .store-section-grid {
   display: grid;
   gap: 0.45rem;
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
 }
 
 .store-section-grid .store-item-status {
@@ -1310,15 +1351,15 @@ body.theme-rolling-fog { --lobby-accent: #7a9a6e; --lobby-border: #3d4a35; --lob
   border: 0.0625rem solid var(--lobby-border);
   border-radius: 0.45rem;
   background: rgba(255, 255, 255, 0.03);
-  padding: 0.5rem;
+  padding: 0.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .store-item-media {
   width: 100%;
-  height: 4.5rem;
+  height: 3.5rem;
   border: 0.0625rem solid var(--lobby-border);
   border-radius: 0.35rem;
   background: rgba(0, 0, 0, 0.22);
@@ -1852,14 +1893,16 @@ body.lobby-retro .welcome-badge {
   color: rgba(255, 255, 255, 0.35);
 }
 
-/* ── Standalone policy/info pages ── */
-body.info-page {
-  min-height: 100vh;
-  height: auto;
+/* ── Info views (inline hash-routed) ── */
+.info-view {
+  position: fixed;
+  inset: 0;
   overflow: auto;
   background: #0b0f14;
   color: #d7dee7;
+  z-index: 100;
 }
+.info-view.hidden { display: none; }
 
 .info-shell {
   max-width: 42rem;
@@ -2032,8 +2075,8 @@ body.info-page {
 .winner-notification {
   text-align: center;
   padding: 0.2rem 0.5rem;
-  font-size: 0.5rem;
-  color: #ffd700;
+  font-size: 0.45rem;
+  color: #ccc;
   background: rgba(255, 215, 0, 0.2);
   border: 0.1rem solid #ffd700;
   border-radius: 0.25rem;
@@ -2045,15 +2088,17 @@ body.info-page {
 
 .btn-restart {
   padding: 0.25rem 0.6rem;
-  background: #1b4332;
-  border: 0.15rem solid #40916c;
-  color: #ddd;
+  background: transparent;
+  border: 0.0625rem solid #333;
+  border-radius: 0.25rem;
+  color: #ccc;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.4rem;
+  font-size: 0.35rem;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
   white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .waiting-msg {
@@ -2067,18 +2112,20 @@ body.info-page {
 
 .btn-add-bot {
   padding: 0.25rem 0.6rem;
-  background: #1a3a5a;
-  border: 0.15rem solid #3498db;
-  color: #ddd;
+  background: transparent;
+  border: 0.0625rem solid #333;
+  border-radius: 0.25rem;
+  color: #ccc;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.4rem;
+  font-size: 0.35rem;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
   white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
 }
 
-.btn-add-bot:hover { background: #2a4a6a; }
+.btn-add-bot:hover { border-color: #888; color: #fff; }
 
 .next-hand-timer {
   font-size: 0.4rem;
@@ -2091,11 +2138,9 @@ body.info-page {
   display: none !important;
 }
 
-.btn-restart:hover { background: #2d6a4f; }
+.btn-restart:hover { border-color: #888; color: #fff; }
 .btn-restart:disabled {
-  background: #1a1a1a;
-  border-color: #333;
-  color: #444;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
@@ -2143,11 +2188,10 @@ body.info-page {
 
 /* ── Standardized top bar ── */
 .std-bar {
-  background: rgba(0, 0, 0, 0.5);
+  background: #000;
   border-bottom: 0.0625rem solid var(--lobby-border, #1e2a3a);
   padding: 0.3rem 0.65rem;
   gap: 0.5rem;
-  backdrop-filter: blur(6px);
 }
 
 .std-bar-lobby {
@@ -2227,8 +2271,98 @@ body.info-page {
   opacity: 0.85;
 }
 
+.std-bar-btn-icon-sm {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
 .std-bar-btn:hover .std-bar-btn-icon {
   opacity: 1;
+}
+
+/* ── Game content row ── */
+.game-content-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.game-content-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  position: relative;
+}
+
+/* ── Game chat panel ── */
+.game-chat-panel {
+  width: 0;
+  overflow: hidden;
+  background: #000;
+  border-left: none;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.2s ease;
+}
+
+.game-chat-panel.open {
+  width: 14rem;
+  border-left: 0.0625rem solid var(--lobby-border, #1e2a3a);
+}
+
+.game-chat-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 0.0625rem solid var(--lobby-border, #1e2a3a);
+  font-size: 0.4rem;
+  color: var(--lobby-text, #c9d1d9);
+}
+
+.game-chat-panel-close {
+  background: none;
+  border: none;
+  color: var(--lobby-muted, #8b949e);
+  font-size: 0.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.game-chat-panel-close:hover {
+  color: var(--lobby-text, #c9d1d9);
+}
+
+.game-chat-panel-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.4rem;
+  font-size: 0.35rem;
+}
+
+.game-chat-panel-messages .chat-message {
+  font-size: 0.35rem;
+}
+
+.game-chat-panel-input {
+  display: flex;
+  border-top: 0.0625rem solid var(--lobby-border, #1e2a3a);
+}
+
+.game-chat-panel-input .chat-input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 0.35rem;
+  padding: 0.3rem 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--lobby-text, #c9d1d9);
 }
 
 /* ── Poker action popup ── */
@@ -2278,13 +2412,13 @@ body.info-page {
 }
 
 .game-action-btn.game-action-primary {
-  background: rgba(30, 80, 50, 0.6);
-  border-color: var(--lobby-accent, #40916c);
-  color: var(--lobby-accent, #c9b896);
+  background: transparent;
+  border-color: #555;
+  color: #fff;
 }
 
 .game-action-btn.game-action-primary:hover {
-  background: rgba(40, 100, 65, 0.8);
+  border-color: #888;
   color: #fff;
 }
 
@@ -2297,38 +2431,26 @@ body.info-page {
   display: none;
 }
 
-/* Legacy button classes kept for backward compat (checkers/chess config panels) */
+/* Legacy button classes (checkers/chess config panels) */
 .btn-start {
   padding: 0.3rem 0.7rem;
-  background: #1b4332;
-  border: 0.15rem solid #40916c;
-  color: #ddd;
+  background: transparent;
+  border: 0.0625rem solid #333;
+  border-radius: 0.25rem;
+  color: #ccc;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.45rem;
+  font-size: 0.4rem;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.1rem;
   white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
 }
-.btn-start:hover { background: #2d6a4f; }
+.btn-start:hover { border-color: #888; color: #fff; }
 .btn-start:disabled {
-  background: #1a1a1a;
-  border-color: #333;
-  color: #444;
+  opacity: 0.25;
   cursor: not-allowed;
 }
-.btn-restart {
-  padding: 0.3rem 0.7rem;
-  background: #1b4332;
-  border: 0.15rem solid #40916c;
-  color: #ddd;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.45rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.btn-restart:hover { background: #2d6a4f; }
 .btn-restart.hidden { display: none; }
 
 .btn-radio {
@@ -3009,34 +3131,33 @@ body.info-page {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 0.25rem;
+  padding: 0;
   overflow: hidden;
 }
 
 .poker-table {
-  background: #14532d;
-  border: 0.3rem solid #8b6914;
-  box-shadow: inset 0 0 2.5rem rgba(0,0,0,0.5), 0 0 0 0.15rem #000;
+  background: #0a0a0a;
+  border: none;
+  border-top: 0.0625rem solid #1a1a1a;
   position: relative;
   flex: 1;
   min-height: 0;
   width: 100%;
-  border-radius: 0;
   overflow: hidden;
 }
 
 /* Phase label - inside community area flow */
 .phase-label {
-  font-size: 0.45rem;
-  color: #6a6a4a;
+  font-size: 0.35rem;
+  color: #555;
   text-transform: uppercase;
   letter-spacing: 0.1rem;
   text-align: center;
 }
 
 .hand-rank-label {
-  font-size: 0.4rem;
-  color: #c9b896;
+  font-size: 0.35rem;
+  color: #888;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
   text-align: center;
@@ -3046,49 +3167,48 @@ body.info-page {
 /* Community area: pot + board + winning hand - centered on table */
 .community-area {
   position: absolute;
-  top: 36%;
+  top: 32%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  max-width: 75%;
+  gap: 0.25rem;
+  max-width: 80%;
   z-index: 5;
 }
 
-/* Boundary around community area - keeps bet chips from overlapping cards */
+/* Boundary around community area */
 .community-boundary {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.6rem 1rem;
-  border: 0.15rem solid rgba(139, 105, 20, 0.6);
-  border-radius: 0.5rem;
-  background: rgba(0, 0, 0, 0.25);
-  box-shadow: inset 0 0 0.5rem rgba(0, 0, 0, 0.3);
+  gap: 0.25rem;
+  padding: 0.4rem 0.8rem;
+  border: 0.0625rem solid #222;
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .table-pot {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  background: rgba(0,0,0,0.7);
-  border: 0.1rem solid #8b6914;
+  padding: 0.15rem 0.4rem;
+  background: transparent;
+  border: none;
 }
 
 .table-pot-label {
-  font-size: 0.5rem;
-  color: #6a6a4a;
+  font-size: 0.4rem;
+  color: #555;
   text-transform: uppercase;
 }
 
 .table-pot-amount {
-  font-size: 0.6rem;
-  color: #ffd700;
+  font-size: 0.5rem;
+  color: #ccc;
 }
 
 .table-pot-chips {
@@ -3263,8 +3383,8 @@ body.info-page {
 }
 
 .seat-info .seat-name {
-  font-size: 0.55rem;
-  color: #ddd;
+  font-size: 0.45rem;
+  color: #aaa;
   font-weight: 600;
   max-width: 100%;
   overflow: hidden;
@@ -3273,8 +3393,8 @@ body.info-page {
 }
 
 .seat-info .seat-chips {
-  font-size: 0.55rem;
-  color: #c9b896;
+  font-size: 0.45rem;
+  color: #888;
 }
 
 .seat-info .seat-streak {
@@ -3335,7 +3455,7 @@ body.info-page {
 }
 
 .player-seat.is-turn .seat-info .seat-name {
-  color: #ffd700;
+  color: #fff;
 }
 
 /* ── Chip icons ── */
@@ -3404,8 +3524,8 @@ body.info-page {
 }
 
 .seat-bet-amount {
-  font-size: 0.4rem;
-  color: #ffd700;
+  font-size: 0.35rem;
+  color: #999;
 }
 
 .seat-bet-chips {
@@ -3434,8 +3554,8 @@ body.info-page {
   justify-content: center;
   margin: 0;
   padding: 0.25rem 0.4rem;
-  background: #111;
-  border: 0.1rem solid #1a1a1a;
+  background: #000;
+  border-top: 0.0625rem solid #222;
   flex-shrink: 0;
   min-width: 0;
   overflow-x: auto;
@@ -3467,8 +3587,8 @@ body.info-page {
 
 .slider-label {
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.45rem;
-  color: #ffd700;
+  font-size: 0.4rem;
+  color: #ccc;
   min-width: 3rem;
   text-align: center;
 }
@@ -3488,41 +3608,49 @@ body.info-page {
 
 .bet-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #ffd700;
-  border: 2px solid #8b6914;
+  background: #ccc;
+  border: 2px solid #666;
   cursor: pointer;
 }
 
 .bet-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #ffd700;
-  border: 2px solid #8b6914;
+  background: #ccc;
+  border: 2px solid #666;
   cursor: pointer;
 }
 
 .btn-preset {
   padding: 0.15rem 0.3rem;
-  font-size: 0.35rem;
-  background: #1a1a1a;
-  border: 0.1rem solid #333;
-  color: #c9b896;
+  font-size: 0.3rem;
+  background: transparent;
+  border: 0.0625rem solid #333;
+  border-radius: 0.2rem;
+  color: #999;
   white-space: nowrap;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-preset:hover {
+  border-color: #888;
+  color: #fff;
 }
 
 .turn-timer {
-  font-size: 0.5rem;
-  color: #ffd700;
+  font-size: 0.4rem;
+  color: #ccc;
   min-width: 2.5rem;
   text-align: center;
   padding: 0.15rem 0.35rem;
-  border: 0.1rem solid #8b6914;
-  background: #1a1a0a;
+  border: 0.0625rem solid #333;
+  background: transparent;
   display: none !important;
 }
 
@@ -3542,7 +3670,7 @@ body.info-page {
 .seat-timer-bar {
   height: 100%;
   width: 100%;
-  background: linear-gradient(90deg, #ffd700, #ff8c00);
+  background: linear-gradient(90deg, #ccc, #666);
   border-radius: 2px;
   animation: timerShrink linear forwards;
 }
@@ -3553,8 +3681,8 @@ body.info-page {
 }
 
 .pot-in-controls {
-  font-size: 0.6rem;
-  color: #c9b896;
+  font-size: 0.5rem;
+  color: #999;
   min-width: 4rem;
   text-align: center;
   display: flex;
@@ -3564,43 +3692,30 @@ body.info-page {
 }
 
 .btn {
-  padding: 0.25rem 0.5rem;
-  border: 0.15rem solid #333;
-  background: #1a1a1a;
+  padding: 0.25rem 0.6rem;
+  border: 0.0625rem solid #333;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #ccc;
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.4rem;
+  font-size: 0.35rem;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.03rem;
-  transition: background 0.1s, border-color 0.1s;
+  transition: border-color 0.15s, color 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .btn:hover:not(:disabled) {
-  background: #222;
-  border-color: #555;
+  border-color: #888;
+  color: #fff;
 }
 
 .btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
 }
-
-.btn-fold { color: #e74c3c; border-color: #5a1a1a; }
-.btn-fold:hover:not(:disabled) { background: #2a0e0e; border-color: #e74c3c; }
-
-.btn-check { color: #3498db; border-color: #1a3a5a; }
-.btn-check:hover:not(:disabled) { background: #0e1a2a; border-color: #3498db; }
-
-.btn-call { color: #2ecc71; border-color: #1a4a2a; }
-.btn-call:hover:not(:disabled) { background: #0e2a1a; border-color: #2ecc71; }
-
-.btn-bet { color: #c9b896; border-color: #4a3a1a; }
-.btn-bet:hover:not(:disabled) { background: #2a1e0e; border-color: #c9b896; }
-
-.btn-allin { color: #ff6b6b; border-color: #6b1a1a; }
-.btn-allin:hover:not(:disabled) { background: #3a0e0e; border-color: #ff6b6b; }
 
 .bet-row {
   display: flex;
@@ -3639,18 +3754,21 @@ body.info-page {
 /* ── Toast ── */
 .message-toast {
   position: fixed;
-  bottom: 1.25rem;
+  bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #111;
-  border: 0.1875rem solid #333;
-  color: #ddd;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.55rem;
+  background: rgba(17, 17, 17, 0.95);
+  border: 0.0625rem solid #333;
+  border-radius: 0.35rem;
+  color: #ccc;
+  padding: 0.45rem 1rem;
+  font-size: 0.35rem;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.25s;
   pointer-events: none;
   z-index: 500;
+  max-width: 90vw;
+  text-align: center;
 }
 
 .message-toast.show { opacity: 1; }
@@ -4114,30 +4232,27 @@ body.info-page {
 
 .bj-chips-display {
   font-family: 'Press Start 2P', monospace;
-  font-size: 0.45rem;
-  color: #ffd700;
+  font-size: 0.4rem;
+  color: #999;
   margin-left: 0.3rem;
 }
 
 /* ── Slots (retro arcade / pixel art) ── */
 #slots-screen {
-  --swamp-muted: var(--lobby-accent);
-  --swamp-text: var(--lobby-accent);
-  --swamp-highlight: var(--lobby-accent);
-  --swamp-bright: var(--lobby-accent);
-  --swamp-border: var(--lobby-border);
-  --swamp-border-light: var(--lobby-accent);
-  --swamp-win: var(--lobby-accent);
+  --swamp-muted: #aaa;
+  --swamp-text: #ccc;
+  --swamp-highlight: #fff;
+  --swamp-bright: #888;
+  --swamp-border: #222;
+  --swamp-border-light: #444;
+  --swamp-win: #fff;
   position: fixed;
   inset: 0;
-  background: #0a0a0a url('/bayou_background.jpg') center / cover no-repeat;
+  background: #0a0a0a;
   z-index: 50;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
 }
 
 #slots-screen .game-scale-wrapper {
@@ -4154,15 +4269,14 @@ body.info-page {
 
 #slots-screen .btn-bet,
 #slots-screen .slots-spin-btn {
-  color: var(--swamp-muted);
-  border-color: var(--swamp-border);
+  color: #ccc;
+  border-color: #333;
 }
 
 #slots-screen .btn-bet:hover:not(:disabled),
 #slots-screen .slots-spin-btn:hover:not(:disabled) {
-  background: rgba(46, 75, 61, 0.5);
-  border-color: var(--swamp-highlight);
-  color: var(--swamp-highlight);
+  border-color: #888;
+  color: #fff;
 }
 
 .slots-container {
@@ -4189,58 +4303,46 @@ body.info-page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
   flex: 1 1 0;
   min-width: 10rem;
   max-width: 100%;
   box-sizing: border-box;
-  background: rgba(20, 20, 20, 0.95);
-  border: 0.25rem solid var(--swamp-border);
-  border-radius: 0;
-  box-shadow:
-    inset 0.2rem 0.2rem 0 rgba(0,0,0,0.9),
-    inset -0.2rem -0.2rem 0 rgba(255,255,255,0.05),
-    0 0 0 0.2rem var(--swamp-border),
-    0.4rem 0.4rem 0 rgba(0,0,0,0.6);
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
+  background: #111;
+  border: 0.0625rem solid #222;
+  border-radius: 0.4rem;
 }
 
 .slots-machine-bet-display {
-  font-size: 0.45rem;
-  color: var(--swamp-muted);
+  font-size: 0.35rem;
+  color: #888;
   font-family: 'Press Start 2P', monospace;
 }
 
 .slots-reels {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  background: #080808;
-  border: 0.2rem solid var(--swamp-border);
-  border-radius: 0;
-  image-rendering: pixelated;
-  box-shadow: inset 0 0 0.5rem rgba(0,0,0,0.8);
+  gap: 0.15rem;
+  padding: 0.3rem;
+  background: #0a0a0a;
+  border: 0.0625rem solid #1a1a1a;
+  border-radius: 0.3rem;
 }
 
 .slots-reel {
   width: 4rem;
   height: 4rem;
   background: #050505;
-  border-radius: 0;
+  border-radius: 0.2rem;
   overflow: hidden;
   position: relative;
-  image-rendering: pixelated;
-  border: 0.1rem solid var(--swamp-border);
+  border: 0.0625rem solid #1a1a1a;
 }
 
 .slots-reel-strip {
   display: flex;
   flex-direction: column;
   will-change: transform;
-  image-rendering: pixelated;
 }
 
 .slots-symbol {
@@ -4256,15 +4358,12 @@ body.info-page {
   width: 2.8rem;
   height: 2.8rem;
   object-fit: contain;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
 }
 
 .slots-symbol-text {
   font-size: 1.2rem;
   font-weight: bold;
-  color: var(--swamp-muted);
+  color: #666;
   font-family: 'Press Start 2P', monospace;
 }
 
@@ -4273,8 +4372,8 @@ body.info-page {
 }
 
 .slots-machine-label {
-  font-size: 0.5rem;
-  color: var(--swamp-muted);
+  font-size: 0.35rem;
+  color: #888;
   font-family: 'Press Start 2P', monospace;
   text-transform: uppercase;
   letter-spacing: 0.05rem;
@@ -4295,31 +4394,30 @@ body.info-page {
 }
 
 .slots-denom-btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.45rem;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.3rem;
   font-family: 'Press Start 2P', monospace;
-  background: rgba(0,0,0,0.5);
-  border: 0.15rem solid var(--swamp-border);
-  color: var(--swamp-muted);
-  border-radius: 0;
+  background: transparent;
+  border: 0.0625rem solid #333;
+  color: #888;
+  border-radius: 0.2rem;
   cursor: pointer;
-  image-rendering: pixelated;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .slots-denom-btn:hover {
-  color: var(--swamp-highlight);
-  background: rgba(0,0,0,0.7);
-  border-color: var(--swamp-highlight);
+  color: #fff;
+  border-color: #888;
 }
 
 .slots-denom-btn.active {
-  color: #000;
-  border-color: var(--swamp-highlight);
-  background: var(--swamp-highlight);
+  color: #fff;
+  border-color: #888;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .slots-denom-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.25;
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -4331,40 +4429,159 @@ body.info-page {
 }
 
 .slots-spin-btn {
-  image-rendering: pixelated;
-  border-radius: 0;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.55rem;
-  border-width: 0.15rem;
+  border-radius: 0.25rem;
+  padding: 0.35rem 1rem;
+  font-size: 0.4rem;
 }
 
 .slots-info-btn {
-  width: 1.8rem;
-  height: 1.8rem;
+  width: 1.4rem;
+  height: 1.4rem;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.5rem;
-  color: var(--swamp-muted);
-  background: rgba(0,0,0,0.5);
-  border: 0.15rem solid var(--swamp-border);
-  border-radius: 0;
+  font-size: 0.4rem;
+  color: #666;
+  background: transparent;
+  border: 0.0625rem solid #333;
+  border-radius: 0.2rem;
   cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .slots-info-btn:hover {
-  color: var(--swamp-highlight);
-  background: rgba(0,0,0,0.7);
-  border-color: var(--swamp-highlight);
+  color: #fff;
+  border-color: #888;
 }
 
 .slots-payline {
   width: 100%;
-  height: 0.2rem;
-  background: var(--swamp-bright);
-  border-radius: 0;
-  image-rendering: pixelated;
+  height: 0.0625rem;
+  background: #333;
+  border-radius: 1px;
+}
+
+/* ── Slots config popup ── */
+.slots-config-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.slots-config-overlay.hidden {
+  display: none;
+}
+
+.slots-config-panel {
+  background: #111;
+  border: 0.0625rem solid var(--lobby-border, #333);
+  border-radius: 0.4rem;
+  padding: 1.2rem 1.5rem;
+  width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.slots-config-panel h3 {
+  font-size: 0.55rem;
+  color: var(--lobby-accent, #ccc);
+  font-family: 'Press Start 2P', monospace;
+  margin: 0;
+  text-align: center;
+}
+
+.slots-config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.slots-config-label {
+  font-size: 0.4rem;
+  color: #999;
+  font-family: 'Press Start 2P', monospace;
+  text-transform: uppercase;
+}
+
+.slots-config-hint {
+  font-size: 0.3rem;
+  color: #555;
+  font-family: 'Press Start 2P', monospace;
+  margin: 0;
+}
+
+.slots-config-toggle {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.slots-config-btn {
+  flex: 1;
+  padding: 0.45rem 0.3rem;
+  background: transparent;
+  border: 0.0625rem solid var(--lobby-border, #333);
+  border-radius: 0.3rem;
+  color: #888;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.35rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.slots-config-btn:hover {
+  border-color: var(--lobby-accent, #888);
+  color: #ccc;
+}
+
+.slots-config-btn.active {
+  border-color: var(--lobby-accent, #888);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.slots-config-sub {
+  font-size: 0.25rem;
+  color: #555;
+}
+
+.slots-config-btn.active .slots-config-sub {
+  color: #888;
+}
+
+.slots-config-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slots-config-spin-value {
+  font-size: 0.45rem;
+  color: #ccc;
+  font-family: 'Press Start 2P', monospace;
+  min-width: 2.5rem;
+}
+
+.slots-config-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.3rem;
+}
+
+.slots-config-actions .btn {
+  padding: 0.35rem 1.2rem;
+  font-size: 0.4rem;
 }
 
 .slots-payout-overlay {
@@ -4383,18 +4600,17 @@ body.info-page {
 }
 
 .slots-payout-panel {
-  background: rgba(20, 20, 20, 0.98);
-  border: 0.25rem solid var(--lobby-accent);
+  background: #111;
+  border: 0.0625rem solid #333;
+  border-radius: 0.4rem;
   padding: 1rem;
   max-width: 16rem;
-  border-radius: 0;
-  box-shadow: 0 0 0 0.2rem var(--lobby-border), 0.4rem 0.4rem 0 rgba(0,0,0,0.6);
 }
 
 .slots-payout-panel h3 {
   margin: 0 0 0.5rem;
-  font-size: 0.5rem;
-  color: var(--lobby-accent);
+  font-size: 0.4rem;
+  color: #ccc;
   font-family: 'Press Start 2P', monospace;
 }
 
@@ -4402,13 +4618,13 @@ body.info-page {
   list-style: none;
   margin: 0 0 0.75rem;
   padding: 0;
-  font-size: 0.4rem;
-  color: var(--lobby-accent);
+  font-size: 0.35rem;
+  color: #999;
 }
 
 .slots-payout-list li {
   padding: 0.2rem 0;
-  border-bottom: 0.1rem solid var(--lobby-border);
+  border-bottom: 0.0625rem solid #222;
 }
 
 .slots-payout-list li:last-child {
@@ -4419,7 +4635,18 @@ body.info-page {
   width: 100%;
   padding: 0.35rem;
   font-size: 0.4rem;
-  border-radius: 0;
+  font-family: 'Press Start 2P', monospace;
+  background: transparent;
+  color: var(--lobby-text, #c9d1d9);
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.slots-payout-close:hover {
+  border-color: var(--lobby-accent, #c9b896);
+  color: var(--lobby-accent, #c9b896);
 }
 
 .slots-chat-card {
@@ -4485,20 +4712,20 @@ body.info-page {
 }
 
 .slots-result {
-  font-size: 0.6rem;
-  color: var(--swamp-muted);
-  min-height: 1.5rem;
+  font-size: 0.4rem;
+  color: #666;
+  min-height: 1.2rem;
   text-align: center;
   font-family: 'Press Start 2P', monospace;
 }
 
 #slots-screen .slots-result.slots-result-win {
-  color: var(--swamp-highlight);
+  color: #fff;
 }
 
 #slots-spin-btn {
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
+  padding: 0.4rem 1.2rem;
+  font-size: 0.45rem;
 }
 
 #slots-spin-btn:disabled {
@@ -4660,9 +4887,16 @@ body.lobby-retro .lobby-invite-btn:hover {
 
 body.lobby-retro .lobby-header-btn {
   border-radius: 0;
+  transition: none;
+}
+
+body.lobby-retro .lobby-header-btn:not(.lobby-text-btn) {
+  border: none;
+}
+
+body.lobby-retro .lobby-text-btn {
   border-width: 2px;
   border-style: solid;
-  transition: none;
 }
 
 body.lobby-retro .lobby-header-btn:hover {
@@ -5156,17 +5390,19 @@ body.lobby-retro .ch-config-panel input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 .mock-ad-skip {
-  padding: 8px 22px;
-  background: #3a3a3a;
-  color: #ddd;
-  border: 1px solid #555;
-  border-radius: 5px;
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  color: var(--lobby-text, #c9d1d9);
+  border: 0.0625rem solid var(--lobby-border, #30363d);
+  border-radius: 0.3rem;
   cursor: pointer;
-  font-size: 0.82rem;
-  transition: background 0.15s;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.35rem;
+  transition: border-color 0.15s, color 0.15s;
 }
 .mock-ad-skip:hover {
-  background: #4a4a4a;
+  border-color: var(--lobby-accent, #c9b896);
+  color: var(--lobby-accent, #c9b896);
 }
 .mock-ad-skip.hidden {
   visibility: hidden;

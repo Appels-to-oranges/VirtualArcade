@@ -55,7 +55,7 @@
         <button type="button" class="lobby-header-btn lobby-text-btn" id="lobby-account-btn" title="Account" aria-label="Account">
           Account
         </button>
-        <button type="button" class="lobby-header-btn lobby-text-btn" id="lobby-stats-btn" title="Stats" aria-label="Stats">
+        <button type="button" class="lobby-header-btn lobby-text-btn hidden" id="lobby-stats-btn" title="Stats" aria-label="Stats">
           Stats
         </button>
         <button type="button" class="lobby-header-btn lobby-text-btn hidden" id="stats-back-header-btn" title="Back to Lobby" aria-label="Back to Lobby">
@@ -65,7 +65,7 @@
           <img src="icon-radio.png" alt="" class="lobby-header-icon">
         </button>
         <button type="button" class="lobby-header-btn" id="lobby-themes-btn" title="Themes" aria-label="Themes">
-          <img src="icon-themes.png" alt="" class="lobby-header-icon">
+          <svg class="lobby-header-icon lobby-header-icon-sm" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
         </button>
         <button type="button" class="lobby-header-btn" id="lobby-settings-btn" title="Settings" aria-label="Settings">
           <img src="icon-settings.png" alt="" class="lobby-header-icon">
@@ -142,13 +142,449 @@
         </div>
       </div>
       <div class="site-footer-links" aria-label="Site links">
-        <a href="/about.html">About</a><span class="site-footer-sep">|</span>
-        <a href="/how-to-play.html">How to Play</a><span class="site-footer-sep">|</span>
-        <a href="/privacy.html">Privacy</a><span class="site-footer-sep">|</span>
-        <a href="/terms.html">Terms</a><span class="site-footer-sep">|</span>
-        <a href="/contact.html">Contact</a>
+        <a href="#about">About</a><span class="site-footer-sep">|</span>
+        <a href="#how-to-play">How to Play</a><span class="site-footer-sep">|</span>
+        <a href="#privacy">Privacy</a><span class="site-footer-sep">|</span>
+        <a href="#terms">Terms</a><span class="site-footer-sep">|</span>
+        <a href="#contact">Contact</a>
       </div>
     </div>
+  </div>
+
+  <!-- ── Info views (hash-routed) ── -->
+
+  <div id="info-about" class="info-view hidden">
+    <main class="info-shell">
+      <section class="info-card">
+        <nav class="info-top-links" aria-label="Site links">
+          <a href="#" data-info-link="">Home</a>
+          <a href="#how-to-play" data-info-link="how-to-play">How to Play</a>
+          <a href="#privacy" data-info-link="privacy">Privacy</a>
+          <a href="#terms" data-info-link="terms">Terms</a>
+          <a href="#contact" data-info-link="contact">Contact</a>
+        </nav>
+        <h1 class="info-title">About Virtual Arcade</h1>
+        <p class="info-lead">
+          Virtual Arcade is a <strong>free, browser-based multiplayer hangout</strong> for casino-style and classic games. You land in a shared lobby, pick a game, and play with people in the same room — no download required.
+        </p>
+        <section class="info-section">
+          <h2>Not a gambling site</h2>
+          <p>
+            We are <strong>not</strong> a real-money casino or sportsbook. There is no depositing or withdrawing cash, no prizes with monetary value from us, and no gambling with real currency. In-game chips are a <strong>virtual gameplay mechanic only</strong> for entertainment, as described in our <a href="#terms">Terms</a>.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>What You Can Play</h2>
+          <ul>
+            <li>Texas Hold'em (poker-style)</li>
+            <li>Blackjack</li>
+            <li>Slots</li>
+            <li>Checkers (human or computer)</li>
+            <li>Chess (human or computer)</li>
+          </ul>
+        </section>
+        <section class="info-section">
+          <h2>How rooms work</h2>
+          <p>
+            You start in a default room when you open the site. The <strong>room key</strong> groups everyone together: same key means shared lobby, chat, and games. Use <strong>Switch Room</strong> to join a private code with friends, or <strong>Invite</strong> to share your link.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Accounts and progress</h2>
+          <p>
+            Play as a guest anytime, or create an account to keep your balance and cosmetic unlocks across sessions. Sign-in options are available from the <strong>Account</strong> button in the lobby.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Privacy and ads</h2>
+          <p>
+            We use the information we collect to run the games and accounts — <strong>we do not sell your personal data</strong>. If you see targeted or personalized ads, that comes from <strong>Google AdSense</strong> under Google's own policies and controls, not from us building ad profiles to sell. Details are in our <a href="#privacy">Privacy Policy</a>.
+          </p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="info-how-to-play" class="info-view hidden">
+    <main class="info-shell">
+      <section class="info-card">
+        <nav class="info-top-links" aria-label="Site links">
+          <a href="#" data-info-link="">Home</a>
+          <a href="#about" data-info-link="about">About</a>
+          <a href="#privacy" data-info-link="privacy">Privacy</a>
+          <a href="#terms" data-info-link="terms">Terms</a>
+          <a href="#contact" data-info-link="contact">Contact</a>
+        </nav>
+        <h1 class="info-title">How to Play</h1>
+        <p class="info-lead">
+          Use the tabs below for the lobby quick start or full in-game rules for each title on Virtual Arcade.
+        </p>
+
+        <div class="info-tablist" role="tablist" aria-label="Guide sections">
+          <button type="button" class="info-tab" role="tab" id="tab-start" aria-selected="true" aria-controls="panel-start">Getting started</button>
+          <button type="button" class="info-tab" role="tab" id="tab-holdem" aria-selected="false" aria-controls="panel-holdem" tabindex="-1">Texas Hold'em</button>
+          <button type="button" class="info-tab" role="tab" id="tab-blackjack" aria-selected="false" aria-controls="panel-blackjack" tabindex="-1">Blackjack</button>
+          <button type="button" class="info-tab" role="tab" id="tab-slots" aria-selected="false" aria-controls="panel-slots" tabindex="-1">Slots</button>
+          <button type="button" class="info-tab" role="tab" id="tab-checkers" aria-selected="false" aria-controls="panel-checkers" tabindex="-1">Checkers</button>
+          <button type="button" class="info-tab" role="tab" id="tab-chess" aria-selected="false" aria-controls="panel-chess" tabindex="-1">Chess</button>
+        </div>
+
+        <div class="info-tabpanels">
+          <div id="panel-start" class="info-tabpanel" role="tabpanel" aria-labelledby="tab-start">
+            <section class="info-section">
+              <h2>Lobby and display name</h2>
+              <p>
+                When you open the site, you join a default room automatically (for example the public lobby). Your name may show as a guest label until you change it: open <strong>Settings</strong> from the top bar, set a display name, and save. Signed-in users can use their account name.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Rooms and Switch Room</h2>
+              <p>
+                Everyone in the <strong>same room key</strong> shares one lobby: same chat, same participant list, and you can launch games together. Use <strong>Switch Room</strong> at the bottom of the game picker to enter another key, or use <strong>Invite</strong> to copy a link for friends. If you all use the same key, you end up in the same place.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Pick a game</h2>
+              <p>
+                Choose a title from the cards — Texas Hold'em, Blackjack, Slots, Checkers, or Chess. Counts on the cards show how many seats are in use where that applies.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Chat and account</h2>
+              <p>
+                Use the lobby chat to talk with others in your current room. Guests can play immediately; creating an account (see <strong>Account</strong> in the top bar) saves your balance and cosmetic unlocks across visits.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Board games and computer mode</h2>
+              <p>
+                In Checkers and Chess you can play another human in the room or, when available, use computer mode. Payouts or difficulty may depend on the mode you choose.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Not gambling</h2>
+              <p>
+                Virtual Arcade is <strong>free entertainment</strong>. Chips and outcomes are for fun only — there is no real-money wagering, no cash prizes from us, and no way to cash out. See our <a href="#terms">Terms</a> for how virtual currency works.
+              </p>
+            </section>
+          </div>
+
+          <div id="panel-holdem" class="info-tabpanel" role="tabpanel" aria-labelledby="tab-holdem" hidden>
+            <section class="info-section">
+              <h2>Goal</h2>
+              <p>
+                Win chips by having the best five-card poker hand at showdown, or by getting everyone else to fold. Each player gets two private cards (<strong>hole cards</strong>). Five <strong>community cards</strong> are dealt face-up in the middle for everyone to share. Your hand is the best five-card combination from your two hole cards plus the five community cards.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Players and blinds</h2>
+              <p>
+                Texas Hold'em here supports <strong>2 to 6</strong> players at the table. A dealer button moves each hand. The two seats after the dealer post forced bets: the <strong>small blind</strong> ($5) and <strong>big blind</strong> ($10). In heads-up (two players), blind positions are adjusted so both post each hand.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Betting rounds</h2>
+              <p>
+                Action goes clockwise. On your turn you may <strong>fold</strong> (give up the hand), <strong>check</strong> (stay in for free if no bet is facing you), <strong>call</strong> (match the current bet), <strong>raise</strong> (increase the bet; minimum raise size is at least the big blind, and can grow after large raises), or go <strong>all-in</strong> with your remaining chips. There are four streets:
+              </p>
+              <ul>
+                <li><strong>Preflop</strong> — after hole cards are dealt, starting left of the big blind.</li>
+                <li><strong>Flop</strong> — three community cards.</li>
+                <li><strong>Turn</strong> — fourth community card.</li>
+                <li><strong>River</strong> — fifth community card.</li>
+              </ul>
+              <p>
+                If more than one player remains after the final betting round, hands go to <strong>showdown</strong>. The pot goes to the best hand; tied best hands split the pot. If everyone else folds, the last remaining player wins the pot without showing.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Hand rankings (high to low)</h2>
+              <ol>
+                <li><strong>Royal flush</strong> — A-K-Q-J-10, same suit.</li>
+                <li><strong>Straight flush</strong> — five consecutive ranks, same suit.</li>
+                <li><strong>Four of a kind</strong> — four cards of the same rank.</li>
+                <li><strong>Full house</strong> — three of one rank plus two of another.</li>
+                <li><strong>Flush</strong> — five cards, same suit, not a straight.</li>
+                <li><strong>Straight</strong> — five consecutive ranks (A may be high A-K-Q-J-10 or low 5-4-3-2-A).</li>
+                <li><strong>Three of a kind</strong> — three of the same rank.</li>
+                <li><strong>Two pair</strong> — two different pairs.</li>
+                <li><strong>One pair</strong> — two of the same rank.</li>
+                <li><strong>High card</strong> — none of the above; best single cards decide.</li>
+              </ol>
+              <p class="info-note">Kickers (side cards) break ties between hands of the same category.</p>
+            </section>
+          </div>
+
+          <div id="panel-blackjack" class="info-tabpanel" role="tabpanel" aria-labelledby="tab-blackjack" hidden>
+            <section class="info-section">
+              <h2>Goal</h2>
+              <p>
+                Beat the dealer's hand without going over <strong>21</strong>. Face cards count as 10, aces as 1 or 11 (whichever is better for the hand). Your total is shown on screen.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>On Virtual Arcade</h2>
+              <p>
+                Up to <strong>six</strong> players share the same dealer. Each hand starts with a <strong>betting</strong> phase: choose a wager of <strong>at least $10</strong> (up to your chip stack). <strong>Every seated player must place a bet</strong> before cards are dealt. There is no splitting pairs and no insurance in this version.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Your turn</h2>
+              <p>
+                After the deal, players take turns in seat order. On your turn you can:
+              </p>
+              <ul>
+                <li><strong>Hit</strong> — take another card. You may hit repeatedly until you stand or bust (over 21).</li>
+                <li><strong>Stand</strong> — keep your current total and end your turn.</li>
+                <li><strong>Double down</strong> — only with your <strong>first two cards</strong>, if you can afford to match your bet. You double the wager, receive exactly one more card, then automatically stand.</li>
+              </ul>
+            </section>
+            <section class="info-section">
+              <h2>Blackjack and the dealer</h2>
+              <p>
+                <strong>Natural blackjack</strong> is an ace plus a 10-value card on your first two cards. It pays <strong>3:2</strong> (you receive your bet plus one and a half times your bet) unless the dealer also has blackjack, in which case the hand is a <strong>push</strong> (tie) and your bet is returned.
+              </p>
+              <p>
+                The dealer receives one up-card and one hole card. After all players finish, the dealer reveals the hole card. The dealer <strong>must hit on 16 or less</strong> and <strong>stand on 17 or higher</strong> (including a "soft" ace hand that totals 17–21). If the dealer busts, all non-busted players win even money (1:1) on their bet. If you are closer to 21 than the dealer without busting, you win even money. Same total as the dealer is a push.
+              </p>
+            </section>
+          </div>
+
+          <div id="panel-slots" class="info-tabpanel" role="tabpanel" aria-labelledby="tab-slots" hidden>
+            <section class="info-section">
+              <h2>Goal</h2>
+              <p>
+                Each spin costs a chosen bet size. After the reels stop, payouts are based on the three symbols shown. This is a simple three-reel game — there are no paylines; the three center symbols on each reel determine the outcome.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Bet sizes</h2>
+              <p>
+                Pick a denomination before spinning: <strong>$5, $10, $20, or $100</strong> per spin. You need enough chips to cover the bet.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Payouts</h2>
+              <p>
+                <strong>Three of a kind</strong> (same symbol on all three reels) pays a multiple of your bet. <strong>Exactly two worms</strong> anywhere on the three reels pays <strong>1×</strong> your bet (net zero on that spin after the bet is deducted and payout added). Any other result pays <strong>0×</strong> (you lose the bet).
+              </p>
+              <table class="info-rules-table" aria-label="Slot symbol payouts for three of a kind">
+                <thead>
+                  <tr>
+                    <th scope="col">Three matching</th>
+                    <th scope="col">Multiplier</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Catfish</td><td>50× (jackpot)</td></tr>
+                  <tr><td>Crayfish</td><td>10×</td></tr>
+                  <tr><td>Alligator</td><td>8×</td></tr>
+                  <tr><td>Worm</td><td>4×</td></tr>
+                  <tr><td>Hook</td><td>3×</td></tr>
+                </tbody>
+              </table>
+              <p class="info-note">A big win may be announced in the room chat. Outcomes use virtual chips only.</p>
+            </section>
+          </div>
+
+          <div id="panel-checkers" class="info-tabpanel" role="tabpanel" aria-labelledby="tab-checkers" hidden>
+            <section class="info-section">
+              <h2>Goal</h2>
+              <p>
+                Capture all of the opponent's pieces or block them so they have no legal move. You play on an <strong>8×8</strong> board with dark and light squares; pieces only use the dark squares.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Movement</h2>
+              <p>
+                Each side starts with 12 men on the first three rows of their side. <strong>Men</strong> move one step diagonally <strong>forward</strong> (toward the opponent's back row) into an empty square. <strong>Kings</strong> (crowned pieces) move one step diagonally in <strong>any</strong> direction into an empty square.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Captures</h2>
+              <p>
+                You capture by <strong>jumping</strong> diagonally over an adjacent enemy piece into an empty square immediately behind it. The captured piece is removed. <strong>If any capture is possible for your side, you must make a capture</strong> — you cannot play a quiet non-capturing move while a jump exists anywhere among your pieces.
+              </p>
+              <p>
+                <strong>Multiple jumps:</strong> if the same piece can continue jumping from its landing square, you must keep jumping with that piece until no more jumps are available from it. Turn then passes to your opponent.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Kinging</h2>
+              <p>
+                When a man reaches the <strong>far back row</strong> of the board, it is promoted to a king (usually shown with a distinct look). Kings move and capture diagonally as described above.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>On Virtual Arcade</h2>
+              <p>
+                Two human players in the room can agree on a wager before the game. You can also switch to <strong>vs computer</strong> with selectable difficulty when that mode is offered. Standard win/loss handling uses your virtual chip balance when a wager is in play.
+              </p>
+            </section>
+          </div>
+
+          <div id="panel-chess" class="info-tabpanel" role="tabpanel" aria-labelledby="tab-chess" hidden>
+            <section class="info-section">
+              <h2>Goal</h2>
+              <p>
+                <strong>Checkmate</strong> the opponent's king — attack it so it cannot escape capture on the next move. You can also win if your opponent resigns or runs out of time when a chess clock is enabled.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>Piece movement (summary)</h2>
+              <ul>
+                <li><strong>Pawn</strong> — one square forward (two from its starting rank on that pawn's first move), captures one square diagonally forward. <strong>En passant</strong> and <strong>promotion</strong> to a queen, rook, bishop, or knight on the far rank are supported when the position allows.</li>
+                <li><strong>Rook</strong> — any number of squares horizontally or vertically.</li>
+                <li><strong>Bishop</strong> — any number of squares diagonally.</li>
+                <li><strong>Queen</strong> — combines rook and bishop movement.</li>
+                <li><strong>Knight</strong> — in an "L" shape: two squares in one direction and one perpendicular; can jump over pieces.</li>
+                <li><strong>King</strong> — one square in any direction. <strong>Castling</strong> is allowed under standard rules (king and rook unmoved, empty squares between, not in check, king does not pass through check).</li>
+              </ul>
+            </section>
+            <section class="info-section">
+              <h2>Check and draws</h2>
+              <p>
+                You may not make a move that leaves your own king in <strong>check</strong>. If your king is in check and you have no legal move, it is <strong>checkmate</strong> and you lose. If you are not in check but have no legal move, it is a <strong>stalemate</strong> — the game is drawn. Other draws (repetition, insufficient material, etc.) follow normal chess rules as implemented in the game.
+              </p>
+            </section>
+            <section class="info-section">
+              <h2>On Virtual Arcade</h2>
+              <p>
+                Colors are assigned when the game begins. Two players can agree on a <strong>wager</strong> amount before play; both must lock in the same stake where the UI requires it. An optional <strong>timer</strong> per player can be selected for faster games. <strong>Vs computer</strong> mode uses a rated-style engine strength setting for solo practice.
+              </p>
+              <p class="info-note">Use the in-game controls for offers (draw, resign, rematch) and clock options.</p>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="info-privacy" class="info-view hidden">
+    <main class="info-shell">
+      <section class="info-card">
+        <nav class="info-top-links" aria-label="Site links">
+          <a href="#" data-info-link="">Home</a>
+          <a href="#about" data-info-link="about">About</a>
+          <a href="#how-to-play" data-info-link="how-to-play">How to Play</a>
+          <a href="#terms" data-info-link="terms">Terms</a>
+          <a href="#contact" data-info-link="contact">Contact</a>
+        </nav>
+        <h1 class="info-title">Privacy Policy</h1>
+        <p class="info-lead">Last updated: March 2026</p>
+        <section class="info-section">
+          <h2>What we use your information for</h2>
+          <p>
+            We process data you give us or that the service generates to <strong>operate Virtual Arcade</strong>: accounts (such as username and email when you register), gameplay-related data (such as chips and cosmetic choices), room and chat activity as needed to run sessions, and basic technical logs for security and reliability. We use this data to provide and improve the product — <strong>not</strong> to build profiles for sale to advertisers or data brokers.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>We do not sell your personal data</h2>
+          <p>
+            Virtual Arcade <strong>does not sell</strong> your personal information. We do not trade your contact details or identity for money or other consideration. We also <strong>do not use your personal data to run our own targeted advertising business</strong> beyond what is described here.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Cookies, storage, and sessions</h2>
+          <p>
+            Session cookies and similar mechanisms keep you signed in and maintain game state. Local browser storage may hold preferences (for example volume or visual settings). These are for the service itself, not for sale.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Advertising (Google AdSense)</h2>
+          <p>
+            We use <strong>Google AdSense</strong> to show ads. Google may use cookies, mobile identifiers, or similar technologies to <strong>serve and measure ads</strong>, including personalized or interest-based ads where allowed, according to <a href="https://policies.google.com/technologies/ads" rel="noopener noreferrer">Google's advertising policies</a>. Any such targeting or measurement is handled by <strong>Google's systems</strong>, not by us selling your data.
+          </p>
+          <p>
+            You can learn more about how Google uses data via <a href="https://policies.google.com/technologies/partner-sites" rel="noopener noreferrer">How Google uses information from sites that use our services</a>, <a href="https://policies.google.com/privacy" rel="noopener noreferrer">Google's Privacy Policy</a>, and <a href="https://adssettings.google.com/" rel="noopener noreferrer">Google Ads Settings</a>.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Contact</h2>
+          <p>
+            For privacy requests, email <a href="mailto:dev@virtualarcade.space">dev@virtualarcade.space</a>.
+          </p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="info-terms" class="info-view hidden">
+    <main class="info-shell">
+      <section class="info-card">
+        <nav class="info-top-links" aria-label="Site links">
+          <a href="#" data-info-link="">Home</a>
+          <a href="#about" data-info-link="about">About</a>
+          <a href="#how-to-play" data-info-link="how-to-play">How to Play</a>
+          <a href="#privacy" data-info-link="privacy">Privacy</a>
+          <a href="#contact" data-info-link="contact">Contact</a>
+        </nav>
+        <h1 class="info-title">Terms of Use</h1>
+        <p class="info-lead">Last updated: March 2026</p>
+        <section class="info-section">
+          <h2>Use of Service</h2>
+          <p>
+            Virtual Arcade is provided for entertainment. You agree to use the service lawfully and not interfere with gameplay, security, or other users.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Not real-money gambling</h2>
+          <p>
+            The site is <strong>not</strong> a gambling or real-money gaming operator. You cannot wager, deposit, or withdraw real currency with us, and in-game outcomes do not entitle you to cash or prizes of monetary value from Virtual Arcade. Games may resemble casino-style play for fun only.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Accounts and Conduct</h2>
+          <p>
+            You are responsible for your account activity. Abuse, cheating, harassment, or attempts to exploit the platform may result in suspension.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Virtual Currency</h2>
+          <p>
+            In-game chips are a virtual gameplay mechanic and do not represent real-money value or transferable financial assets.
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>Changes</h2>
+          <p>
+            Features and policies may be updated over time. Continued use indicates acceptance of updated terms.
+          </p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="info-contact" class="info-view hidden">
+    <main class="info-shell">
+      <section class="info-card">
+        <nav class="info-top-links" aria-label="Site links">
+          <a href="#" data-info-link="">Home</a>
+          <a href="#about" data-info-link="about">About</a>
+          <a href="#how-to-play" data-info-link="how-to-play">How to Play</a>
+          <a href="#privacy" data-info-link="privacy">Privacy</a>
+          <a href="#terms" data-info-link="terms">Terms</a>
+        </nav>
+        <h1 class="info-title">Contact</h1>
+        <p class="info-lead">
+          Need help, found a bug, or have a policy/privacy request? Reach out anytime.
+        </p>
+        <section class="info-section">
+          <h2>Email</h2>
+          <p>
+            <a href="mailto:dev@virtualarcade.space">dev@virtualarcade.space</a>
+          </p>
+        </section>
+        <section class="info-section">
+          <h2>What to Include</h2>
+          <ul>
+            <li>Your room key (if relevant)</li>
+            <li>Game mode and platform/device</li>
+            <li>Steps to reproduce (for bugs)</li>
+          </ul>
+        </section>
+      </section>
+    </main>
   </div>
 
   <div class="lobby-overlay hidden" id="themes-overlay">
@@ -187,10 +623,11 @@
           </div>
         </div>
         <div class="theme-group">
-          <label>Lobby Background Opacity</label>
-          <div class="radio-volume-wrap">
-            <input type="range" id="lobby-bg-opacity" min="0" max="100" value="70">
-            <span id="lobby-bg-opacity-value">70%</span>
+          <label>Background Transparency</label>
+          <div class="lobby-style-toggle" id="lobby-bg-opacity-toggle">
+            <button type="button" class="lobby-style-btn" data-opacity="100">Off</button>
+            <button type="button" class="lobby-style-btn active" data-opacity="70">Default</button>
+            <button type="button" class="lobby-style-btn" data-opacity="55">Low</button>
           </div>
         </div>
       </div>
@@ -254,7 +691,11 @@
           </div>
           <div class="store-catalog">
             <div class="store-toolbar">
-              <label for="store-search-input">Search</label>
+              <div class="store-tabs" id="store-tabs">
+                <button type="button" class="store-tab active" data-filter="all">All</button>
+                <button type="button" class="store-tab" data-filter="free">Free</button>
+                <button type="button" class="store-tab" data-filter="gif">GIFs</button>
+              </div>
               <input type="text" id="store-search-input" class="chat-input store-search-input" placeholder="Search characters" maxlength="40" autocomplete="off">
             </div>
             <div class="store-items" id="store-items"></div>
@@ -286,7 +727,11 @@
           </div>
           <div class="store-catalog">
             <div class="store-toolbar">
-              <label for="closet-search-input">Search</label>
+              <div class="store-tabs" id="closet-tabs">
+                <button type="button" class="store-tab active" data-filter="all">All</button>
+                <button type="button" class="store-tab" data-filter="free">Free</button>
+                <button type="button" class="store-tab" data-filter="gif">GIFs</button>
+              </div>
               <input type="text" id="closet-search-input" class="chat-input store-search-input" placeholder="Search owned characters" maxlength="40" autocomplete="off">
             </div>
             <div class="closet-items" id="closet-items"></div>
@@ -329,6 +774,7 @@
 
         <div id="account-signed-in" class="hidden">
           <div class="welcome-badge">Signed in as <strong id="account-welcome-name"></strong></div>
+          <button type="button" id="account-stats-btn" class="btn-join account-stats-btn">Stats</button>
           <button type="button" id="account-logout-btn" class="btn-join account-logout-btn">Log Out</button>
         </div>
 
@@ -383,23 +829,18 @@
     <div class="room-bar std-bar">
       <button type="button" id="holdem-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>
       <span class="std-bar-player" id="holdem-player-info"></span>
-      <div class="chat-input-wrap">
-        <div class="chat-input-inner">
-          <input type="text" id="chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
-          <button type="button" class="chat-emoji-btn" title="Emoji" aria-label="Emoji">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          </button>
-        </div>
-      </div>
       <div class="std-bar-spacer"></div>
       <span class="std-bar-game" id="room-label"></span>
       <div class="now-playing-radio hidden" id="now-playing-radio">
         <span class="now-playing-label" id="now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="radio-stop" title="Stop radio">&#x25A0;</button>
       </div>
+      <button type="button" id="holdem-chat-toggle" class="std-bar-btn" title="Chat" aria-label="Chat"><svg class="std-bar-btn-icon std-bar-btn-icon-sm" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button>
       <button type="button" id="radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>
       <button type="button" id="holdem-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>
     </div>
+    <div class="game-content-row">
+    <div class="game-content-main">
 
     <div id="holdem-action-popup" class="game-action-popup">
       <div class="game-action-popup-inner">
@@ -451,6 +892,13 @@
         <button id="btn-allin" class="btn btn-allin">All In</button>
       </div>
     </div>
+    </div><!-- /game-content-main -->
+    <div class="game-chat-panel" id="holdem-chat-panel">
+      <div class="game-chat-panel-header"><span>Chat</span><button type="button" class="game-chat-panel-close" data-chat-close>&times;</button></div>
+      <div class="game-chat-panel-messages" id="holdem-chat-messages"></div>
+      <div class="game-chat-panel-input"><input type="text" id="chat-input" class="chat-input" placeholder="Send a message... (Enter)" maxlength="100" autocomplete="off"></div>
+    </div>
+    </div><!-- /game-content-row -->
     </div>
     <div id="showdown-overlay" class="showdown-overlay hidden">
       <div class="showdown-modal">
@@ -478,23 +926,18 @@
     <div class="room-bar std-bar">
       <button type="button" id="bj-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>
       <span class="std-bar-player" id="bj-player-info"></span>
-      <div class="chat-input-wrap">
-        <div class="chat-input-inner">
-          <input type="text" id="bj-chat-input" class="chat-input" placeholder="Chat... (Enter)" maxlength="100" autocomplete="off">
-          <button type="button" class="chat-emoji-btn" title="Emoji" aria-label="Emoji">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          </button>
-        </div>
-      </div>
       <div class="std-bar-spacer"></div>
       <span class="std-bar-game" id="bj-room-label"></span>
       <div class="now-playing-radio hidden" id="bj-now-playing-radio">
         <span class="now-playing-label" id="bj-now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="bj-radio-stop" title="Stop radio">&#x25A0;</button>
       </div>
+      <button type="button" id="bj-chat-toggle" class="std-bar-btn" title="Chat" aria-label="Chat"><svg class="std-bar-btn-icon std-bar-btn-icon-sm" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button>
       <button type="button" id="bj-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>
       <button type="button" id="bj-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>
     </div>
+    <div class="game-content-row">
+    <div class="game-content-main">
     <div class="table-container">
       <div class="poker-table bj-table">
         <div class="bj-status-label" id="bj-status">Waiting for game to start...</div>
@@ -514,16 +957,24 @@
           <span class="slider-label" id="bj-bet-label">$20</span>
           <input type="range" id="bj-bet-slider" class="bet-slider" min="10" max="100" value="20" step="5">
           <input type="hidden" id="bj-bet-amount" value="20">
-          <button type="button" id="btn-bj-place-bet" class="btn btn-bet">Place Bet</button>
+          <button type="button" id="btn-bj-place-bet" class="btn">Place Bet</button>
+          <button type="button" id="btn-bj-allin" class="btn">All In</button>
         </div>
         <div class="bj-action-row hidden" id="bj-controls">
-          <button type="button" id="btn-bj-hit" class="btn btn-call">Hit</button>
-          <button type="button" id="btn-bj-stand" class="btn btn-fold">Stand</button>
-          <button type="button" id="btn-bj-double" class="btn btn-allin">Double</button>
+          <button type="button" id="btn-bj-hit" class="btn">Hit</button>
+          <button type="button" id="btn-bj-stand" class="btn">Stand</button>
+          <button type="button" id="btn-bj-double" class="btn">Double</button>
         </div>
         <span class="bj-chips-display" id="bj-my-chips"></span>
       </div>
     </div>
+    </div><!-- /game-content-main -->
+    <div class="game-chat-panel" id="bj-chat-panel">
+      <div class="game-chat-panel-header"><span>Chat</span><button type="button" class="game-chat-panel-close" data-chat-close>&times;</button></div>
+      <div class="game-chat-panel-messages" id="bj-chat-messages"></div>
+      <div class="game-chat-panel-input"><input type="text" id="bj-chat-input" class="chat-input" placeholder="Send a message... (Enter)" maxlength="100" autocomplete="off"></div>
+    </div>
+    </div><!-- /game-content-row -->
     </div>
   </div>
 
@@ -538,24 +989,47 @@
         <span class="now-playing-label" id="slots-now-playing-radio-label"></span>
         <button type="button" class="now-playing-stop" id="slots-radio-stop" title="Stop radio">&#x25A0;</button>
       </div>
+      <button type="button" id="slots-chat-toggle" class="std-bar-btn" title="Chat" aria-label="Chat"><svg class="std-bar-btn-icon std-bar-btn-icon-sm" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button>
       <button type="button" id="slots-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>
       <button type="button" id="slots-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>
     </div>
+    <div class="game-content-row">
+    <div class="game-content-main">
     <div class="slots-container">
       <div class="slots-machines-grid" id="slots-machines-grid"></div>
-      <div class="slots-chat-card">
-        <div class="slots-chat-header">Chat</div>
-        <div class="slots-chat-messages" id="slots-chat-messages"></div>
-        <div class="slots-chat-input-panel">
-          <div class="chat-input-inner">
-            <input type="text" id="slots-chat-input" class="chat-input" placeholder="Send a message... (Enter)" maxlength="100" autocomplete="off">
-            <button type="button" class="chat-emoji-btn" title="Emoji" aria-label="Emoji">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-            </button>
+    </div>
+    </div><!-- /game-content-main -->
+    <div class="game-chat-panel" id="slots-chat-panel">
+      <div class="game-chat-panel-header"><span>Chat</span><button type="button" class="game-chat-panel-close" data-chat-close>&times;</button></div>
+      <div class="game-chat-panel-messages" id="slots-chat-messages"></div>
+      <div class="game-chat-panel-input"><input type="text" id="slots-chat-input" class="chat-input" placeholder="Send a message... (Enter)" maxlength="100" autocomplete="off"></div>
+    </div>
+    </div><!-- /game-content-row -->
+    </div>
+    <div id="slots-config-overlay" class="slots-config-overlay hidden">
+      <div class="slots-config-panel">
+        <h3>Slot Machine Setup</h3>
+        <div class="slots-config-group">
+          <label class="slots-config-label">Rows</label>
+          <p class="slots-config-hint">More rows = more paylines. Cost scales with rows.</p>
+          <div class="slots-config-toggle" id="slots-config-rows">
+            <button type="button" class="slots-config-btn active" data-rows="1">1 Row <span class="slots-config-sub">1x bet</span></button>
+            <button type="button" class="slots-config-btn" data-rows="2">2 Rows <span class="slots-config-sub">2x bet</span></button>
+            <button type="button" class="slots-config-btn" data-rows="3">3 Rows <span class="slots-config-sub">5x bet</span></button>
           </div>
         </div>
+        <div class="slots-config-group">
+          <label class="slots-config-label">Spin Time</label>
+          <div class="slots-config-slider-row">
+            <input type="range" id="slots-config-spin-time" class="bet-slider" min="3" max="20" value="10" step="1">
+            <span class="slots-config-spin-value" id="slots-config-spin-value">10s</span>
+          </div>
+        </div>
+        <div class="slots-config-actions">
+          <button type="button" class="btn" id="slots-config-back">Back</button>
+          <button type="button" class="btn" id="slots-config-start">Play</button>
+        </div>
       </div>
-    </div>
     </div>
   </div>
 
@@ -597,6 +1071,7 @@
           <label class="audio-row-label">Master</label>
           <input type="range" id="master-volume" min="0" max="100" value="50">
           <span class="audio-row-value" id="master-volume-value">50%</span>
+          <button type="button" class="audio-mute-btn" id="master-mute-btn" title="Toggle master audio">On</button>
         </div>
         <div class="audio-row">
           <label class="audio-row-label">Radio</label>

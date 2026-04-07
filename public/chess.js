@@ -295,48 +295,46 @@
     s.id = 'ch-styles';
     s.textContent =
       '#ch-screen{position:fixed;inset:0;background:#0a0a0a;z-index:50;' +
-        'display:flex;flex-direction:column;align-items:center;' +
+        'display:flex;flex-direction:column;align-items:stretch;' +
         "font-family:'Press Start 2P',monospace;color:#ddd;overflow:hidden}" +
 
       '#ch-screen .ch-room-bar{width:100%;display:flex;align-items:center;' +
         'justify-content:center;flex-wrap:wrap;gap:.75rem;padding:.4rem .75rem;' +
-        'background:#111;border-bottom:.2rem solid #1a1a1a;flex-shrink:0}' +
+        'background:#000;border-bottom:.0625rem solid var(--lobby-border,#1e2a3a);flex-shrink:0}' +
       '.ch-room-bar-spacer{flex:1;min-width:.5rem}' +
 
-      '#ch-room-label{font-size:.6rem;color:#666;letter-spacing:.0625rem}' +
+      '#ch-room-label{font-size:.5rem;color:#666;letter-spacing:.0625rem}' +
 
       '#ch-screen .btn-start,#ch-screen .btn-restart{' +
         "font-family:'Press Start 2P',monospace;" +
-        'font-size:.45rem;padding:.35rem .75rem;border:none;border-radius:.25rem;' +
-        'cursor:pointer;text-transform:uppercase;letter-spacing:.05rem}' +
-      '#ch-screen .btn-start{background:#238636;color:#fff}' +
-      '#ch-screen .btn-start:hover{background:#2ea043}' +
-      '#ch-screen .btn-start:disabled{background:#2a2a2a;border-color:#444;color:#555;cursor:not-allowed}' +
-      '#ch-screen .btn-restart{background:#1b4332;color:#ddd;border:.125rem solid #40916c}' +
-      '#ch-screen .btn-restart:hover{background:#2d6a4f}' +
+        'font-size:.4rem;padding:.3rem .7rem;border:.0625rem solid #333;border-radius:.25rem;' +
+        'background:transparent;color:#ccc;cursor:pointer;text-transform:uppercase;letter-spacing:.05rem;' +
+        'transition:border-color .15s,color .15s}' +
+      '#ch-screen .btn-start:hover,#ch-screen .btn-restart:hover{border-color:var(--lobby-accent,#888);color:#fff}' +
+      '#ch-screen .btn-start:disabled{opacity:.25;cursor:not-allowed}' +
 
-      '#ch-status{font-size:.65rem;color:#c9b896;text-transform:uppercase;' +
-        'letter-spacing:.1rem;text-align:center;padding:.4rem .5rem;flex-shrink:0}' +
+      '#ch-status{font-size:.55rem;color:var(--lobby-accent,#c9b896);text-transform:uppercase;' +
+        'letter-spacing:.1rem;text-align:center;padding:.4rem .5rem;flex-shrink:0;width:100%}' +
 
       '#ch-players-area{display:flex;gap:1rem;justify-content:center;' +
-        'align-items:center;padding:.25rem .5rem;flex-shrink:0}' +
+        'align-items:center;padding:.25rem .5rem;flex-shrink:0;width:100%}' +
 
       '.ch-player-tag{display:flex;align-items:center;gap:.4rem;padding:.3rem .6rem;' +
-        'border:.125rem solid #30363d;background:rgba(13,17,23,.6);font-size:.5rem}' +
+        'border:.0625rem solid var(--lobby-border,#30363d);background:rgba(13,17,23,.6);font-size:.45rem;border-radius:.25rem}' +
 
-      '.ch-player-tag.ch-turn{border-color:#ffd700;' +
-        'box-shadow:0 0 .5rem rgba(255,215,0,.3)}' +
+      '.ch-player-tag.ch-turn{border-color:var(--lobby-accent,#c9b896);' +
+        'box-shadow:0 0 .4rem rgba(255,255,255,.1)}' +
 
-      '.ch-player-tag.ch-is-me{background:color-mix(in srgb, var(--lobby-accent) 30%, transparent)}' +
+      '.ch-player-tag.ch-is-me{background:color-mix(in srgb, var(--lobby-accent) 20%, transparent)}' +
 
-      '.ch-player-swatch{width:.7rem;height:.7rem;border:.0625rem solid #555;flex-shrink:0}' +
+      '.ch-player-swatch{width:.7rem;height:.7rem;border:.0625rem solid #555;flex-shrink:0;border-radius:.1rem}' +
 
       '.ch-color-black{background:#333}' +
       '.ch-color-white{background:#eee}' +
 
-      '.ch-player-name{color:#ddd}' +
-      '.ch-captures{color:#888;font-size:.4rem;margin-left:.25rem}' +
-      '.ch-chips-display{font-size:.5rem;color:#c9b896;padding:.2rem .4rem;background:#1a1a1a;border:.1rem solid #333;border-radius:.2rem}' +
+      '.ch-player-name{color:#ccc}' +
+      '.ch-captures{color:#666;font-size:.35rem;margin-left:.25rem}' +
+      '.ch-chips-display{font-size:.4rem;color:#999;padding:.2rem .4rem;background:transparent;border:.0625rem solid #333;border-radius:.2rem}' +
 
       '.ch-board-wrap{flex:1;display:flex;align-items:center;justify-content:center;' +
         'min-height:0;padding:.5rem}' +
@@ -384,76 +382,76 @@
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
       '.ch-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ch-config-overlay.ch-hidden{display:none}' +
-      '.ch-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
-      '.ch-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
+      '.ch-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh;overflow:hidden}' +
+      '.ch-config-panel{background:#111;border:.0625rem solid var(--lobby-border,#333);border-radius:.4rem;' +
         'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
       '.ch-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
-        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
+        'background:#111;border:.0625rem solid var(--lobby-border,#333);border-radius:.4rem;overflow:hidden}' +
       '.ch-leaderboard-panel.ch-hidden{display:none}' +
       '.ch-config-chat-player.ch-hidden{display:none}' +
-      '.ch-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
+      '.ch-config-chat-header{font-size:.4rem;color:var(--lobby-accent,#c9b896);padding:.4rem;border-bottom:.0625rem solid var(--lobby-border,#222)}' +
       '.ch-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
-      '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ch-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.0625rem solid var(--lobby-border,#222);background:transparent;color:#ccc}' +
       '.ch-leaderboard-list{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
       '.ch-leaderboard-row{display:flex;align-items:center;justify-content:space-between;gap:.35rem;padding:.22rem .1rem;border-bottom:.05rem solid rgba(255,255,255,.06)}' +
       '.ch-leaderboard-row:last-child{border-bottom:none}' +
-      '.ch-leaderboard-rank{color:#8b949e;min-width:1.2rem}' +
-      '.ch-leaderboard-name{color:#ddd;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.ch-leaderboard-level{color:#c9b896}' +
-      '.ch-leaderboard-empty{color:#8b949e;font-style:italic}' +
+      '.ch-leaderboard-rank{color:#666;min-width:1.2rem}' +
+      '.ch-leaderboard-name{color:#ccc;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.ch-leaderboard-level{color:var(--lobby-accent,#c9b896)}' +
+      '.ch-leaderboard-empty{color:#666;font-style:italic}' +
       '.ch-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
-      '.ch-chat-msg.you .ch-chat-nick{color:#4ade80}' +
-      '.ch-chat-nick{color:#8b949e}' +
-      '.ch-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
-      '.ch-mode-tabs{display:flex;gap:.4rem;margin-bottom:.6rem}' +
-      ".ch-mode-tab{flex:1;font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.35rem .4rem;" +
-        'border:.1rem solid #30363d;background:#0d1117;color:#8b949e;cursor:pointer;border-radius:.2rem}' +
-      '.ch-mode-tab.ch-active{background:#238636;color:#fff;border-color:#2ea043}' +
-      '.ch-computer-settings{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
+      '.ch-chat-msg.you .ch-chat-nick{color:var(--lobby-accent,#c9b896)}' +
+      '.ch-chat-nick{color:#666}' +
+      '.ch-config-title{font-size:.5rem;color:var(--lobby-accent,#c9b896);margin-bottom:.75rem;text-align:center}' +
+      '.ch-mode-tabs{display:flex;gap:.3rem;margin-bottom:.6rem}' +
+      ".ch-mode-tab{flex:1;font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.3rem .4rem;" +
+        'border:.0625rem solid #333;background:transparent;color:#888;cursor:pointer;border-radius:.25rem;transition:border-color .15s,color .15s}' +
+      '.ch-mode-tab.ch-active{color:var(--lobby-accent,#fff);border-color:var(--lobby-accent,#888);background:rgba(255,255,255,.05)}' +
+      '.ch-computer-settings{margin-bottom:.75rem;padding:.5rem;background:rgba(255,255,255,.03);border:.0625rem solid #222;border-radius:.3rem}' +
       '.ch-computer-settings.ch-hidden{display:none}' +
       '.ch-computer-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}' +
-      '.ch-computer-label{font-size:.4rem;color:#888}' +
-      '.ch-computer-value{font-size:.45rem;color:#c9b896}' +
+      '.ch-computer-label{font-size:.35rem;color:#888}' +
+      '.ch-computer-value{font-size:.4rem;color:var(--lobby-accent,#c9b896)}' +
       '.ch-computer-settings input[type=range]{width:100%}' +
-      '.ch-computer-payout{font-size:.35rem;color:#4ade80;margin-top:.3rem}' +
-      '.ch-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
-      '.ch-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
-      '.ch-config-opponent-name{font-size:.5rem;color:#ddd}' +
-      '.ch-config-opponent-chips{font-size:.4rem;color:#c9b896;margin-top:.2rem}' +
+      '.ch-computer-payout{font-size:.3rem;color:var(--lobby-accent,#c9b896);margin-top:.3rem}' +
+      '.ch-config-opponent{margin-bottom:.75rem;padding:.5rem;background:rgba(255,255,255,.03);border:.0625rem solid #222;border-radius:.3rem}' +
+      '.ch-config-opponent-label{font-size:.3rem;color:#666;margin-bottom:.2rem}' +
+      '.ch-config-opponent-name{font-size:.45rem;color:#ccc}' +
+      '.ch-config-opponent-chips{font-size:.35rem;color:var(--lobby-accent,#c9b896);margin-top:.2rem}' +
       '.ch-config-timer{margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}' +
-      '.ch-config-timer label{font-size:.4rem;color:#888}' +
-      ".ch-config-timer select{font-family:'Press Start 2P',monospace;font-size:.4rem;" +
-        'background:#1a1a1a;color:#ddd;border:.1rem solid #333;border-radius:.2rem;padding:.2rem}' +
+      '.ch-config-timer label{font-size:.35rem;color:#888}' +
+      ".ch-config-timer select{font-family:'Press Start 2P',monospace;font-size:.35rem;" +
+        'background:transparent;color:#ccc;border:.0625rem solid #333;border-radius:.25rem;padding:.2rem}' +
       '.ch-config-wagers{margin-bottom:.75rem}' +
       '.ch-config-wager-row{margin-bottom:.5rem;display:flex;flex-direction:column;gap:.25rem}' +
-      '.ch-config-wager-row label{font-size:.4rem;color:#888}' +
+      '.ch-config-wager-row label{font-size:.35rem;color:#888}' +
       '.ch-config-wager-row input[type=range]{width:100%}' +
-      ".ch-lock-btn{font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.25rem .5rem;" +
-        'background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer;align-self:flex-start}' +
-      '.ch-lock-btn.ch-locked{background:#1b4332;border:.125rem solid #40916c;color:#8b949e}' +
+      ".ch-lock-btn{font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.25rem .5rem;" +
+        'background:transparent;color:var(--lobby-accent,#ccc);border:.0625rem solid var(--lobby-accent,#888);border-radius:.25rem;cursor:pointer;align-self:flex-start;transition:color .15s}' +
+      '.ch-lock-btn.ch-locked{border-color:#333;color:#666}' +
       '.ch-opponent-wager label{color:#666}' +
-      '.ch-opponent-locked{font-size:.35rem;color:#4ade80;margin-left:.25rem}' +
+      '.ch-opponent-locked{font-size:.3rem;color:var(--lobby-accent,#c9b896);margin-left:.25rem}' +
       '.ch-opponent-locked.ch-hidden{display:none}' +
-      '.ch-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
-      '.ch-player-chips{color:#c9b896;font-size:.4rem;margin-left:.25rem}' +
-      '.ch-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
+      '.ch-opponent-slider-display{height:.4rem;background:#111;border-radius:.1rem;overflow:hidden;border:.0625rem solid #222}' +
+      '.ch-player-chips{color:#999;font-size:.35rem;margin-left:.25rem}' +
+      '.ch-config-wager-msg{font-size:.3rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ch-config-wager-msg.ch-show{display:block}' +
       '.ch-config-buttons{display:flex;gap:.5rem;margin-top:.5rem}' +
       '.ch-config-buttons button{flex:1}' +
       '.ch-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
       '.ch-gameover-buttons button{flex:1}' +
       '.ch-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ch-gameover-overlay.ch-hidden{display:none}' +
-      '.ch-gameover-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;padding:1.5rem;text-align:center;min-width:18rem}' +
-      '.ch-gameover-title{font-size:.6rem;color:#c9b896;margin-bottom:1rem}' +
-      '.ch-gameover-winner{font-size:.5rem;color:#4ade80;margin-bottom:.5rem}' +
-      '.ch-gameover-amount{font-size:.45rem;color:#c9b896;margin-bottom:.5rem}' +
-      '.ch-gameover-loser{font-size:.4rem;color:#f87171;margin-bottom:1rem}' +
+      '.ch-gameover-panel{background:#111;border:.0625rem solid var(--lobby-border,#333);border-radius:.4rem;padding:1.5rem;text-align:center;min-width:18rem}' +
+      '.ch-gameover-title{font-size:.5rem;color:var(--lobby-accent,#c9b896);margin-bottom:1rem}' +
+      '.ch-gameover-winner{font-size:.45rem;color:var(--lobby-accent,#c9b896);margin-bottom:.5rem}' +
+      '.ch-gameover-amount{font-size:.4rem;color:#ccc;margin-bottom:.5rem}' +
+      '.ch-gameover-loser{font-size:.35rem;color:#f87171;margin-bottom:1rem}' +
 
-      '.ch-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
+      '.ch-turn-timer{font-size:.7rem;color:var(--lobby-accent,#ccc);text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
       '.ch-turn-timer.hidden{display:none}' +
       '.ch-turn-timer.ch-timer-urgent{color:#ff4444;animation:chTimerBlink .5s ease-in-out infinite}' +
@@ -522,10 +520,13 @@
         '<span class="std-bar-player" id="ch-player-info"></span>' +
         '<div class="std-bar-spacer"></div>' +
         '<span class="std-bar-game" id="ch-room-label"></span>' +
+        '<div class="now-playing-radio hidden" id="ch-now-playing-radio"><span class="now-playing-label" id="ch-now-playing-radio-label"></span><button type="button" class="now-playing-stop" id="ch-radio-stop" title="Stop radio">&#x25A0;</button></div>' +
+        '<button type="button" id="ch-chat-toggle" class="std-bar-btn" title="Chat" aria-label="Chat"><svg class="std-bar-btn-icon std-bar-btn-icon-sm" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button>' +
         '<button type="button" id="ch-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>' +
-        '<button type="button" id="ch-themes-btn" class="std-bar-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="std-bar-btn-icon"></button>' +
         '<button type="button" id="ch-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>' +
       '</div>' +
+      '<div class="game-content-row">' +
+      '<div class="game-content-main">' +
       '<div class="ch-config-overlay" id="ch-config-overlay">' +
         '<div class="ch-config-layout">' +
         '<div class="ch-config-panel">' +
@@ -591,9 +592,12 @@
       '<div id="ch-wager-display" class="ch-wager-display ch-hidden"></div>' +
       '<div id="ch-players-area"></div>' +
       '<div class="ch-board-wrap"><div id="ch-board"></div></div>' +
-      '<div class="now-playing-radio hidden" id="ch-now-playing-radio">' +
-        '<span class="now-playing-label" id="ch-now-playing-radio-label"></span>' +
-        '<button type="button" class="now-playing-stop" id="ch-radio-stop" title="Stop radio">&#x25A0;</button>' +
+      '</div>' +
+      '<div class="game-chat-panel" id="ch-chat-panel">' +
+        '<div class="game-chat-panel-header"><span>Chat</span><button type="button" class="game-chat-panel-close" data-chat-close>&times;</button></div>' +
+        '<div class="game-chat-panel-messages" id="ch-chat-panel-messages"></div>' +
+        '<div class="game-chat-panel-input"><input type="text" id="ch-chat-panel-input" class="chat-input" placeholder="Send a message... (Enter)" maxlength="100" autocomplete="off"></div>' +
+      '</div>' +
       '</div>';
 
     document.body.appendChild(screenEl);
@@ -686,10 +690,21 @@
       if (overlay) overlay.classList.remove('hidden');
       if (searchInput) searchInput.focus();
     });
-    var chThemesBtn = document.getElementById('ch-themes-btn');
-    if (chThemesBtn) chThemesBtn.addEventListener('click', function () {
-      var overlay = document.getElementById('themes-overlay');
-      if (overlay) overlay.classList.remove('hidden');
+    var chChatToggle = document.getElementById('ch-chat-toggle');
+    if (chChatToggle) chChatToggle.addEventListener('click', function () {
+      if (typeof toggleGameChatPanel === 'function') toggleGameChatPanel('ch-chat-panel');
+    });
+    var chChatPanelInput = document.getElementById('ch-chat-panel-input');
+    if (chChatPanelInput) chChatPanelInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var text = chChatPanelInput.value.trim();
+        if (text && chWs && chWs.readyState === WebSocket.OPEN) {
+          if (typeof playSendMessage === 'function') playSendMessage();
+          chWs.send(JSON.stringify({ type: 'chat', text: text }));
+          chChatPanelInput.value = '';
+        }
+      }
     });
 
     var chRadioStop = document.getElementById('ch-radio-stop');
@@ -871,7 +886,7 @@
     var oppLockedEl = document.getElementById('ch-opponent-locked');
     if (oppLockedEl) oppLockedEl.classList.toggle('ch-hidden', oppLocked === undefined);
     if (oppDisplay) {
-      oppDisplay.style.background = 'linear-gradient(to right, #238636 0%, #238636 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #1a1a1a ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
+      oppDisplay.style.background = 'linear-gradient(to right, rgba(255,255,255,.15) 0%, rgba(255,255,255,.15) ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #111 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
     }
     var mismatchMsg = document.getElementById('ch-wager-mismatch-msg');
     var configStartBtn = document.getElementById('ch-config-start-btn');

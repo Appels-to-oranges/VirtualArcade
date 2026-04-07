@@ -2,17 +2,14 @@
 
 const { estimateEquity } = require('./bot_equity');
 
-// ── Tuning knobs ──────────────────────────────────────────────────────
+// ── Default tuning knobs (overridden by personality) ─────────────────
 
 const EQUITY_ITERS = 3000;
-const FOLD_MARGIN = -0.20;
-const RAISE_MARGIN = 0.08;
-const BLUFF_FREQ = { preflop: 0.05, flop: 0.20, turn: 0.15, river: 0.10 };
-const CHECK_RAISE_FREQ = 0.20;
+
+const DEFAULT_PERSONALITY = { aggression: 0.5, tightness: 0.5, bluffFreq: 0.15 };
 
 // ── Preflop hand ranges by position ───────────────────────────────────
 // Tiers: 1=premium, 2=strong, 3=playable, 4=marginal, 5=speculative
-// Position opens: UTG tiers 1-2, MP 1-3, CO 1-4, BTN 1-5, SB 1-4, BB defends wider
 
 const HAND_TIERS = {};
 
@@ -40,12 +37,10 @@ function initTiers() {
 }
 initTiers();
 
-// Position -> max tier allowed for open-raising
-const OPEN_TIER = { UTG: 3, MP: 4, CO: 5, BTN: 6, SB: 5, BB: 6 };
-// Position -> max tier for calling a raise
-const CALL_TIER = { UTG: 3, MP: 3, CO: 4, BTN: 5, SB: 4, BB: 5 };
-// Position -> max tier for 3-betting
-const THREEBET_TIER = { UTG: 2, MP: 2, CO: 3, BTN: 3, SB: 3, BB: 3 };
+// Position -> max tier allowed (base values, personality adjusts)
+const BASE_OPEN_TIER = { UTG: 3, MP: 4, CO: 5, BTN: 6, SB: 5, BB: 6 };
+const BASE_CALL_TIER = { UTG: 3, MP: 3, CO: 4, BTN: 5, SB: 4, BB: 5 };
+const BASE_THREEBET_TIER = { UTG: 2, MP: 2, CO: 3, BTN: 3, SB: 3, BB: 3 };
 
 function normalizeRank(rank) {
   if (rank === '10') return 'T';
@@ -60,10 +55,6 @@ function getHandTier(heroHole) {
   return HAND_TIERS[key] || 6;
 }
 
-/**
- * Determine position label based on seat index, dealer index, and player count.
- * Standard 6-max positions.
- */
 function getPosition(seatIdx, dealerIdx, numPlayers) {
   const offset = (seatIdx - dealerIdx - 1 + numPlayers) % numPlayers;
   if (numPlayers <= 2) return seatIdx === dealerIdx ? 'BTN' : 'BB';
@@ -72,7 +63,6 @@ function getPosition(seatIdx, dealerIdx, numPlayers) {
     if (offset === 1) return 'BB';
     return 'BTN';
   }
-  // 4-6 players
   const positions6 = ['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN'];
   const available = positions6.slice(0, numPlayers);
   return available[offset % available.length] || 'MP';
@@ -86,26 +76,76 @@ function potOddsThreshold(pot, toCall) {
 }
 
 /**
- * Decide a preflop action based on hand tier, position, and action history.
+ * Adjust tier thresholds based on personality.
+ * Loose players (low tightness) widen ranges; tight players narrow them.
  */
-function preflopDecision({ tier, position, toCall, pot, stack, bigBlind, minRaise, currentBet, facingRaise }) {
-  const openMax = OPEN_TIER[position] || 3;
-  const callMax = CALL_TIER[position] || 3;
-  const threebetMax = THREEBET_TIER[position] || 1;
+function adjustedTiers(personality) {
+  const { tightness } = personality;
+  // tightness 0.0 = very loose (+2 to all tiers), 1.0 = very tight (-1)
+  const adj = Math.round((0.5 - tightness) * 3);
+  const adjust = (base) => {
+    const result = {};
+    for (const pos in base) result[pos] = clamp(base[pos] + adj, 1, 7);
+    return result;
+  };
+  return {
+    open: adjust(BASE_OPEN_TIER),
+    call: adjust(BASE_CALL_TIER),
+    threebet: adjust(BASE_THREEBET_TIER),
+  };
+}
+
+/**
+ * Get bluff frequencies scaled by personality.
+ */
+function bluffFreqs(personality) {
+  const scale = personality.bluffFreq / 0.15; // normalized around default 0.15
+  return {
+    preflop: clamp(0.05 * scale, 0, 0.4),
+    flop:    clamp(0.20 * scale, 0, 0.6),
+    turn:    clamp(0.15 * scale, 0, 0.5),
+    river:   clamp(0.10 * scale, 0, 0.4),
+  };
+}
+
+/**
+ * Preflop decision influenced by personality.
+ */
+function preflopDecision({ tier, position, toCall, pot, stack, bigBlind, minRaise, currentBet, facingRaise, personality }) {
+  const tiers = adjustedTiers(personality);
+  const { aggression } = personality;
+
+  const openMax = tiers.open[position] || 3;
+  const callMax = tiers.call[position] || 3;
+  const threebetMax = tiers.threebet[position] || 1;
 
   if (!facingRaise) {
-    // Unopened or limped pot — open raise or fold
     if (tier <= openMax) {
-      // Premium/strong: sometimes 3x, sometimes 2.5x
-      const raiseSize = Math.floor(bigBlind * (tier <= 2 ? 3 : 2.5));
+      // Aggressive players size bigger; passive players limp more
+      const sizeMultiplier = 2 + aggression * 2; // 2x (passive) to 4x (maniac)
+      const raiseSize = Math.floor(bigBlind * sizeMultiplier);
       const amount = Math.max(raiseSize, minRaise + currentBet);
+      // Passive players sometimes just limp premium-ish hands
+      if (aggression < 0.3 && tier >= 3 && Math.random() < 0.4) {
+        if (toCall > 0 && toCall <= bigBlind) return { action: 'call' };
+        return { action: 'check' };
+      }
       if (amount >= stack) return { action: 'allin' };
       return { action: 'raise', amount };
     }
-    // Marginal hands in late position: limp sometimes
-    if (tier <= openMax + 1 && (position === 'BTN' || position === 'SB') && Math.random() < 0.3) {
-      if (toCall > 0 && toCall <= bigBlind) return { action: 'call' };
-      return { action: 'check' };
+    // Marginal hands: loose/aggressive players limp or raise more
+    if (tier <= openMax + 1 && (position === 'BTN' || position === 'SB')) {
+      const limpChance = 0.15 + (1 - personality.tightness) * 0.35;
+      if (Math.random() < limpChance) {
+        if (aggression > 0.6 && Math.random() < 0.4) {
+          const raiseSize = Math.floor(bigBlind * (2 + aggression));
+          const amount = Math.max(raiseSize, minRaise + currentBet);
+          if (amount >= stack) return { action: 'allin' };
+          return { action: 'raise', amount };
+        }
+        if (toCall > 0 && toCall <= bigBlind) return { action: 'call' };
+        return { action: 'check' };
+      }
     }
     if (toCall <= 0) return { action: 'check' };
     return { action: 'fold' };
@@ -113,50 +153,51 @@ function preflopDecision({ tier, position, toCall, pot, stack, bigBlind, minRais
 
   // Facing a raise
   if (tier <= threebetMax) {
-    // 3-bet with premiums
-    const threebet = Math.floor(currentBet * 3);
+    const threebet = Math.floor(currentBet * (2.5 + aggression));
     const amount = Math.max(threebet, minRaise + currentBet);
     if (amount >= stack) return { action: 'allin' };
-    // Randomize between 3-bet and call for deception
-    if (Math.random() < 0.7) return { action: 'raise', amount };
+    // Aggressive players 3-bet more; passive trap with calls
+    const threebetChance = 0.4 + aggression * 0.4;
+    if (Math.random() < threebetChance) return { action: 'raise', amount };
     return { action: 'call' };
   }
 
   if (tier <= callMax) {
-    // Call with decent hands
     const potOdds = potOddsThreshold(pot, toCall);
     if (potOdds > 0.45 && tier > 4) return { action: 'fold' };
     return { action: 'call' };
   }
 
-  // Defend BB with wider range
-  if (position === 'BB' && tier <= 6 && toCall <= bigBlind * 3 && Math.random() < 0.65) {
-    return { action: 'call' };
+  // Defend BB
+  if (position === 'BB' && tier <= 6 && toCall <= bigBlind * 3) {
+    const defendChance = 0.4 + (1 - personality.tightness) * 0.4;
+    if (Math.random() < defendChance) return { action: 'call' };
   }
 
-  // Other positions: occasionally call with speculative hands
-  if (tier <= 6 && toCall <= bigBlind * 2 && Math.random() < 0.3) {
-    return { action: 'call' };
+  // Speculative calls with loose players
+  if (tier <= 6 && toCall <= bigBlind * 2) {
+    const specCallChance = 0.1 + (1 - personality.tightness) * 0.35;
+    if (Math.random() < specCallChance) return { action: 'call' };
   }
 
   return { action: 'fold' };
 }
 
 /**
- * Choose a bet size as a fraction of the pot, influenced by equity and street.
+ * Choose bet size influenced by aggression.
+ * Aggressive players bet bigger; passive players bet smaller.
  */
-function chooseBetSize(equity, pot, stack, street) {
+function chooseBetSize(equity, pot, stack, street, aggression) {
   let fraction;
   if (equity > 0.75) {
-    // Very strong: larger bets
-    fraction = street === 'river' ? 0.85 : 0.75;
+    fraction = (street === 'river' ? 0.65 : 0.55) + aggression * 0.4;
   } else if (equity > 0.60) {
-    fraction = 0.6 + Math.random() * 0.15;
+    fraction = 0.4 + aggression * 0.35 + Math.random() * 0.15;
   } else if (equity > 0.45) {
-    fraction = 0.33 + Math.random() * 0.17;
+    fraction = 0.2 + aggression * 0.25 + Math.random() * 0.15;
   } else {
-    // Bluff sizing: small on flop, bigger on later streets
-    fraction = street === 'flop' ? 0.33 : 0.5;
+    // Bluff sizing: maniacs overbet, passive players make small stabs
+    fraction = 0.2 + aggression * 0.4;
   }
   const size = Math.max(1, Math.floor(pot * fraction));
   return Math.min(size, stack);
@@ -164,24 +205,6 @@ function chooseBetSize(equity, pot, stack, street) {
 
 /**
  * Main decision function.
- *
- * ctx: {
- *   heroHole:        [{suit,rank},{suit,rank}]
- *   board:           [{suit,rank}, ...]
- *   pot:             number
- *   toCall:          number (0 if can check)
- *   stack:           number (bot's remaining chips)
- *   opponentsInHand: number (non-folded opponents)
- *   street:          'preflop'|'flop'|'turn'|'river'
- *   bigBlind:        number
- *   minRaise:        number
- *   currentBet:      number
- *   position:        'UTG'|'MP'|'CO'|'BTN'|'SB'|'BB'
- *   seatIdx:         number
- *   dealerIdx:       number
- *   numPlayers:      number
- *   facingRaise:     boolean (whether someone has raised preflop)
- * }
  */
 function decideAction(ctx) {
   const {
@@ -189,14 +212,25 @@ function decideAction(ctx) {
     street, bigBlind, minRaise, currentBet, facingRaise,
   } = ctx;
 
+  const personality = ctx.personality || DEFAULT_PERSONALITY;
+  const { aggression } = personality;
   const position = ctx.position || getPosition(ctx.seatIdx, ctx.dealerIdx, ctx.numPlayers);
   const tier = getHandTier(heroHole);
+  const bfreqs = bluffFreqs(personality);
+
+  // Fold margin: aggressive players call wider, tight players fold more
+  const foldMargin = -0.10 - (1 - aggression) * 0.20; // -0.10 (maniac) to -0.30 (nit)
+  // Raise margin: aggressive players raise thinner
+  const raiseMargin = 0.15 - aggression * 0.12; // 0.03 (maniac) to 0.15 (passive)
+  // Check-raise frequency
+  const checkRaiseFreq = 0.08 + aggression * 0.25; // 0.08 (passive) to 0.33 (maniac)
 
   // ── Preflop: use ranges ─────────────────────────────────────────
   if (street === 'preflop') {
     const decision = preflopDecision({
       tier, position, toCall, pot, stack, bigBlind, minRaise, currentBet,
       facingRaise: facingRaise || (currentBet > bigBlind),
+      personality,
     });
     return sanitize(decision, toCall, stack, minRaise, currentBet, bigBlind);
   }
@@ -211,14 +245,14 @@ function decideAction(ctx) {
 
   const callThresh = potOddsThreshold(pot, toCall);
   const margin = equity - callThresh;
-  const bluffChance = BLUFF_FREQ[street] || 0.05;
+  const bluffChance = bfreqs[street] || 0.05;
 
   // ── Facing a bet ────────────────────────────────────────────────
   if (toCall > 0) {
-    if (margin < FOLD_MARGIN) {
-      // Below threshold: maybe bluff-raise
+    if (margin < foldMargin) {
+      // Below threshold: maybe bluff-raise (maniacs do this a lot)
       if (Math.random() < bluffChance && stack > toCall * 3) {
-        const bluffSize = chooseBetSize(0.35, pot, stack, street);
+        const bluffSize = chooseBetSize(0.35, pot, stack, street, aggression);
         const raiseAmount = Math.max(currentBet + minRaise, currentBet + bluffSize);
         if (raiseAmount >= stack) return { action: 'allin' };
         return sanitize({ action: 'raise', amount: raiseAmount }, toCall, stack, minRaise, currentBet, bigBlind);
@@ -226,35 +260,42 @@ function decideAction(ctx) {
       return { action: 'fold' };
     }
 
-    if (margin > RAISE_MARGIN) {
+    if (margin > raiseMargin) {
       // Strong equity: value raise
-      const betSize = chooseBetSize(equity, pot, stack, street);
+      const betSize = chooseBetSize(equity, pot, stack, street, aggression);
       const raiseAmount = Math.max(currentBet + minRaise, currentBet + betSize);
       if (raiseAmount >= stack || stack <= toCall * 1.5) return { action: 'allin' };
       return sanitize({ action: 'raise', amount: raiseAmount }, toCall, stack, minRaise, currentBet, bigBlind);
     }
 
-    // Marginal: mostly call
+    // Marginal: mostly call, but aggressive players sometimes raise
+    if (aggression > 0.65 && Math.random() < (aggression - 0.5) * 0.6) {
+      const betSize = chooseBetSize(equity, pot, stack, street, aggression);
+      const raiseAmount = Math.max(currentBet + minRaise, currentBet + betSize);
+      if (raiseAmount >= stack) return { action: 'allin' };
+      return sanitize({ action: 'raise', amount: raiseAmount }, toCall, stack, minRaise, currentBet, bigBlind);
+    }
     if (toCall >= stack) return { action: 'allin' };
     return { action: 'call' };
   }
 
   // ── No bet to us: check or lead ─────────────────────────────────
   if (equity > 0.60) {
-    // Strong: value bet, sometimes check-raise
-    if (Math.random() < CHECK_RAISE_FREQ) {
+    // Strong: value bet, sometimes check-raise (more often if aggressive)
+    if (Math.random() < checkRaiseFreq) {
       return { action: 'check' };
     }
-    const betSize = chooseBetSize(equity, pot, stack, street);
+    const betSize = chooseBetSize(equity, pot, stack, street, aggression);
     if (betSize >= stack) return { action: 'allin' };
     const betAmount = currentBet + betSize;
     return sanitize({ action: 'bet', amount: betAmount }, 0, stack, minRaise, currentBet, bigBlind);
   }
 
   if (equity > 0.35) {
-    // Medium: bet more often for value/protection
-    if (Math.random() < 0.55) {
-      const betSize = chooseBetSize(equity, pot, stack, street);
+    // Medium: bet frequency scales with aggression
+    const betChance = 0.3 + aggression * 0.4; // 0.3 (passive) to 0.7 (maniac)
+    if (Math.random() < betChance) {
+      const betSize = chooseBetSize(equity, pot, stack, street, aggression);
       if (betSize >= stack) return { action: 'allin' };
       return sanitize({ action: 'bet', amount: currentBet + betSize }, 0, stack, minRaise, currentBet, bigBlind);
     }
@@ -263,7 +304,7 @@ function decideAction(ctx) {
 
   // Weak: check, occasionally bluff
   if (Math.random() < bluffChance) {
-    const bluffSize = chooseBetSize(0.3, pot, stack, street);
+    const bluffSize = chooseBetSize(0.3, pot, stack, street, aggression);
     if (bluffSize >= stack) return { action: 'check' };
     return sanitize({ action: 'bet', amount: currentBet + bluffSize }, 0, stack, minRaise, currentBet, bigBlind);
   }
@@ -286,10 +327,9 @@ function sanitize(decision, toCall, stack, minRaise, currentBet, bigBlind) {
   if (action === 'bet' || action === 'raise') {
     const minBet = currentBet + (action === 'raise' ? minRaise : bigBlind);
     const target = Math.max(minBet, Math.floor(amount || minBet));
-    const toAdd = target - (action === 'raise' ? 0 : 0);
     if (target >= stack + currentBet) return { action: 'allin' };
     if (target < minBet) return { action: toCall > 0 ? 'call' : 'check' };
-    return { action: action === 'bet' ? 'raise' : 'raise', amount: target };
+    return { action: 'raise', amount: target };
   }
 
   return decision;

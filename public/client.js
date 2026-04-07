@@ -199,6 +199,7 @@ function playSfx(audio, vol) {
 }
 
 function getMasterVolume() {
+  if (isMasterMuted()) return 0;
   const raw = parseInt(localStorage.getItem(MASTER_VOLUME_KEY), 10);
   return (isNaN(raw) ? 50 : Math.max(0, Math.min(100, raw))) / 100;
 }
@@ -509,10 +510,10 @@ const cardFxVolumeValue = document.getElementById('card-fx-volume-value');
 const ambienceFxSelect = document.getElementById('ambience-fx');
 const ambienceVolumeSlider = document.getElementById('ambience-volume');
 const ambienceVolumeValue = document.getElementById('ambience-volume-value');
-const lobbyBgOpacitySlider = document.getElementById('lobby-bg-opacity');
-const lobbyBgOpacityValue = document.getElementById('lobby-bg-opacity-value');
+const lobbyBgOpacityToggle = document.getElementById('lobby-bg-opacity-toggle');
 const sfxBitDepthSelect = document.getElementById('sfx-bitdepth');
 const chatDurationSelect = document.getElementById('chat-duration');
+const masterMuteBtn = document.getElementById('master-mute-btn');
 const radioMuteBtn = document.getElementById('radio-mute-btn');
 const sfxMuteBtn = document.getElementById('sfx-mute-btn');
 const ambienceMuteBtn = document.getElementById('ambience-mute-btn');
@@ -603,10 +604,12 @@ const RADIO_VOLUME_KEY = 'poker_radio_volume';
 const CARD_FX_VOLUME_KEY = 'poker_card_fx_volume';
 const AMBIENCE_VOLUME_KEY = 'poker_ambience_volume';
 const LOBBY_BG_OPACITY_KEY = 'arcade_lobby_bg_opacity';
+const MASTER_MUTE_KEY = 'arcade_master_mute';
 const RADIO_MUTE_KEY = 'arcade_radio_mute';
 const SFX_MUTE_KEY = 'arcade_sfx_mute';
 const AMBIENCE_MUTE_KEY = 'arcade_ambience_mute';
 
+function isMasterMuted() { return localStorage.getItem(MASTER_MUTE_KEY) === '1'; }
 function isRadioMuted() { return localStorage.getItem(RADIO_MUTE_KEY) === '1'; }
 function isSfxMuted() { return localStorage.getItem(SFX_MUTE_KEY) === '1'; }
 function isAmbienceMuted() { return localStorage.getItem(AMBIENCE_MUTE_KEY) === '1'; }
@@ -922,8 +925,7 @@ const lobbyRebuyBtn = document.getElementById('lobby-rebuy-btn');
 
 function showGameSelectScreen(players, chatHistory) {
   initAdSense();
-  const opacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
-  const opacityVal = isNaN(opacity) ? 70 : Math.max(0, Math.min(100, opacity));
+  const opacityVal = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10) || 70;
   if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (opacityVal / 100).toFixed(2));
   if (gameScreen) gameScreen.classList.add('hidden');
   const bjScreen = document.getElementById('bj-screen');
@@ -1713,10 +1715,11 @@ function handleMessage(msg) {
         const lp = lobbyPlayers.find((p) => p.id === myId);
         if (lp) lp.chips = msg.chips;
       }
-      if (msg.coinsAdded) showToast(`You earned ${msg.coinsAdded} coins!`);
+      showToast('Ads disabled while in early access — $' + (msg.coinsAdded || 10) + ' added!');
       updateRebuyButtonState();
       renderTable();
       updateControls();
+      if (typeof showGameSelectScreen === 'function') showGameSelectScreen(players);
       break;
 
     case 'roundOver':
@@ -1881,18 +1884,20 @@ function handleMessage(msg) {
       if (currentGameType === 'checkers') {
         const ckChat = document.getElementById('ck-config-chat-messages');
         if (ckChat) appendConfigChat(ckChat, msg.playerId, msg.nickname, msg.text, myId);
+        appendGameChatMessage('ck-chat-panel-messages', msg.playerId, msg.nickname, msg.text);
         return;
       }
       if (currentGameType === 'chess') {
         const chChat = document.getElementById('ch-config-chat-messages');
         if (chChat) appendConfigChat(chChat, msg.playerId, msg.nickname, msg.text, myId);
+        appendGameChatMessage('ch-chat-panel-messages', msg.playerId, msg.nickname, msg.text);
         return;
       }
       if (currentGameType === 'slots') {
-        const slotsChat = document.getElementById('slots-chat-messages');
-        if (slotsChat) appendConfigChat(slotsChat, msg.playerId, msg.nickname, msg.text, myId);
+        appendGameChatMessage('slots-chat-messages', msg.playerId, msg.nickname, msg.text);
         return;
       }
+      /* Holdem / Blackjack: show bubble + append to chat panel */
       const BUBBLE_DURATION_MS = 5000;
       playerChatMessages[msg.playerId] = { text: msg.text, expiresAt: Date.now() + BUBBLE_DURATION_MS };
       if (playerChatTimeouts[msg.playerId]) clearTimeout(playerChatTimeouts[msg.playerId]);
@@ -1904,6 +1909,11 @@ function handleMessage(msg) {
       }, BUBBLE_DURATION_MS);
       renderTable();
       if (currentGameType === 'blackjack' && window.blackjack?.renderAll) window.blackjack.renderAll();
+      if (currentGameType === 'blackjack') {
+        appendGameChatMessage('bj-chat-messages', msg.playerId, msg.nickname, msg.text);
+      } else {
+        appendGameChatMessage('holdem-chat-messages', msg.playerId, msg.nickname, msg.text);
+      }
       break;
     }
 
@@ -2116,17 +2126,17 @@ function renderTable() {
   const count = visiblePlayers.length;
   if (count === 0) return;
 
-  const CX = 50, CY = 36;
-  const BET_LERP = 0.55;
+  const CX = 50, CY = 32;
+  const BET_LERP = 0.50;
 
   function sidePositions(n) {
     const out = [];
-    out.push({ seat: [50, 78], bet: [50, 62] });
+    out.push({ seat: [50, 85], bet: [50, 68] });
     const others = n - 1;
     const leftCount = Math.ceil(others / 2);
     const rightCount = others - leftCount;
-    const leftX = 14, rightX = 86;
-    const yMin = 42, yMax = 72;
+    const leftX = 10, rightX = 90;
+    const yMin = 15, yMax = 65;
     for (let i = 0; i < leftCount; i++) {
       const t = leftCount === 1 ? 0.5 : i / (leftCount - 1);
       const sy = yMin + (yMax - yMin) * t;
@@ -2634,6 +2644,10 @@ function playRadio(station) {
   const ckNowPlayingLabel = document.getElementById('ck-now-playing-radio-label');
   if (ckNowPlaying) ckNowPlaying.classList.remove('hidden');
   if (ckNowPlayingLabel) ckNowPlayingLabel.textContent = label;
+  const chNowPlaying = document.getElementById('ch-now-playing-radio');
+  const chNowPlayingLabel = document.getElementById('ch-now-playing-radio-label');
+  if (chNowPlaying) chNowPlaying.classList.remove('hidden');
+  if (chNowPlayingLabel) chNowPlayingLabel.textContent = label;
 }
 
 function stopRadio() {
@@ -2643,8 +2657,12 @@ function stopRadio() {
   if (nowPlayingRadio) nowPlayingRadio.classList.add('hidden');
   if (bjNowPlayingRadio) bjNowPlayingRadio.classList.add('hidden');
   if (lobbyNowPlayingRadio) lobbyNowPlayingRadio.classList.add('hidden');
+  const slotsNowPlaying = document.getElementById('slots-now-playing-radio');
+  if (slotsNowPlaying) slotsNowPlaying.classList.add('hidden');
   const ckNowPlaying = document.getElementById('ck-now-playing-radio');
   if (ckNowPlaying) ckNowPlaying.classList.add('hidden');
+  const chNowPlaying = document.getElementById('ch-now-playing-radio');
+  if (chNowPlaying) chNowPlaying.classList.add('hidden');
 }
 
 function initRadioVolume() {
@@ -2688,10 +2706,12 @@ function initSettingsOverlay() {
 }
 
 function initThemesOverlay() {
-  const lobOpacity = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10);
-  const lobVal = isNaN(lobOpacity) ? 70 : Math.max(0, Math.min(100, lobOpacity));
-  if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.value = lobVal;
-  if (lobbyBgOpacityValue) lobbyBgOpacityValue.textContent = lobVal + '%';
+  const lobVal = parseInt(localStorage.getItem(LOBBY_BG_OPACITY_KEY), 10) || 70;
+  if (lobbyBgOpacityToggle) {
+    lobbyBgOpacityToggle.querySelectorAll('.lobby-style-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.opacity, 10) === lobVal);
+    });
+  }
 }
 
 /* ---------- Radio Favorites ---------- */
@@ -3004,10 +3024,13 @@ if (ambienceVolumeSlider) ambienceVolumeSlider.addEventListener('input', () => {
   if (ambienceVolumeValue) ambienceVolumeValue.textContent = v + '%';
 });
 
-if (lobbyBgOpacitySlider) lobbyBgOpacitySlider.addEventListener('input', () => {
-  const v = parseInt(lobbyBgOpacitySlider.value, 10);
+if (lobbyBgOpacityToggle) lobbyBgOpacityToggle.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-opacity]');
+  if (!btn) return;
+  const v = parseInt(btn.dataset.opacity, 10);
   localStorage.setItem(LOBBY_BG_OPACITY_KEY, v);
-  if (lobbyBgOpacityValue) lobbyBgOpacityValue.textContent = v + '%';
+  lobbyBgOpacityToggle.querySelectorAll('.lobby-style-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
   if (gameSelectScreen) gameSelectScreen.style.setProperty('--lobby-card-bg-opacity', (v / 100).toFixed(2));
 });
 
@@ -3022,10 +3045,23 @@ function updateMuteButton(btn, muted) {
 }
 
 function initMuteButtons() {
+  updateMuteButton(masterMuteBtn, isMasterMuted());
   updateMuteButton(radioMuteBtn, isRadioMuted());
   updateMuteButton(sfxMuteBtn, isSfxMuted());
   updateMuteButton(ambienceMuteBtn, isAmbienceMuted());
 }
+
+if (masterMuteBtn) masterMuteBtn.addEventListener('click', () => {
+  const next = !isMasterMuted();
+  localStorage.setItem(MASTER_MUTE_KEY, next ? '1' : '');
+  updateMuteButton(masterMuteBtn, next);
+  const master = getMasterVolume();
+  const radioVol = (parseInt(radioVolumeSlider?.value || localStorage.getItem(RADIO_VOLUME_KEY), 10) || 25) / 100;
+  radioAudio.volume = isRadioMuted() ? 0 : radioVol * master;
+  const ambAudio = getAmbienceAudio();
+  const ambVol = (parseInt(ambienceVolumeSlider?.value || localStorage.getItem(AMBIENCE_VOLUME_KEY), 10) || 50) / 100;
+  ambAudio.volume = isAmbienceMuted() ? 0 : ambVol * master;
+});
 
 if (radioMuteBtn) radioMuteBtn.addEventListener('click', () => {
   const next = !isRadioMuted();
@@ -3209,7 +3245,11 @@ const closetAuthCta = document.getElementById('closet-auth-cta');
 const storeCreateAccountLink = document.getElementById('store-create-account-link');
 const closetCreateAccountLink = document.getElementById('closet-create-account-link');
 const storeSearchInput = document.getElementById('store-search-input');
+const storeTabsEl = document.getElementById('store-tabs');
+let storeActiveFilter = 'all';
 const closetSearchInput = document.getElementById('closet-search-input');
+const closetTabsEl = document.getElementById('closet-tabs');
+let closetActiveFilter = 'all';
 
 function toggleOverlay(overlay) {
   if (!overlay) return;
@@ -3338,8 +3378,7 @@ function playAdForRebuy(onComplete) {
 
 function updateRebuyButtonState() {
   if (!lobbyRebuyBtn) return;
-  const me = players.find((p) => p.id === myId) || lobbyPlayers.find((p) => p.id === myId);
-  lobbyRebuyBtn.disabled = (me?.chips ?? 1) > 0;
+  lobbyRebuyBtn.disabled = false;
 }
 
 function catalogMatches(item, query) {
@@ -3436,6 +3475,11 @@ function renderStoreOverlay() {
   const query = (storeSearchInput?.value || '').trim().toLowerCase();
   const filteredCharacters = CHARACTER_CATALOG
     .filter((character) => catalogMatches(character, query))
+    .filter((character) => {
+      if (storeActiveFilter === 'free') return character.price === 0;
+      if (storeActiveFilter === 'gif') return character.src.endsWith('.gif');
+      return true;
+    })
     .slice()
     .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
   createCatalogSection(
@@ -3474,6 +3518,11 @@ function renderClosetOverlay() {
     .map((characterId) => CHARACTER_BY_ID[characterId])
     .filter(Boolean)
     .filter((character) => catalogMatches(character, query))
+    .filter((character) => {
+      if (closetActiveFilter === 'free') return character.price === 0;
+      if (closetActiveFilter === 'gif') return character.src.endsWith('.gif');
+      return true;
+    })
     .slice()
     .sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
   createCatalogSection(
@@ -3532,7 +3581,23 @@ if (closetClose) closetClose.addEventListener('click', () => closetOverlay?.clas
 if (storeCreateAccountLink) storeCreateAccountLink.addEventListener('click', (e) => { e.preventDefault(); openRegisterFromOutfitOverlay(); });
 if (closetCreateAccountLink) closetCreateAccountLink.addEventListener('click', (e) => { e.preventDefault(); openRegisterFromOutfitOverlay(); });
 if (storeSearchInput) storeSearchInput.addEventListener('input', () => renderStoreOverlay());
+if (storeTabsEl) storeTabsEl.addEventListener('click', (e) => {
+  const tab = e.target.closest('[data-filter]');
+  if (!tab) return;
+  storeActiveFilter = tab.dataset.filter;
+  storeTabsEl.querySelectorAll('.store-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  renderStoreOverlay();
+});
 if (closetSearchInput) closetSearchInput.addEventListener('input', () => renderClosetOverlay());
+if (closetTabsEl) closetTabsEl.addEventListener('click', (e) => {
+  const tab = e.target.closest('[data-filter]');
+  if (!tab) return;
+  closetActiveFilter = tab.dataset.filter;
+  closetTabsEl.querySelectorAll('.store-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  renderClosetOverlay();
+});
 
 const holdemSettingsBtn = document.getElementById('holdem-settings-btn');
 const bjSettingsBtn = document.getElementById('bj-settings-btn');
@@ -3575,28 +3640,18 @@ document.querySelectorAll('.theme-opt').forEach((btn) => {
 if (lobbyRebuyBtn) {
   lobbyRebuyBtn.addEventListener('click', () => {
     if (lobbyRebuyBtn.disabled) return;
-    if (!gameSelectScreen || gameSelectScreen.classList.contains('hidden')) {
-      showToast('Open the lobby to watch an ad');
-      return;
-    }
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       showToast('Not connected');
       return;
     }
     lobbyRebuyBtn.disabled = true;
-    playAdForRebuy((coins) => {
-      if (coins === null) {
-        showToast('Ad unavailable. Try again later.');
-        updateRebuyButtonState();
-        return;
-      }
-      ws.send(JSON.stringify({ type: 'rebuy', coins }));
-      if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
-        soundRebuy.volume = 0.5;
-        soundRebuy.currentTime = 0;
-        soundRebuy.play().catch(() => {});
-      }
-    });
+    ws.send(JSON.stringify({ type: 'rebuy', coins: 10 }));
+    if (typeof soundRebuy !== 'undefined' && soundRebuy?._ready) {
+      soundRebuy.volume = 0.5;
+      soundRebuy.currentTime = 0;
+      soundRebuy.play().catch(() => {});
+    }
+    setTimeout(() => updateRebuyButtonState(), 1000);
   });
 }
 
@@ -3660,6 +3715,47 @@ if (slotsChatInput) {
     if (e.key === 'Enter') { e.preventDefault(); sendSlotsChat(); }
   });
 }
+
+/* ── Game chat panel toggle ── */
+function toggleGameChatPanel(panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    const input = panel.querySelector('.chat-input');
+    if (input) input.focus();
+  }
+}
+
+function appendGameChatMessage(containerId, playerId, nick, text) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = 'chat-message' + (playerId === myId ? ' you' : '');
+  const nickSpan = document.createElement('span');
+  nickSpan.className = 'nick' + (playerId === myId ? ' you' : '');
+  nickSpan.textContent = (nick || 'Player') + ':';
+  el.appendChild(nickSpan);
+  el.appendChild(document.createTextNode(' ' + text));
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+}
+
+document.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('[data-chat-close]');
+  if (closeBtn) {
+    const panel = closeBtn.closest('.game-chat-panel');
+    if (panel) panel.classList.remove('open');
+  }
+});
+
+['holdem-chat-toggle', 'bj-chat-toggle', 'slots-chat-toggle'].forEach(id => {
+  const btn = document.getElementById(id);
+  if (btn) btn.addEventListener('click', () => {
+    const panelId = id.replace('-chat-toggle', '-chat-panel');
+    toggleGameChatPanel(panelId);
+  });
+});
 
 const params = new URLSearchParams(window.location.search);
 if (params.has('authed')) {
@@ -3731,6 +3827,12 @@ function hideStatsView() {
 if (statsBtn) statsBtn.addEventListener('click', showStatsView);
 if (statsBackBtn) statsBackBtn.addEventListener('click', hideStatsView);
 if (statsBackHeaderBtn) statsBackHeaderBtn.addEventListener('click', hideStatsView);
+
+const accountStatsBtn = document.getElementById('account-stats-btn');
+if (accountStatsBtn) accountStatsBtn.addEventListener('click', () => {
+  if (accountOverlay) accountOverlay.classList.add('hidden');
+  showStatsView();
+});
 
 async function loadStatsView() {
   if (!statsViewBody) return;
@@ -3905,3 +4007,94 @@ async function loadStatsView() {
 
 checkAuth();
 initRadioVolume();
+
+/* ── Info-page hash routing ── */
+(function () {
+  var INFO_ROUTES = {
+    'about':       'info-about',
+    'how-to-play': 'info-how-to-play',
+    'privacy':     'info-privacy',
+    'terms':       'info-terms',
+    'contact':     'info-contact'
+  };
+  var allInfoIds = Object.values(INFO_ROUTES);
+
+  function hideAllInfoViews() {
+    allInfoIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+  }
+
+  function handleHash() {
+    var hash = location.hash.replace(/^#/, '');
+    var targetId = INFO_ROUTES[hash];
+    if (targetId) {
+      hideAllInfoViews();
+      var view = document.getElementById(targetId);
+      if (view) { view.classList.remove('hidden'); view.scrollTop = 0; }
+    } else {
+      hideAllInfoViews();
+    }
+  }
+
+  window.addEventListener('hashchange', handleHash);
+  if (location.hash && INFO_ROUTES[location.hash.replace(/^#/, '')]) {
+    handleHash();
+  }
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('[data-info-link]');
+    if (!link) return;
+    e.preventDefault();
+    var route = link.getAttribute('data-info-link');
+    if (route) {
+      location.hash = '#' + route;
+    } else {
+      history.pushState(null, '', location.pathname + location.search);
+      hideAllInfoViews();
+    }
+  });
+})();
+
+/* ── How-to-play tabs ── */
+(function () {
+  var tablist = document.querySelector('.info-tablist');
+  if (!tablist) return;
+  var tabs = tablist.querySelectorAll('[role="tab"]');
+  var panels = document.querySelectorAll('.info-tabpanel');
+
+  function activate(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+    });
+    panels.forEach(function (p) {
+      p.hidden = p.id !== tab.getAttribute('aria-controls');
+    });
+    tab.focus();
+  }
+
+  tablist.addEventListener('click', function (e) {
+    var btn = e.target.closest('[role="tab"]');
+    if (!btn || !tablist.contains(btn)) return;
+    activate(btn);
+  });
+
+  tablist.addEventListener('keydown', function (e) {
+    var keys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    if (keys.indexOf(e.key) === -1) return;
+    e.preventDefault();
+    var list = Array.prototype.slice.call(tabs);
+    var i = list.indexOf(document.activeElement);
+    if (i < 0) i = list.indexOf(tablist.querySelector('[aria-selected="true"]'));
+    if (i < 0) i = 0;
+    var next = i;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = list.length - 1;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + list.length) % list.length;
+    else next = (i + 1) % list.length;
+    activate(list[next]);
+  });
+})();

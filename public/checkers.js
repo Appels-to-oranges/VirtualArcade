@@ -139,51 +139,49 @@
     style.id = 'ck-styles';
     style.textContent =
       '#ck-screen{position:fixed;inset:0;background:#0a0a0a;z-index:1;' +
-        'display:flex;flex-direction:column;align-items:center;' +
+        'display:flex;flex-direction:column;align-items:stretch;' +
         "font-family:'Press Start 2P',monospace;color:#ddd;overflow:hidden}" +
 
       '#ck-screen .ck-room-bar{width:100%;display:flex;align-items:center;' +
         'justify-content:center;flex-wrap:wrap;gap:.75rem;padding:.4rem .75rem;' +
-        'background:#111;border-bottom:.2rem solid #1a1a1a;flex-shrink:0}' +
+        'background:#000;border-bottom:.0625rem solid var(--lobby-border,#1e2a3a);flex-shrink:0}' +
       '.ck-room-bar-spacer{flex:1;min-width:.5rem}' +
 
-      '#ck-room-label{font-size:.6rem;color:#666;letter-spacing:.0625rem}' +
+      '#ck-room-label{font-size:.5rem;color:#666;letter-spacing:.0625rem}' +
 
       '#ck-screen .btn-start,#ck-screen .btn-restart{' +
         "font-family:'Press Start 2P',monospace;" +
-        'font-size:.45rem;padding:.35rem .75rem;border:none;border-radius:.25rem;' +
-        'cursor:pointer;text-transform:uppercase;letter-spacing:.05rem}' +
-      '#ck-screen .btn-start{background:#238636;color:#fff}' +
-      '#ck-screen .btn-start:hover{background:#2ea043}' +
-      '#ck-screen .btn-start:disabled{background:#2a2a2a;border-color:#444;color:#555;cursor:not-allowed}' +
-      '#ck-screen .btn-restart{background:#1b4332;color:#ddd;border:.125rem solid #40916c}' +
-      '#ck-screen .btn-restart:hover{background:#2d6a4f}' +
+        'font-size:.4rem;padding:.3rem .7rem;border:.0625rem solid #333;border-radius:.25rem;' +
+        'background:transparent;color:#ccc;cursor:pointer;text-transform:uppercase;letter-spacing:.05rem;' +
+        'transition:border-color .15s,color .15s}' +
+      '#ck-screen .btn-start:hover,#ck-screen .btn-restart:hover{border-color:var(--lobby-accent,#888);color:#fff}' +
+      '#ck-screen .btn-start:disabled{opacity:.25;cursor:not-allowed}' +
 
-      '#ck-status{font-size:.65rem;color:#c9b896;text-transform:uppercase;' +
-        'letter-spacing:.1rem;text-align:center;padding:.4rem .5rem;flex-shrink:0}' +
-      '.ck-wager-display{font-size:.5rem;color:#c9b896;text-align:center;padding:.25rem .5rem;flex-shrink:0}' +
+      '#ck-status{font-size:.55rem;color:var(--lobby-accent,#c9b896);text-transform:uppercase;' +
+        'letter-spacing:.1rem;text-align:center;padding:.4rem .5rem;flex-shrink:0;width:100%}' +
+      '.ck-wager-display{font-size:.4rem;color:#999;text-align:center;padding:.25rem .5rem;flex-shrink:0}' +
       '.ck-wager-display.ck-hidden{display:none}' +
 
       '#ck-players-area{display:flex;gap:1rem;justify-content:center;' +
-        'align-items:center;padding:.25rem .5rem;flex-shrink:0}' +
+        'align-items:center;padding:.25rem .5rem;flex-shrink:0;width:100%}' +
 
       '.ck-player-tag{display:flex;align-items:center;gap:.4rem;padding:.3rem .6rem;' +
-        'border:.125rem solid #30363d;background:rgba(13,17,23,.6);font-size:.5rem}' +
+        'border:.0625rem solid var(--lobby-border,#30363d);background:rgba(13,17,23,.6);font-size:.45rem;border-radius:.25rem}' +
 
-      '.ck-player-tag.ck-turn{border-color:#ffd700;' +
-        'box-shadow:0 0 .5rem rgba(255,215,0,.3)}' +
+      '.ck-player-tag.ck-turn{border-color:var(--lobby-accent,#c9b896);' +
+        'box-shadow:0 0 .4rem rgba(255,255,255,.1)}' +
 
-      '.ck-player-tag.ck-is-me{background:color-mix(in srgb, var(--lobby-accent) 30%, transparent)}' +
+      '.ck-player-tag.ck-is-me{background:color-mix(in srgb, var(--lobby-accent) 20%, transparent)}' +
 
-      '.ck-player-swatch{width:.7rem;height:.7rem;border:.0625rem solid #555;flex-shrink:0}' +
+      '.ck-player-swatch{width:.7rem;height:.7rem;border:.0625rem solid #555;flex-shrink:0;border-radius:.1rem}' +
 
       '.ck-color-red{background:#444}' +
       '.ck-color-white{background:#eee}' +
 
-      '.ck-player-name{color:#ddd}' +
-      '.ck-player-chips{color:#c9b896;font-size:.4rem;margin-left:.25rem}' +
-      '.ck-captures{color:#888;font-size:.4rem;margin-left:.25rem}' +
-      '.ck-chips-display{font-size:.5rem;color:#c9b896;padding:.2rem .4rem;background:#1a1a1a;border:.1rem solid #333;border-radius:.2rem}' +
+      '.ck-player-name{color:#ccc}' +
+      '.ck-player-chips{color:#999;font-size:.35rem;margin-left:.25rem}' +
+      '.ck-captures{color:#666;font-size:.35rem;margin-left:.25rem}' +
+      '.ck-chips-display{font-size:.4rem;color:#999;padding:.2rem .4rem;background:transparent;border:.0625rem solid #333;border-radius:.2rem}' +
 
       '.ck-board-wrap{flex:1;display:flex;align-items:center;justify-content:center;' +
         'min-height:0;padding:.5rem}' +
@@ -229,68 +227,68 @@
         'font-size:.4rem;background:#1a1a1a;color:#ddd;border:.1rem solid #333;' +
         'border-radius:.2rem;padding:.2rem .3rem;cursor:pointer}' +
       '.ck-config-overlay{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:10;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ck-config-overlay.ck-hidden{display:none}' +
-      '.ck-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh}' +
-      '.ck-config-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;' +
+      '.ck-config-layout{display:flex;gap:1rem;max-width:36rem;width:100%;max-height:90vh;overflow:hidden}' +
+      '.ck-config-panel{background:#111;border:.0625rem solid var(--lobby-border,#333);border-radius:.4rem;' +
         'padding:1rem;max-width:22rem;width:100%;flex-shrink:0}' +
-      '.ck-config-title{font-size:.6rem;color:#c9b896;margin-bottom:.75rem;text-align:center}' +
-      '.ck-mode-tabs{display:flex;gap:.4rem;margin-bottom:.6rem}' +
-      ".ck-mode-tab{flex:1;font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.35rem .4rem;" +
-        'border:.1rem solid #30363d;background:#0d1117;color:#8b949e;cursor:pointer;border-radius:.2rem}' +
-      '.ck-mode-tab.ck-active{background:#238636;color:#fff;border-color:#2ea043}' +
-      '.ck-computer-settings{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
+      '.ck-config-title{font-size:.5rem;color:var(--lobby-accent,#c9b896);margin-bottom:.75rem;text-align:center}' +
+      '.ck-mode-tabs{display:flex;gap:.3rem;margin-bottom:.6rem}' +
+      ".ck-mode-tab{flex:1;font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.3rem .4rem;" +
+        'border:.0625rem solid #333;background:transparent;color:#888;cursor:pointer;border-radius:.25rem;transition:border-color .15s,color .15s}' +
+      '.ck-mode-tab.ck-active{color:var(--lobby-accent,#fff);border-color:var(--lobby-accent,#888);background:rgba(255,255,255,.05)}' +
+      '.ck-computer-settings{margin-bottom:.75rem;padding:.5rem;background:rgba(255,255,255,.03);border:.0625rem solid #222;border-radius:.3rem}' +
       '.ck-computer-settings.ck-hidden{display:none}' +
       '.ck-computer-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem}' +
-      '.ck-computer-label{font-size:.4rem;color:#888}' +
-      '.ck-computer-payout{font-size:.35rem;color:#4ade80;margin-top:.4rem}' +
-      '.ck-difficulty-buttons{display:flex;gap:.35rem}' +
-      ".ck-difficulty-btn{flex:1;font-family:'Press Start 2P',monospace;font-size:.32rem;padding:.28rem .25rem;" +
-        'border:.1rem solid #30363d;background:#1a1a1a;color:#bbb;cursor:pointer;border-radius:.18rem}' +
-      '.ck-difficulty-btn.ck-active{background:#2ea043;color:#fff;border-color:#3fb950}' +
-      '.ck-config-opponent{margin-bottom:.75rem;padding:.5rem;background:#0d1117;border-radius:.25rem}' +
-      '.ck-config-opponent-label{font-size:.35rem;color:#8b949e;margin-bottom:.2rem}' +
-      '.ck-config-opponent-name{font-size:.5rem;color:#ddd}' +
-      '.ck-config-opponent-chips{font-size:.4rem;color:#c9b896;margin-top:.2rem}' +
+      '.ck-computer-label{font-size:.35rem;color:#888}' +
+      '.ck-computer-payout{font-size:.3rem;color:var(--lobby-accent,#c9b896);margin-top:.4rem}' +
+      '.ck-difficulty-buttons{display:flex;gap:.3rem}' +
+      ".ck-difficulty-btn{flex:1;font-family:'Press Start 2P',monospace;font-size:.28rem;padding:.25rem .2rem;" +
+        'border:.0625rem solid #333;background:transparent;color:#888;cursor:pointer;border-radius:.25rem;transition:border-color .15s,color .15s}' +
+      '.ck-difficulty-btn.ck-active{color:var(--lobby-accent,#fff);border-color:var(--lobby-accent,#888);background:rgba(255,255,255,.05)}' +
+      '.ck-config-opponent{margin-bottom:.75rem;padding:.5rem;background:rgba(255,255,255,.03);border:.0625rem solid #222;border-radius:.3rem}' +
+      '.ck-config-opponent-label{font-size:.3rem;color:#666;margin-bottom:.2rem}' +
+      '.ck-config-opponent-name{font-size:.45rem;color:#ccc}' +
+      '.ck-config-opponent-chips{font-size:.35rem;color:var(--lobby-accent,#c9b896);margin-top:.2rem}' +
       '.ck-config-timer{margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}' +
-      '.ck-config-timer label{font-size:.4rem;color:#888}' +
-      ".ck-config-timer select{font-family:'Press Start 2P',monospace;font-size:.4rem;" +
-        'background:#1a1a1a;color:#ddd;border:.1rem solid #333;border-radius:.2rem;padding:.2rem}' +
+      '.ck-config-timer label{font-size:.35rem;color:#888}' +
+      ".ck-config-timer select{font-family:'Press Start 2P',monospace;font-size:.35rem;" +
+        'background:transparent;color:#ccc;border:.0625rem solid #333;border-radius:.25rem;padding:.2rem}' +
       '.ck-config-wagers{margin-bottom:.75rem}' +
       '.ck-config-wager-row{margin-bottom:.5rem;display:flex;flex-direction:column;gap:.25rem}' +
-      '.ck-config-wager-row label{font-size:.4rem;color:#888}' +
+      '.ck-config-wager-row label{font-size:.35rem;color:#888}' +
       '.ck-config-wager-row input[type=range]{width:100%}' +
-      ".ck-lock-btn{font-family:'Press Start 2P',monospace;font-size:.35rem;padding:.25rem .5rem;" +
-        'background:#238636;color:#fff;border:none;border-radius:.2rem;cursor:pointer;align-self:flex-start}' +
-      '.ck-lock-btn.ck-locked{background:#1b4332;border:.125rem solid #40916c;color:#8b949e}' +
+      ".ck-lock-btn{font-family:'Press Start 2P',monospace;font-size:.3rem;padding:.25rem .5rem;" +
+        'background:transparent;color:var(--lobby-accent,#ccc);border:.0625rem solid var(--lobby-accent,#888);border-radius:.25rem;cursor:pointer;align-self:flex-start;transition:color .15s}' +
+      '.ck-lock-btn.ck-locked{border-color:#333;color:#666}' +
       '.ck-opponent-wager label{color:#666}' +
-      '.ck-opponent-locked{font-size:.35rem;color:#4ade80;margin-left:.25rem}' +
+      '.ck-opponent-locked{font-size:.3rem;color:var(--lobby-accent,#c9b896);margin-left:.25rem}' +
       '.ck-opponent-locked.ck-hidden{display:none}' +
-      '.ck-opponent-slider-display{height:.5rem;background:#1a1a1a;border-radius:.1rem;overflow:hidden}' +
-      '.ck-config-wager-msg{font-size:.35rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
+      '.ck-opponent-slider-display{height:.4rem;background:#111;border-radius:.1rem;overflow:hidden;border:.0625rem solid #222}' +
+      '.ck-config-wager-msg{font-size:.3rem;color:#ff6b6b;margin-top:.25rem;display:none}' +
       '.ck-config-wager-msg.ck-show{display:block}' +
       '.ck-config-buttons{display:flex;gap:.5rem;margin-top:.5rem}' +
       '.ck-config-buttons button{flex:1}' +
       '.ck-config-chat{display:flex;flex-direction:column;min-width:10rem;flex:1;max-width:14rem;' +
-        'background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;overflow:hidden}' +
-      '.ck-config-chat-header{font-size:.45rem;color:#c9b896;padding:.4rem;border-bottom:.1rem solid #30363d}' +
+        'background:#111;border:.0625rem solid var(--lobby-border,#333);border-radius:.4rem;overflow:hidden}' +
+      '.ck-config-chat-header{font-size:.4rem;color:var(--lobby-accent,#c9b896);padding:.4rem;border-bottom:.0625rem solid var(--lobby-border,#222)}' +
       '.ck-config-chat-messages{flex:1;overflow-y:auto;padding:.4rem;font-size:.35rem;min-height:6rem}' +
-      '.ck-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.1rem solid #30363d;background:#0d1117;color:#ddd}' +
+      '.ck-config-chat-input{font-family:inherit;font-size:.35rem;padding:.3rem;border:none;border-top:.0625rem solid var(--lobby-border,#222);background:transparent;color:#ccc}' +
       '.ck-chat-msg{font-size:.35rem;margin-bottom:.25rem;word-break:break-word}' +
-      '.ck-chat-msg.you .ck-chat-nick{color:#4ade80}' +
-      '.ck-chat-nick{color:#8b949e}' +
+      '.ck-chat-msg.you .ck-chat-nick{color:var(--lobby-accent,#c9b896)}' +
+      '.ck-chat-nick{color:#666}' +
       '.ck-gameover-buttons{display:flex;gap:.5rem;margin-top:1rem}' +
       '.ck-gameover-buttons button{flex:1}' +
       '.ck-gameover-overlay{position:absolute;inset:0;background:rgba(0,0,0,.9);z-index:15;' +
-        'display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px) grayscale(0.3)}' +
+        'display:flex;align-items:center;justify-content:center;padding:1rem}' +
       '.ck-gameover-overlay.ck-hidden{display:none}' +
-      '.ck-gameover-panel{background:#161b22;border:.2rem solid #30363d;border-radius:.5rem;padding:1.5rem;text-align:center;min-width:18rem}' +
-      '.ck-gameover-title{font-size:.6rem;color:#c9b896;margin-bottom:1rem}' +
-      '.ck-gameover-winner{font-size:.5rem;color:#4ade80;margin-bottom:.5rem}' +
-      '.ck-gameover-amount{font-size:.45rem;color:#c9b896;margin-bottom:.5rem}' +
-      '.ck-gameover-loser{font-size:.4rem;color:#f87171;margin-bottom:1rem}' +
+      '.ck-gameover-panel{background:#111;border:.0625rem solid var(--lobby-border,#333);border-radius:.4rem;padding:1.5rem;text-align:center;min-width:18rem}' +
+      '.ck-gameover-title{font-size:.5rem;color:var(--lobby-accent,#c9b896);margin-bottom:1rem}' +
+      '.ck-gameover-winner{font-size:.45rem;color:var(--lobby-accent,#c9b896);margin-bottom:.5rem}' +
+      '.ck-gameover-amount{font-size:.4rem;color:#ccc;margin-bottom:.5rem}' +
+      '.ck-gameover-loser{font-size:.35rem;color:#f87171;margin-bottom:1rem}' +
 
-      '.ck-turn-timer{font-size:.8rem;color:#ffd700;text-align:center;' +
+      '.ck-turn-timer{font-size:.7rem;color:var(--lobby-accent,#ccc);text-align:center;' +
         'padding:.2rem .5rem;letter-spacing:.05rem}' +
       '.ck-turn-timer.hidden{display:none}' +
       '.ck-turn-timer.ck-timer-urgent{color:#ff4444;animation:ckTimerBlink .5s ease-in-out infinite}' +
@@ -370,10 +368,13 @@
         '<span class="std-bar-player" id="ck-player-info"></span>' +
         '<div class="std-bar-spacer"></div>' +
         '<span class="std-bar-game" id="ck-room-label"></span>' +
+        '<div class="now-playing-radio hidden" id="ck-now-playing-radio"><span class="now-playing-label" id="ck-now-playing-radio-label"></span><button type="button" class="now-playing-stop" id="ck-radio-stop" title="Stop radio">&#x25A0;</button></div>' +
+        '<button type="button" id="ck-chat-toggle" class="std-bar-btn" title="Chat" aria-label="Chat"><svg class="std-bar-btn-icon std-bar-btn-icon-sm" viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg></button>' +
         '<button type="button" id="ck-radio-btn" class="std-bar-btn" title="Radio" aria-label="Radio"><img src="icon-radio.png" alt="" class="std-bar-btn-icon"></button>' +
-        '<button type="button" id="ck-themes-btn" class="std-bar-btn" title="Themes" aria-label="Themes"><img src="icon-themes.png" alt="" class="std-bar-btn-icon"></button>' +
         '<button type="button" id="ck-settings-btn" class="std-bar-btn" title="Settings" aria-label="Settings"><img src="icon-settings.png" alt="" class="std-bar-btn-icon"></button>' +
       '</div>' +
+      '<div class="game-content-row">' +
+      '<div class="game-content-main">' +
       '<div class="ck-config-overlay" id="ck-config-overlay">' +
         '<div class="ck-config-layout">' +
         '<div class="ck-config-panel">' +
@@ -435,9 +436,12 @@
       '<div id="ck-wager-display" class="ck-wager-display ck-hidden"></div>' +
       '<div id="ck-players-area"></div>' +
       '<div class="ck-board-wrap"><div id="ck-board"></div></div>' +
-      '<div class="now-playing-radio hidden" id="ck-now-playing-radio">' +
-        '<span class="now-playing-label" id="ck-now-playing-radio-label"></span>' +
-        '<button type="button" class="now-playing-stop" id="ck-radio-stop" title="Stop radio">&#x25A0;</button>' +
+      '</div>' +
+      '<div class="game-chat-panel" id="ck-chat-panel">' +
+        '<div class="game-chat-panel-header"><span>Chat</span><button type="button" class="game-chat-panel-close" data-chat-close>&times;</button></div>' +
+        '<div class="game-chat-panel-messages" id="ck-chat-panel-messages"></div>' +
+        '<div class="game-chat-panel-input"><input type="text" id="ck-chat-panel-input" class="chat-input" placeholder="Send a message... (Enter)" maxlength="100" autocomplete="off"></div>' +
+      '</div>' +
       '</div>';
 
     document.body.appendChild(screenEl);
@@ -510,10 +514,21 @@
       var timer = sel ? parseInt(sel.value, 10) : 0;
       send({ type: 'startGame', gameType: 'checkers', timerSeconds: timer });
     });
-    var ckThemesBtn = document.getElementById('ck-themes-btn');
-    if (ckThemesBtn) ckThemesBtn.addEventListener('click', function () {
-      var overlay = document.getElementById('themes-overlay');
-      if (overlay) overlay.classList.remove('hidden');
+    var ckChatToggle = document.getElementById('ck-chat-toggle');
+    if (ckChatToggle) ckChatToggle.addEventListener('click', function () {
+      if (typeof toggleGameChatPanel === 'function') toggleGameChatPanel('ck-chat-panel');
+    });
+    var ckChatPanelInput = document.getElementById('ck-chat-panel-input');
+    if (ckChatPanelInput) ckChatPanelInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var text = ckChatPanelInput.value.trim();
+        if (text && ckWs && ckWs.readyState === WebSocket.OPEN) {
+          if (typeof playSendMessage === 'function') playSendMessage();
+          ckWs.send(JSON.stringify({ type: 'chat', text: text }));
+          ckChatPanelInput.value = '';
+        }
+      }
     });
     var ckSettingsBtn = document.getElementById('ck-settings-btn');
     if (ckSettingsBtn) ckSettingsBtn.addEventListener('click', function () {
@@ -709,7 +724,7 @@
     var oppLockedEl = document.getElementById('ck-opponent-locked');
     if (oppLockedEl) oppLockedEl.classList.toggle('ck-hidden', oppLocked === undefined);
     if (oppDisplay) {
-      oppDisplay.style.background = 'linear-gradient(to right, #238636 0%, #238636 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #1a1a1a ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
+      oppDisplay.style.background = 'linear-gradient(to right, rgba(255,255,255,.15) 0%, rgba(255,255,255,.15) ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%, #111 ' + (maxWager > 0 ? (oppWager / maxWager * 100) : 0) + '%)';
     }
     var mismatchMsg = document.getElementById('ck-wager-mismatch-msg');
     var configStartBtn = document.getElementById('ck-config-start-btn');

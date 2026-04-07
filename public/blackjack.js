@@ -334,6 +334,10 @@
     send({ type: 'bjAction', action: 'double' });
   }
 
+  function doAllIn() {
+    send({ type: 'bjBet', amount: 'allin' });
+  }
+
   // ── Message handling ──
 
   function handleMessage(msg) {
@@ -661,6 +665,9 @@
 
     const doubleBtn = el('btn-bj-double');
     if (doubleBtn) doubleBtn.addEventListener('click', doDouble);
+
+    const allinBtn = el('btn-bj-allin');
+    if (allinBtn) allinBtn.addEventListener('click', doAllIn);
 
     const betSlider = el('bj-bet-slider');
     const betAmountInput = el('bj-bet-amount');
