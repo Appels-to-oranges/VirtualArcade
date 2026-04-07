@@ -4464,10 +4464,10 @@ body.lobby-retro .welcome-badge {
 
 /* ── Slots config popup ── */
 .slots-config-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
-  z-index: 110;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
