@@ -972,7 +972,7 @@ const CHARACTER_CATALOG = [
   { id: 'default_girl_2', name: 'Default Girl 2', src: '/pixel-characters/Default_Girl_2.png', price: 0 },
   { id: 'default_girl_3', name: 'Default Girl 3', src: '/pixel-characters/Default_Girl_3.png', price: 0 },
   { id: 'default_girl_4', name: 'Default Girl 4', src: '/pixel-characters/Default_Girl_4.png', price: 0 },
-  { id: 'default_girl_5', name: 'Default Girl 5', src: '/pixel-characters/Default_Girl_5.PNG', price: 0 },
+  { id: 'default_girl_5', name: 'Default Girl 5', src: '/pixel-characters/Default_Girl_5.png', price: 0 },
   { id: 'default_girl_6', name: 'Default Girl 6', src: '/pixel-characters/Default_Girl_6.PNG', price: 0 },
   { id: 'football_1', name: 'Football 1', src: '/pixel-characters/Football_1.png', price: 150 },
   { id: 'football_2', name: 'Football 2', src: '/pixel-characters/Football_2.png', price: 150 },
