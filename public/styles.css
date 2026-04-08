@@ -2541,7 +2541,7 @@ body.lobby-retro .welcome-badge {
   font-size: 0.45rem;
   color: #fff;
   background: rgba(0, 0, 0, 0.92);
-  border: 0.125rem solid #555;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.4rem;
   white-space: normal;
   word-break: break-word;
@@ -2551,13 +2551,18 @@ body.lobby-retro .welcome-badge {
   pointer-events: none;
   z-index: 9999;
   animation: chatFadeIn 0.2s ease-out;
-  box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.5);
+  box-shadow: 0 0.05rem 0.15rem rgba(0, 0, 0, 0.3);
   transform: translateX(-50%);
 }
 
 @keyframes chatFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.seat-chat-bubble.bot,
+body.lobby-retro .seat-chat-bubble.bot {
+  font-size: 0.3rem;
 }
 
 /* Radio overlay */
@@ -4101,7 +4106,7 @@ body.lobby-retro .welcome-badge {
   font-size: 0.45rem;
   color: #fff;
   background: rgba(0, 0, 0, 0.9);
-  border: 0.125rem solid #555;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.25rem;
   white-space: nowrap;
   max-width: 12rem;
@@ -4110,6 +4115,7 @@ body.lobby-retro .welcome-badge {
   pointer-events: none;
   z-index: 10;
   animation: chatFadeIn 0.2s ease-out;
+  box-shadow: 0 0.05rem 0.15rem rgba(0, 0, 0, 0.3);
 }
 
 .bj-player-row {
@@ -5127,7 +5133,6 @@ body.lobby-retro .btn-radio {
 
 body.lobby-retro .seat-chat-bubble {
   border-radius: 0;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
 }
 
 body.lobby-retro .winner-notification {
@@ -5226,7 +5231,6 @@ body.lobby-retro .bj-dealer-cards .card {
 
 body.lobby-retro .bj-chat-bubble {
   border-radius: 0;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
 }
 
 /* ── Chess screen (ensure visibility when shown) ── */

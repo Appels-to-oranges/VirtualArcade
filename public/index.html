@@ -842,15 +842,6 @@
     <div class="game-content-row">
     <div class="game-content-main">
 
-    <div id="holdem-action-popup" class="game-action-popup">
-      <div class="game-action-popup-inner">
-        <span id="waiting-for-players" class="waiting-msg hidden"></span>
-        <button id="start-btn" class="game-action-btn game-action-primary">Start Game</button>
-        <button id="add-bot-btn" class="game-action-btn hidden">Add Bot</button>
-        <button id="restart-btn" class="game-action-btn game-action-primary hidden">Next Hand</button>
-        <span id="next-hand-timer" class="next-hand-timer hidden"></span>
-      </div>
-    </div>
     <div class="table-container">
       <div class="poker-table">
         <div class="community-area" id="community-area">
@@ -870,6 +861,15 @@
           </div>
         </div>
         <div class="players-container" id="players-container"></div>
+      </div>
+      <div id="holdem-action-popup" class="game-action-popup">
+        <div class="game-action-popup-inner">
+          <span id="waiting-for-players" class="waiting-msg hidden"></span>
+          <button id="start-btn" class="game-action-btn game-action-primary">Start Game</button>
+          <button id="add-bot-btn" class="game-action-btn hidden">Add Bot</button>
+          <button id="restart-btn" class="game-action-btn game-action-primary hidden">Next Hand</button>
+          <span id="next-hand-timer" class="next-hand-timer hidden"></span>
+        </div>
       </div>
     </div>
     <div class="controls" id="controls">
@@ -981,7 +981,7 @@
   <div id="slots-screen" class="hidden">
     <div class="game-scale-wrapper">
     <div class="room-bar std-bar">
-      <button type="button" id="slots-back-btn" class="std-bar-lobby" title="Back to game selection"><img src="icon-home.png" alt="" class="std-bar-icon"> Lobby</button>
+      <button type="button" id="slots-back-btn" class="std-bar-lobby" title="Back to Lobby"><img src="icon-home.png" alt="" class="std-bar-icon"> Back to Lobby</button>
       <span class="std-bar-player" id="slots-player-info"></span>
       <div class="std-bar-spacer"></div>
       <span class="std-bar-game" id="slots-room-label">Slots</span>

@@ -355,6 +355,7 @@ function serializePlayer(p) {
     purchasedOutfits,
     character: equippedCharacter,
     purchasedCharacters,
+    isBot: !!p.isBot,
   };
 }
 
@@ -918,9 +919,10 @@ const BOT_PHRASES = {
 };
 
 function maybeBotChat(roomKey, botId, botNickname, phrases, delayMs = 0) {
-  if (Math.random() > 0.25) return;
+  if (Math.random() > 0.15) return;
   const text = phrases[Math.floor(Math.random() * phrases.length)];
-  const send = () => broadcastToRoom(roomKey, { type: 'chat', playerId: botId, nickname: botNickname, text });
+  const holdemOnly = (p) => (p.currentView ?? 'lobby') === 'holdem';
+  const send = () => broadcastToRoom(roomKey, { type: 'chat', playerId: botId, nickname: botNickname, text }, null, holdemOnly);
   if (delayMs > 0) setTimeout(send, delayMs);
   else send();
 }
@@ -3320,7 +3322,6 @@ wss.on('connection', async (ws, req) => {
         const botId = 'bot-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
         const botName = BOT_NAMES[botNameIdx % BOT_NAMES.length];
         botNameIdx++;
-        const botDefaultCharacter = getRandomDefaultCharacterId();
         const botPersonality = generateBotPersonality();
         room.players.push({
           id: botId,
@@ -3339,8 +3340,8 @@ wss.on('connection', async (ws, req) => {
           currentView: 'holdem',
           purchasedOutfits: [],
           outfit: null,
-          purchasedCharacters: botDefaultCharacter ? [botDefaultCharacter] : [],
-          character: botDefaultCharacter,
+          purchasedCharacters: [],
+          character: null,
         });
         broadcastToRoom(data.roomKey, {
           type: 'userJoined',
@@ -3348,12 +3349,13 @@ wss.on('connection', async (ws, req) => {
           nickname: botName,
           chips: 100,
           currentView: 'holdem',
+          isBot: true,
           winStreak: 0,
           maxWinStreak: 0,
           outfit: null,
           purchasedOutfits: [],
-          character: botDefaultCharacter,
-          purchasedCharacters: botDefaultCharacter ? [botDefaultCharacter] : [],
+          character: null,
+          purchasedCharacters: [],
         });
       } else if (type === 'buyOutfit') {
         ws.send(JSON.stringify({ type: 'outfitError', message: 'Outfits are currently unavailable.' }));

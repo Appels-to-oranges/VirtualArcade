@@ -570,7 +570,7 @@ function setViewHistoryState(screen, gameType, replace) {
 }
 let hasPlayedGame = false;
 let nextHandInterval = null;
-const NEXT_HAND_DELAY_S = 30;
+const NEXT_HAND_DELAY_S = 15;
 const CHAT_DURATION_KEY = 'arcade_chat_duration';
 
 function getChatDurationMs() {
@@ -1009,7 +1009,7 @@ let closetPreviewCharacter = null;
 function renderParticipants() {
   if (!participantsList) return;
   participantsList.innerHTML = '';
-  lobbyPlayers.forEach((p) => {
+  lobbyPlayers.filter((p) => !p.isBot).forEach((p) => {
     const chip = document.createElement('span');
     chip.className = 'participant-chip' + (p.id === myId ? ' you' : '');
     const view = p.currentView || 'lobby';
@@ -1463,7 +1463,7 @@ function handleMessage(msg) {
       break;
 
     case 'userJoined':
-      if (currentGameType === 'lobby' && msg.id !== myId) playPlayerJoinRoom();
+      if (currentGameType === 'lobby' && msg.id !== myId && !msg.isBot) playPlayerJoinRoom();
       if ((msg.currentView || 'lobby') !== 'lobby') playPlayerJoinsGame();
       players.push({
         id: msg.id,
@@ -1476,6 +1476,7 @@ function handleMessage(msg) {
         purchasedOutfits: normalizeOutfitList(msg.purchasedOutfits),
         character: msg.character || null,
         purchasedCharacters: normalizeCharacterList(msg.purchasedCharacters),
+        isBot: !!msg.isBot,
       });
       refreshMyCosmeticState();
       if (currentGameType === 'lobby') {
@@ -1876,8 +1877,9 @@ function handleMessage(msg) {
         window.slotsPendingJackpotChat[msg.playerId] = { playerId: msg.playerId, nickname: msg.nickname, text: msg.text };
         break;
       }
-      if (msg.playerId !== myId) playMessageNotification();
+      if (msg.playerId !== myId && !msg.playerId?.startsWith('bot-')) playMessageNotification();
       if (currentGameType === 'lobby' && gameSelectScreen && !gameSelectScreen.classList.contains('hidden')) {
+        if (msg.playerId?.startsWith('bot-')) break;
         appendLobbyChat(msg.playerId, msg.nickname, msg.text, true);
         return;
       }
@@ -1985,7 +1987,7 @@ function showShowdown(msg) {
   const boardSection = showdownBoardCards?.closest('.showdown-board-section');
   if (boardSection) boardSection.style.display = communityCards.length ? 'block' : 'none';
   const winningSection = document.querySelector('.showdown-winning-section');
-  const showWinningSection = msg.reason !== 'fold' && !didIFold;
+  const showWinningSection = msg.reason !== 'fold' && !lastDidIFold;
   if (winningSection) winningSection.style.display = showWinningSection ? 'block' : 'none';
   if (showdownBoardCards) {
     showdownBoardCards.innerHTML = '';
@@ -2018,7 +2020,7 @@ function showShowdown(msg) {
     (msg.players || []).forEach((p) => {
       if (!p.hand?.length) return;
       const isWinner = winnerIdSet.has(p.id);
-      if (isWinner && (didIFold || msg.reason === 'fold')) return;
+      if (isWinner && (lastDidIFold || msg.reason === 'fold')) return;
       const badges = [];
       if (isWinner) badges.push('Winner');
       if (p.folded) badges.push('Folded');
@@ -2121,6 +2123,42 @@ function renderTable() {
 
   prevMyHandCount = myHand.length;
 
+  // Update start/restart/add-bot buttons before early-return so they stay enabled between hands
+  const isLobbyEarly = !gameState || gameState.phase === 'lobby';
+  const isLastPlayer = players.length <= 1;
+
+  // "Start Game" / "Restart" button — only show Restart when you're the last player
+  if (hasPlayedGame && isLobbyEarly && isLastPlayer) {
+    startBtn.textContent = 'Restart';
+    startBtn.disabled = false;
+    startBtn.classList.remove('hidden');
+  } else if (!hasPlayedGame) {
+    startBtn.textContent = 'Start Game';
+    startBtn.disabled = !isLobbyEarly;
+    startBtn.classList.remove('hidden');
+  } else {
+    startBtn.classList.add('hidden');
+  }
+
+  // "Next Hand" button — show when game has been played, in lobby, and there are other players
+  const restartBtnEarly = document.getElementById('restart-btn');
+  if (restartBtnEarly) {
+    const showNextHand = hasPlayedGame && isLobbyEarly && !isLastPlayer;
+    restartBtnEarly.classList.toggle('hidden', !showNextHand);
+    restartBtnEarly.disabled = !showNextHand;
+  }
+
+  const waitingElEarly = document.getElementById('waiting-for-players');
+  const addBotBtnEarly = document.getElementById('add-bot-btn');
+  if (waitingElEarly) {
+    waitingElEarly.classList.toggle('hidden', players.length >= 2 || !!gameState);
+    waitingElEarly.textContent = 'Waiting for another player or add a bot';
+  }
+  if (addBotBtnEarly) {
+    addBotBtnEarly.classList.toggle('hidden', !!gameState || players.length >= 6);
+    addBotBtnEarly.disabled = !!gameState;
+  }
+
   playersContainer.innerHTML = '';
   const visiblePlayers = gameState ? players : players.filter((p) => (p.currentView ?? 'lobby') === 'holdem');
   const count = visiblePlayers.length;
@@ -2202,7 +2240,7 @@ function renderTable() {
       } else {
         if (existingBubble) existingBubble.remove();
         chatBubble = document.createElement('div');
-        chatBubble.className = 'seat-chat-bubble';
+        chatBubble.className = 'seat-chat-bubble' + (p.isBot ? ' bot' : '');
         chatBubble.textContent = chatData.text;
         chatBubble.dataset.chatFor = p.id;
         document.body.appendChild(chatBubble);
@@ -2355,27 +2393,6 @@ function renderTable() {
     }
   });
 
-  const canStart = players.length >= 2 && (!gameState || gameState.phase === 'lobby');
-  startBtn.disabled = !canStart;
-  startBtn.title = players.length < 2 ? 'Need 2 players to start' : '';
-  startBtn.textContent = hasPlayedGame ? 'Restart' : 'Start Game';
-  const restartBtn = document.getElementById('restart-btn');
-  if (restartBtn) {
-    restartBtn.classList.toggle('hidden', !canStart || !hasPlayedGame);
-    restartBtn.disabled = !canStart;
-  }
-  const waitingEl = document.getElementById('waiting-for-players');
-  const addBotBtn = document.getElementById('add-bot-btn');
-  if (waitingEl) {
-    waitingEl.classList.toggle('hidden', players.length >= 2 || !!gameState);
-    waitingEl.textContent = players.length === 1 ? 'Waiting for another player...' : 'Need 2 players to start';
-  }
-  if (addBotBtn) {
-    const showAddBot = !gameState && players.length < 6;
-    addBotBtn.classList.toggle('hidden', !showAddBot);
-    addBotBtn.disabled = !showAddBot;
-  }
-
 }
 
 function startTurnTimer() {
@@ -2518,12 +2535,14 @@ function updateControls() {
 }
 
 startBtn.addEventListener('click', () => {
+  stopNextHandTimer();
   if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: true, resetChips: false }));
 });
 
 const restartBtnEl = document.getElementById('restart-btn');
 if (restartBtnEl) {
   restartBtnEl.addEventListener('click', () => {
+    stopNextHandTimer();
     if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'startGame', resetStreaks: false }));
   });
 }
